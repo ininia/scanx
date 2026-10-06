@@ -1,0 +1,17 @@
+[
+  {
+    "tool": "gitleaks",
+    "rule_id": "generic-api-key",
+    "category": "secret",
+    "severity": "high",
+    "confidence": "medium",
+    "title": "Secret in git history: generic-api-key",
+    "description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations. (commit 9c8***)",
+    "cwe": [
+      "CWE-798"
+    ],
+    "file": "deploy.php",
+    "fingerprint": "669fd16bf63dd52eea68dc97df8e40af1960cfbfed1c62541b08bde80e1e161d",
+    "remediation": "Revoke and rotate the credential, remove it from the code and load it from a secret store or environment variable."
+  }
+]

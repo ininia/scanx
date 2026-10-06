@@ -1,0 +1,22 @@
+[
+ {
+  "RuleID": "generic-api-key",
+  "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+  "StartLine": 4,
+  "EndLine": 4,
+  "StartColumn": 3,
+  "EndColumn": 54,
+  "Match": "api_secret_token = \"REDACTED\"",
+  "Secret": "REDACTED",
+  "File": "/work/src/src/config.php",
+  "SymlinkFile": "",
+  "Commit": "",
+  "Entropy": 4.825164,
+  "Author": "",
+  "Email": "",
+  "Date": "",
+  "Message": "",
+  "Tags": [],
+  "Fingerprint": "/work/src/src/config.php:generic-api-key:4"
+ }
+]

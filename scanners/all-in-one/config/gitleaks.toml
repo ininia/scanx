@@ -1,0 +1,6 @@
+# scanX gitleaks configuration. Passed explicitly with -c so that a
+# .gitleaks.toml inside the scanned repository can never disable rules.
+title = "scanX gitleaks config"
+
+[extend]
+useDefault = true

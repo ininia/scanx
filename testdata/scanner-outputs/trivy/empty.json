@@ -1,0 +1,10 @@
+{
+  "SchemaVersion": 2,
+  "Trivy": {
+    "Version": "0.75.0"
+  },
+  "ReportID": "01a111a3-205a-70c6-8eeb-02cc73e77a80",
+  "CreatedAt": "2026-10-06T14:34:25.754052449Z",
+  "ArtifactName": "/tmp/empty-repo",
+  "ArtifactType": "filesystem"
+}

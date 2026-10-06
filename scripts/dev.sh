@@ -17,7 +17,7 @@ IMAGE=scanx-dev:local
 docker build -q -t "$IMAGE" "$ROOT/build/dev" >/dev/null
 
 RUN_ARGS=(--rm -v "$ROOT:/src" -w /src
-  -v scanx-gomod:/go/pkg/mod -v scanx-gocache:/root/.cache/go-build)
+  -v scanx-gomod-v3:/home/dev/go/pkg/mod -v scanx-gocache-v3:/home/dev/.cache/go-build)
 if [ -t 0 ] && [ -t 1 ]; then RUN_ARGS+=(-it); fi
 
 target="${1:-test}"

@@ -1,0 +1,158 @@
+# scanX PHP security rules — (c) 2026 İninia Teknoloji Limited Şirketi
+# License: BUSL-1.1 (same as scanX, see LICENSE). Change License: AGPL-3.0-or-later.
+rules:
+  - id: scanx-php-sqli-taint
+    mode: taint
+    languages: [php]
+    severity: ERROR
+    message: >-
+      User input reaches an SQL query without parameterization. An attacker can read or
+      modify the database (SQL injection). Use prepared statements with bound parameters.
+    metadata:
+      cwe: ["CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"]
+      owasp: ["A03:2021 - Injection"]
+      confidence: HIGH
+      category: security
+      references:
+        - https://owasp.org/www-community/attacks/SQL_Injection
+        - https://www.php.net/manual/en/mysqli.quickstart.prepared-statements.php
+    pattern-sources:
+      - pattern-either:
+          - pattern: $_GET
+          - pattern: $_POST
+          - pattern: $_REQUEST
+          - pattern: $_COOKIE
+    pattern-sanitizers:
+      - pattern-either:
+          - pattern: intval(...)
+          - pattern: (int) $X
+          - pattern: floatval(...)
+          - pattern: mysqli_real_escape_string(...)
+          - pattern: $DB->quote(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: mysqli_query($C, $Q, ...)
+              - pattern: mysqli_multi_query($C, $Q, ...)
+              - pattern: mysqli_real_query($C, $Q, ...)
+              - pattern: pg_query($C, $Q, ...)
+              - pattern: $DB->query($Q, ...)
+              - pattern: $DB->exec($Q, ...)
+              - pattern: $DB->multi_query($Q, ...)
+          - focus-metavariable: $Q
+
+  - id: scanx-php-sqli-string-building
+    languages: [php]
+    severity: WARNING
+    message: >-
+      An SQL query is built from a variable by string concatenation or interpolation. If the
+      variable can contain user input this is SQL injection. Use prepared statements.
+    metadata:
+      cwe: ["CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"]
+      owasp: ["A03:2021 - Injection"]
+      confidence: MEDIUM
+      category: security
+      references:
+        - https://cheatsheetseries.owasp.org/cheatsheets/Query_Parameterization_Cheat_Sheet.html
+    patterns:
+      - pattern-either:
+          - pattern: mysqli_query($C, $Q, ...)
+          - pattern: pg_query($C, $Q, ...)
+          - pattern: $DB->query($Q, ...)
+      - metavariable-regex:
+          metavariable: $Q
+          regex: (?is)^.*\b(select|insert|update|delete|replace)\b.*(\$[A-Za-z_]|"\s*\.|\.\s*")
+
+  - id: scanx-php-command-injection
+    mode: taint
+    languages: [php]
+    severity: ERROR
+    message: >-
+      User input reaches an operating system command. An attacker can run arbitrary commands on
+      the server. Avoid shell commands or pass each argument through escapeshellarg().
+    metadata:
+      cwe: ["CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"]
+      owasp: ["A03:2021 - Injection"]
+      confidence: HIGH
+      category: security
+      references:
+        - https://owasp.org/www-community/attacks/Command_Injection
+    pattern-sources:
+      - pattern-either:
+          - pattern: $_GET
+          - pattern: $_POST
+          - pattern: $_REQUEST
+          - pattern: $_COOKIE
+    pattern-sanitizers:
+      - pattern-either:
+          - pattern: escapeshellarg(...)
+          - pattern: escapeshellcmd(...)
+          - pattern: intval(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: system($X, ...)
+              - pattern: exec($X, ...)
+              - pattern: shell_exec($X, ...)
+              - pattern: passthru($X, ...)
+              - pattern: popen($X, ...)
+              - pattern: proc_open($X, ...)
+              - pattern: pcntl_exec($X, ...)
+          - focus-metavariable: $X
+
+  - id: scanx-php-code-injection
+    mode: taint
+    languages: [php]
+    severity: ERROR
+    message: >-
+      User input is evaluated as PHP code. An attacker can execute arbitrary code on the server.
+      Never pass request data to eval(), assert() or create_function().
+    metadata:
+      cwe: ["CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code ('Eval Injection')"]
+      owasp: ["A03:2021 - Injection"]
+      confidence: HIGH
+      category: security
+      references:
+        - https://owasp.org/www-community/attacks/Code_Injection
+    pattern-sources:
+      - pattern-either:
+          - pattern: $_GET
+          - pattern: $_POST
+          - pattern: $_REQUEST
+          - pattern: $_COOKIE
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: eval($X)
+              - pattern: assert($X, ...)
+              - pattern: create_function($A, $X)
+          - focus-metavariable: $X
+
+  - id: scanx-php-file-inclusion
+    mode: taint
+    languages: [php]
+    severity: ERROR
+    message: >-
+      User input controls the path of an include/require statement. An attacker can read local
+      files or execute code (file inclusion). Map allowed values to fixed paths instead.
+    metadata:
+      cwe: ["CWE-98: Improper Control of Filename for Include/Require Statement in PHP Program ('PHP Remote File Inclusion')"]
+      owasp: ["A03:2021 - Injection"]
+      confidence: HIGH
+      category: security
+      references:
+        - https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/07-Input_Validation_Testing/11.1-Testing_for_Local_File_Inclusion
+    pattern-sources:
+      - pattern-either:
+          - pattern: $_GET
+          - pattern: $_POST
+          - pattern: $_REQUEST
+          - pattern: $_COOKIE
+    pattern-sanitizers:
+      - pattern: basename(...)
+    pattern-sinks:
+      - pattern-either:
+          - pattern: include $X;
+          - pattern: include_once $X;
+          - pattern: require $X;
+          - pattern: require_once $X;

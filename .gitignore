@@ -6,3 +6,6 @@ deploy/data/
 *.local
 .idea/
 .vscode/
+/.e2e-out/
+/scanx-results/
+/.claude/

@@ -1,0 +1,22 @@
+{
+  "comment": "Minimum findings scanX must report for testdata/repos/php-vuln (spec §18 fixture repos). More is fine; fewer is a regression.",
+  "min_total": 30,
+  "gate_with_fail_on_high": "fail",
+  "issues": [
+    {"tool": "opengrep", "rule": "scanx-php-sqli-taint", "file": "public/index.php", "line": 10, "min_severity": "high", "cwe": "CWE-89"},
+    {"tool": "opengrep", "rule": "scanx-php-xss-echo", "file": "public/index.php", "line": 13, "min_severity": "high", "cwe": "CWE-79"},
+    {"tool": "opengrep", "rule": "scanx-php-command-injection", "file": "public/index.php", "line": 17, "min_severity": "high", "cwe": "CWE-78"},
+    {"tool": "opengrep", "rule": "scanx-php-file-inclusion", "file": "public/index.php", "line": 20, "min_severity": "high", "cwe": "CWE-98"},
+    {"tool": "opengrep", "rule": "scanx-php-unserialize-user-input", "file": "public/index.php", "line": 23, "min_severity": "high", "cwe": "CWE-502"},
+    {"tool": "opengrep", "rule": "scanx-php-open-redirect", "file": "public/index.php", "line": 26, "min_severity": "medium", "cwe": "CWE-601"},
+    {"tool": "opengrep", "rule": "scanx-php-code-injection", "file": "public/index.php", "line": 29, "min_severity": "high", "cwe": "CWE-95"},
+    {"tool": "opengrep", "rule": "scanx-php-sqli-string-building", "file": "src/db.php", "line": 11, "min_severity": "medium", "cwe": "CWE-89"},
+    {"tool": "opengrep", "rule": "scanx-php-weak-password-hash", "file": "src/db.php", "line": 17, "min_severity": "medium", "cwe": "CWE-328"},
+    {"tool": "gitleaks", "rule": "generic-api-key", "file": "src/config.php", "line": 4, "min_severity": "high"},
+    {"tool": "trivy", "rule": "CVE-2022-29248", "file": "composer.lock", "min_severity": "medium"},
+    {"tool": "osv-scanner", "rule": "GHSA-25mq-v84q-4j7r", "file": "composer.lock", "min_severity": "high"},
+    {"tool": "trivy", "rule": "DS-0002", "file": "Dockerfile", "min_severity": "high"},
+    {"tool": "trivy", "rule": "DS-0001", "file": "Dockerfile", "min_severity": "medium"}
+  ],
+  "secrets_never_in_report": ["Zx9fQ2LmP7rT4vW8yB1nK6sD3hJ5qWq"]
+}

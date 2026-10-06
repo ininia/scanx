@@ -13,9 +13,27 @@
 
 ---
 
-> **Project status: Phase 0 of 8 — foundation.** The server, database, TLS proxy and installer
-> skeleton run today; **scanning, the web UI and GitHub connection are not available yet**.
-> Follow progress in [`TASKS.md`](TASKS.md) and the roadmap below. Do not use in production yet.
+> **Project status: Phase 1 of 8.** The **scan engine works today**: scan any folder locally with
+> Docker and get JSON / SARIF / HTML reports. The web UI, accounts and GitHub connection arrive in
+> the next phases. Follow progress in [`TASKS.md`](TASKS.md) and the roadmap below.
+
+## Scan a repository now (only Docker needed)
+
+```bash
+git clone https://github.com/ininia/scanx.git
+./scanx/scripts/scan.sh /path/to/your/repo
+```
+
+Your code is mounted **read-only** into a throw-away container with **no network**; nothing
+leaves your machine. Reports land in `./scanx-results/` (`scanx.html`, `scanx.json`,
+`scanx.sarif`, `sbom.cdx.json`). Exit code: `0` passed, `1` quality gate failed (default: any
+high or critical finding), `2` scan error, `3` bad options. See an
+[example report](docs/examples/php-vuln-report.html) of the bundled vulnerable fixture.
+
+Scanners in this release: **Opengrep** (multi-language SAST with 776 open-licensed rules, incl.
+scanX's own PHP taint rules), **Gitleaks** (working tree + git history), **Trivy** (dependencies,
+IaC, secrets, licenses), **OSV-Scanner** (dependencies, second opinion) and **Syft** (SBOM).
+Findings from different tools are merged into one issue.
 
 ## What scanX does (target v1.0)
 
@@ -29,7 +47,7 @@
 - 🏢 **Multi-tenant:** organizations, roles, 2FA, audit log. One team never sees another's repos.
 - 📊 New / fixed / existing findings between scans, quality gates that fail CI, SARIF, PDF, SBOM.
 
-## Quick start (for DevOps — no programming needed)
+## Install the server (for DevOps — no programming needed)
 
 You need a Linux server with **Docker** and **Docker Compose v2** (4 vCPU / 8 GB RAM / 50 GB disk
 recommended) and `git`.
@@ -50,8 +68,8 @@ firewall, real TLS certificates, updates, backups and troubleshooting.
 | Phase | Content | Status |
 |---|---|---|
 | 0 | Foundation: server, DB, TLS proxy, installer skeleton, CI | ✅ done |
-| 1 | Scan engine + `scanx scan` CLI (Gitleaks, Opengrep, Trivy, OSV, Syft) | ⏳ next |
-| 2 | Accounts, organizations, 2FA, web UI, setup wizard | |
+| 1 | Scan engine + `scanx scan` CLI (Gitleaks, Opengrep, Trivy, OSV, Syft) | ✅ done |
+| 2 | Accounts, organizations, 2FA, web UI, setup wizard | ⏳ next |
 | 3 | Isolated sandbox, Git + deploy keys, manual scans, report pages | |
 | 4 | Webhooks (GitHub/GitLab/Gitea/Bitbucket), schedules, notifications | |
 | 5 | GitHub Action, GitLab CI template, SARIF upload | |

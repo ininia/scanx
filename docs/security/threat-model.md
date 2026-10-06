@@ -27,6 +27,17 @@ Temel: şartname §5.1. Bu sürüm Faz 0'da gerçekten var olan yüzeyi ve şimd
 | Brute force | nginx login 5/dk/IP, genel 20 r/s | `deploy/nginx` |
 | Slowloris/büyük gövde | ReadHeaderTimeout 10s, MaxHeaderBytes 1MB, `client_max_body_size 5m` | `internal/app/server.go` |
 
+## Faz 1 ile eklenen önlemler (tarama motoru)
+| Tehdit | Önlem | Kanıt |
+|---|---|---|
+| Kötü niyetli repo tarama sırasında ağa/host'a erişir | Tarayıcı konteyneri `--network none`, salt-okunur kök ve kaynak, `cap-drop ALL`, no-new-privileges, uid 65532, noexec /tmp, pids limiti | `TestDockerArgsAreHardened`, `scripts/e2e-scan.sh` |
+| Repo yapılandırması bulguları gizler | gitleaks'e daima scanX `-c` ve boş ignore dizini; opengrep `--x-ignore-semgrepignore-files`; exclude yalnızca kullanıcı/operatörden | gitleaks/opengrep `TestCommand*` |
+| Rapor/snippet içinde sır sızıntısı | Tüm kategorilerde snippet maskeleme; araç ham çıktıları rapora girmez; log özetleri maskeli | `TestNormalizeMasksSecretsInNonSecretSnippets`, e2e `secrets_never_in_report` |
+| Snippet ile kök dışı dosya okuma | `SafeJoin`: `..`, mutlak yol ve kaçan symlink reddi; büyük/binary dosyalar atlanır | `TestSafeJoinRejectsEscapes` |
+| Tarayıcı ikili dosyası tedarik zinciri | Resmi checksum dosyası (gitleaks/trivy/osv/syft) ve cosign (opengrep) ile doğrulama; SHA256 Dockerfile'da sabit | `scanners/all-in-one/Dockerfile` |
+| Kural lisans riski | Lisans kapısı build'i kırar | `internal/rules` testleri |
+| Zaman aşımında yetim süreçler | Süreç grubuna SIGKILL | `TestExecRunner` |
+
 ## Bilinen açıklar / sonraki fazlar
 | # | Konu | Plan |
 |---|---|---|
@@ -35,4 +46,6 @@ Temel: şartname §5.1. Bu sürüm Faz 0'da gerçekten var olan yüzeyi ve şimd
 | R3 | İmajlar tag ile, digest pin'siz (nginx, postgres, distroless) | T-0007b, v1.0 öncesi |
 | R4 | GitHub Actions SHA pin'siz | T-0008b |
 | R5 | HTTP→HTTPS yönlendirmesi `$host` kullanır (standart dışı portta port düşer) | Faz 6: `SCANX_BASE_URL`'den üretilen nginx config |
-| R6 | Worker/Docker socket, sandbox, webhook, SSH key yüzeyi henüz yok | Faz 3–4, §5 kuralları birebir |
+| R6 | Worker/Docker socket, webhook, SSH key yüzeyi henüz yok | Faz 3–4, §5 kuralları birebir |
+| R7 | Zafiyet DB'leri imaja gömülü; güncellikleri build tarihine bağlı | Faz 3: ayrı volume + günlük güncelleme, DB yaşı > 3 gün uyarısı (§15) |
+| R8 | Gitleaks `fake`/`example` içeren değerleri bilinçli olarak yok sayar | Trivy secret taraması ikinci görüş; Faz 7'de Betterleaks/TruffleHog |

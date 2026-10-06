@@ -3,9 +3,24 @@
 Bu kılavuz yazılım bilgisi gerektirmez. Linux sunucuda komut çalıştırabiliyor ve Docker
 kullanabiliyorsanız yeterli.
 
-> **Durum (Faz 0):** Bu sürüm sunucuyu, veritabanını ve HTTPS katmanını kurar ve çalıştırır.
-> Tarama, web arayüzü ve GitHub bağlantısı sonraki fazlarda gelecek; bu kılavuz her fazda
-> güncellenir. Planlanan GitHub bağlantı adımları aşağıda "Yakında" bölümünde.
+> **Durum (Faz 1):** Tarama motoru çalışıyor — bir klasörü/repoyu bugün tarayabilirsiniz (Bölüm 0).
+> Sunucu, veritabanı ve HTTPS katmanı kurulabiliyor; web arayüzü ve GitHub bağlantısı sonraki
+> fazlarda gelecek. Bu kılavuz her fazda güncellenir.
+
+## 0. Hemen dene: bir repoyu tara (sadece Docker)
+
+```bash
+git clone https://github.com/ininia/scanx.git
+./scanx/scripts/scan.sh /taranacak/repo/yolu
+```
+
+- İlk çalıştırmada tarayıcı imajı hazırlanır (araçlar ve zafiyet veritabanları indirilir, 5–10 dk).
+- Kodunuz konteynere **salt-okunur** bağlanır, konteynerin **ağı yoktur**, iş bitince silinir.
+- Raporlar `./scanx-results/` klasöründe: `scanx.html` (tarayıcıda açın), `scanx.json`,
+  `scanx.sarif`, `sbom.cdx.json`.
+- Çıkış kodu: `0` geçti · `1` kalite kapısı kaldı (varsayılan: yüksek/kritik bulgu var) · `2` tarama hatası.
+- Seçenekler: `--fail-on critical` (sadece kritikler kapıyı kırsın), `--profile full` (daha fazla
+  kural, daha çok gürültü), `--exclude docs` (klasör hariç tut), `--history=false` (git geçmişi taranmasın).
 
 ---
 

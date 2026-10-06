@@ -1,0 +1,7 @@
+{
+    "name": "scanx/php-vuln-fixture",
+    "description": "Intentionally vulnerable fixture for scanX tests",
+    "require": {
+        "guzzlehttp/guzzle": "7.4.0"
+    }
+}

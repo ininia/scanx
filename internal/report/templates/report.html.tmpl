@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>scanX report{{with .Target.Repo}} · {{.}}{{end}}</title>
+<style>
+:root{--bg:#070c17;--grid:rgba(0,236,147,.04);--s1:#0d1526;--s2:#131e35;--s3:#1b2945;--border:#23324f;
+--text:#e6edf7;--muted:#8f9db8;--faint:#5d6b87;--accent:#00ec93;--g1:#00ec93;--g2:#00c774;--g3:#009e5c;
+--crit:#ff3d68;--high:#ff8a3d;--med:#ffc53d;--low:#4da3ff;--info:#8f9db8;color-scheme:dark}
+@media (prefers-color-scheme:light){:root{--bg:#f5f7fb;--grid:rgba(51,64,94,.05);--s1:#fff;--s2:#eef2f8;--s3:#e2e8f2;
+--border:#d5dce8;--text:#1b2438;--muted:#55627d;--faint:#8590a6;--accent:#00a862;color-scheme:light}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 Inter,"Segoe UI",system-ui,-apple-system,sans-serif;
+background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:32px 32px}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 64px}
+header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;border-bottom:1px solid var(--border);padding-bottom:16px}
+.brand{display:flex;align-items:center;gap:10px;font:700 26px/1 "Space Grotesk",Inter,sans-serif;font-style:italic;letter-spacing:-.5px}
+.brand svg{width:34px;height:34px}
+.meta{color:var(--muted);font-size:13px;margin-left:auto;text-align:right}
+code,pre,.mono{font-family:"JetBrains Mono","Cascadia Code",ui-monospace,monospace}
+h2{font:600 15px/1.2 "Space Grotesk",Inter,sans-serif;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:32px 0 12px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-top:20px}
+.card{background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:14px 16px;position:relative;overflow:hidden}
+.card .n{font:700 30px/1 "Space Grotesk",Inter,sans-serif}
+.card .l{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-top:6px}
+.card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c,var(--border))}
+.c-crit{--c:var(--crit)}.c-high{--c:var(--high)}.c-med{--c:var(--med)}.c-low{--c:var(--low)}.c-info{--c:var(--info)}
+.gate{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;font-size:12px}
+.gate-pass{background:rgba(0,199,116,.15);color:var(--g2);border:1px solid var(--g3)}
+.gate-fail{background:rgba(255,61,104,.12);color:var(--crit);border:1px solid var(--crit)}
+.score{font:700 30px/1 "Space Grotesk",Inter,sans-serif}.score-good{color:var(--g2)}.score-mid{color:var(--med)}.score-bad{color:var(--crit)}
+.warn{background:rgba(255,197,61,.1);border:1px solid rgba(255,197,61,.5);color:var(--text);border-radius:8px;padding:10px 14px;margin-top:12px}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;background:var(--s1);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em;background:var(--s2)}
+tr:last-child td{border-bottom:0}
+.st-ok{color:var(--g2)}.st-failed,.st-timeout{color:var(--crit)}
+.sev{display:inline-block;min-width:68px;text-align:center;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.sev-critical{background:var(--crit);color:#fff}.sev-high{background:var(--high);color:#1a0d00}.sev-medium{background:var(--med);color:#1a1300}
+.sev-low{background:var(--low);color:#00122a}.sev-info{background:var(--s3);color:var(--muted)}
+details.issue{background:var(--s1);border:1px solid var(--border);border-radius:8px;margin-bottom:8px}
+details.issue[open]{border-color:var(--accent)}
+details.issue summary{cursor:pointer;list-style:none;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline;padding:10px 14px}
+details.issue summary .t{flex:1 1 320px;min-width:0;overflow-wrap:anywhere}
+details.issue summary::-webkit-details-marker{display:none}
+.loc{color:var(--muted);font-size:12px;margin-left:auto;overflow-wrap:anywhere}
+.body{padding:0 14px 14px;border-top:1px solid var(--border)}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.tag{background:var(--s3);color:var(--muted);border-radius:4px;padding:1px 7px;font-size:12px}
+.tag.src{color:var(--accent)}
+pre{background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;overflow:auto;font-size:12.5px}
+a{color:var(--accent)}
+footer{color:var(--faint);font-size:12px;margin-top:40px;border-top:1px solid var(--border);padding-top:12px}
+</style>
+</head>
+<body><div class="wrap">
+<header>
+  <div class="brand">
+    <svg viewBox="-10 -80 540 535" aria-hidden="true"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00ec93"/><stop offset=".55" stop-color="#00c774"/><stop offset="1" stop-color="#009e5c"/></linearGradient></defs><g fill="url(#g)"><polygon points="0,373 127,373 520,0 375,0"/><polygon points="85,0 212,0 280,95 205,170"/><polygon points="280,275 355,200 460,345 330,345"/></g></svg>
+    <span>scan<span style="color:var(--accent)">X</span></span>
+  </div>
+  <span class="gate {{gateClass .Gate}}">Quality gate: {{.Gate.Result}}</span>
+  <div class="meta">
+    {{with .Target.Repo}}<div class="mono">{{.}}</div>{{end}}
+    {{with .Target.Branch}}<div>branch <b class="mono">{{.}}</b>{{with $.Target.Commit}} · <span class="mono">{{.}}</span>{{end}}</div>{{end}}
+    <div>{{.FinishedAt.Format "2006-01-02 15:04 UTC"}} · {{.DurationSec}}s · scanX {{.Version}}</div>
+  </div>
+</header>
+
+<div class="cards">
+  <div class="card"><div class="score {{scoreClass .Score}}">{{.Score}}</div><div class="l">Security score</div></div>
+  <div class="card c-crit"><div class="n">{{.Summary.Critical}}</div><div class="l">Critical</div></div>
+  <div class="card c-high"><div class="n">{{.Summary.High}}</div><div class="l">High</div></div>
+  <div class="card c-med"><div class="n">{{.Summary.Medium}}</div><div class="l">Medium</div></div>
+  <div class="card c-low"><div class="n">{{.Summary.Low}}</div><div class="l">Low</div></div>
+  <div class="card c-info"><div class="n">{{.Summary.Info}}</div><div class="l">Info</div></div>
+</div>
+{{if .Gate.Reasons}}<div class="warn">Gate policy <code>{{.Gate.Policy}}</code> failed: {{join .Gate.Reasons ", "}}</div>{{end}}
+{{range .Warnings}}<div class="warn">{{.}}</div>{{end}}
+
+<h2>Findings ({{.Summary.Total}})</h2>
+{{range .Issues}}
+<details class="issue">
+  <summary><span class="sev {{sevClass .Severity}}">{{.Severity}}</span><span class="t">{{.Title}}</span>
+    <span class="loc mono">{{.File}}{{if .StartLine}}:{{.StartLine}}{{end}}</span></summary>
+  <div class="body">
+    <div class="tags">
+      <span class="tag">{{.Category}}</span>
+      {{range .Sources}}<span class="tag src">{{.}}</span>{{end}}
+      {{range .CWE}}<span class="tag">{{.}}</span>{{end}}
+      {{range .CVE}}<span class="tag">{{.}}</span>{{end}}
+      {{with .Package}}<span class="tag mono">{{.Name}}@{{.Version}}{{with .FixedVersion}} → {{.}}{{end}}</span>{{end}}
+      {{with .Confidence}}<span class="tag">confidence: {{.}}</span>{{end}}
+    </div>
+    {{with index .Findings 0}}
+      {{with .Description}}<p>{{.}}</p>{{end}}
+      {{with .Snippet}}<pre>{{.}}</pre>{{end}}
+      {{with .Remediation}}<p><b>Fix:</b> {{.}}</p>{{end}}
+      {{if .References}}<p>{{range .References}}<a href="{{.}}" rel="noreferrer noopener">{{.}}</a><br>{{end}}</p>{{end}}
+    {{end}}
+    <p class="mono" style="color:var(--faint);font-size:11px">fingerprint {{.Fingerprint}}</p>
+  </div>
+</details>
+{{else}}
+<p>No findings. 🎉</p>
+{{end}}
+
+<h2>Scanners</h2>
+<div class="tablewrap"><table>
+  <tr><th>Scanner</th><th>Version</th><th>Status</th><th>Findings</th><th>Duration</th></tr>
+  {{range .Tools}}<tr><td>{{.Name}}</td><td class="mono">{{.Version}}</td><td class="st-{{.Status}}">{{.Status}}{{with .Error}} — {{.}}{{end}}</td><td>{{.Findings}}</td><td>{{secs .DurationMS}}</td></tr>{{end}}
+</table></div>
+
+<footer>Generated by scanX — automated tool output; it does not guarantee the absence of vulnerabilities.
+Secrets are masked; source code is not stored.</footer>
+</div></body>
+</html>

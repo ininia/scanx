@@ -1,0 +1,1225 @@
+{
+  "SchemaVersion": 2,
+  "Trivy": {
+    "Version": "0.75.0"
+  },
+  "ReportID": "01a111a3-1036-70e9-b478-f1979af1f0af",
+  "CreatedAt": "2026-10-06T14:34:21.622062066Z",
+  "ArtifactName": "/work/src",
+  "ArtifactType": "filesystem",
+  "Results": [
+    {
+      "Target": "composer.lock",
+      "Class": "lang-pkgs",
+      "Type": "composer",
+      "Packages": [
+        {
+          "ID": "guzzlehttp/guzzle@7.4.0",
+          "Name": "guzzlehttp/guzzle",
+          "Identifier": {
+            "PURL": "pkg:composer/guzzlehttp/guzzle@7.4.0",
+            "UID": "9900227892078da2"
+          },
+          "Version": "7.4.0",
+          "Relationship": "direct",
+          "Locations": [
+            {
+              "StartLine": 5,
+              "EndLine": 10
+            }
+          ],
+          "AnalyzedBy": "composer"
+        },
+        {
+          "ID": "guzzlehttp/psr7@1.8.1",
+          "Name": "guzzlehttp/psr7",
+          "Identifier": {
+            "PURL": "pkg:composer/guzzlehttp/psr7@1.8.1",
+            "UID": "e66d7ec4fa8ac581"
+          },
+          "Version": "1.8.1",
+          "Indirect": true,
+          "Relationship": "indirect",
+          "Locations": [
+            {
+              "StartLine": 11,
+              "EndLine": 16
+            }
+          ],
+          "AnalyzedBy": "composer"
+        }
+      ],
+      "Vulnerabilities": [
+        {
+          "VulnerabilityID": "CVE-2022-29248",
+          "PkgID": "guzzlehttp/guzzle@7.4.0",
+          "PkgName": "guzzlehttp/guzzle",
+          "PkgIdentifier": {
+            "PURL": "pkg:composer/guzzlehttp/guzzle@7.4.0",
+            "UID": "9900227892078da2"
+          },
+          "InstalledVersion": "7.4.0",
+          "FixedVersion": "7.4.3, 6.5.6",
+          "Status": "fixed",
+          "SeveritySource": "nvd",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2022-29248",
+          "DataSource": {
+            "ID": "php-security-advisories",
+            "Name": "PHP Security Advisories Database",
+            "URL": "https://github.com/FriendsOfPHP/security-advisories"
+          },
+          "Fingerprint": "sha256:d649e9b931215aca789c338ea3ac114c278e309d883492720dac915b03463d40",
+          "Title": "Guzzle is a PHP HTTP client. Guzzle prior to versions 6.5.6 and 7.4.3  ...",
+          "Description": "Guzzle is a PHP HTTP client. Guzzle prior to versions 6.5.6 and 7.4.3 contains a vulnerability with the cookie middleware. The vulnerability is that it is not checked if the cookie domain equals the domain of the server which sets the cookie via the Set-Cookie header, allowing a malicious server to set cookies for unrelated domains. The cookie middleware is disabled by default, so most library consumers will not be affected by this issue. Only those who manually add the cookie middleware to the handler stack or construct the client with ['cookies' =\u003e true] are affected. Moreover, those who do not use the same Guzzle client to call multiple domains and have disabled redirect forwarding are not affected by this vulnerability. Guzzle versions 6.5.6 and 7.4.3 contain a patch for this issue. As a workaround, turn off the cookie middleware.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-200",
+            "CWE-565"
+          ],
+          "VendorSeverity": {
+            "bitnami": 3,
+            "ghsa": 3,
+            "nvd": 3
+          },
+          "CVSS": {
+            "bitnami": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:N",
+              "V3Score": 8.1
+            },
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:C/C:H/I:H/A:N",
+              "V3Score": 8
+            },
+            "nvd": {
+              "V2Vector": "AV:N/AC:M/Au:N/C:P/I:P/A:N",
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:N",
+              "V2Score": 5.8,
+              "V3Score": 8.1
+            }
+          },
+          "References": [
+            "https://github.com/FriendsOfPHP/security-advisories/blob/master/guzzlehttp/guzzle/CVE-2022-29248.yaml",
+            "https://github.com/guzzle/guzzle",
+            "https://github.com/guzzle/guzzle/commit/74a8602c6faec9ef74b7a9391ac82c5e65b1cdab",
+            "https://github.com/guzzle/guzzle/pull/3018",
+            "https://github.com/guzzle/guzzle/security/advisories/GHSA-cwmx-hcrq-mhc3",
+            "https://nvd.nist.gov/vuln/detail/CVE-2022-29248",
+            "https://www.debian.org/security/2022/dsa-5246",
+            "https://www.drupal.org/sa-core-2022-010"
+          ],
+          "PublishedDate": "2022-05-25T18:15:08.503Z",
+          "LastModifiedDate": "2026-06-17T04:39:54.95Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2022-31042",
+          "PkgID": "guzzlehttp/guzzle@7.4.0",
+          "PkgName": "guzzlehttp/guzzle",
+          "PkgIdentifier": {
+            "PURL": "pkg:composer/guzzlehttp/guzzle@7.4.0",
+            "UID": "9900227892078da2"
+          },
+          "InstalledVersion": "7.4.0",
+          "FixedVersion": "7.4.4, 6.5.7",
+          "Status": "fixed",
+          "SeveritySource": "nvd",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2022-31042",
+          "DataSource": {
+            "ID": "php-security-advisories",
+            "Name": "PHP Security Advisories Database",
+            "URL": "https://github.com/FriendsOfPHP/security-advisories"
+          },
+          "Fingerprint": "sha256:a3d8bb177a009a27c95b7dd60cbe3b3265debd9bd1438df1ea5597238f49e8a7",
+          "Title": "Guzzle is an open source PHP HTTP client. In affected versions the `Co ...",
+          "Description": "Guzzle is an open source PHP HTTP client. In affected versions the `Cookie` headers on requests are sensitive information. On making a request using the `https` scheme to a server which responds with a redirect to a URI with the `http` scheme, or on making a request to a server which responds with a redirect to a a URI to a different host, we should not forward the `Cookie` header on. Prior to this fix, only cookies that were managed by our cookie middleware would be safely removed, and any `Cookie` header manually added to the initial request would not be stripped. We now always strip it, and allow the cookie middleware to re-add any cookies that it deems should be there. Affected Guzzle 7 users should upgrade to Guzzle 7.4.4 as soon as possible. Affected users using any earlier series of Guzzle should upgrade to Guzzle 6.5.7 or 7.4.4. Users unable to upgrade may consider an alternative approach to use your own redirect middleware, rather than ours. If you do not require or expect redirects to be followed, one should simply disable redirects all together.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-200",
+            "CWE-212"
+          ],
+          "VendorSeverity": {
+            "bitnami": 3,
+            "ghsa": 3,
+            "nvd": 3
+          },
+          "CVSS": {
+            "bitnami": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+              "V3Score": 7.5
+            },
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+              "V3Score": 7.5
+            },
+            "nvd": {
+              "V2Vector": "AV:N/AC:L/Au:N/C:P/I:N/A:N",
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+              "V2Score": 5,
+              "V3Score": 7.5
+            }
+          },
+          "References": [
+            "https://github.com/FriendsOfPHP/security-advisories/blob/master/guzzlehttp/guzzle/CVE-2022-31042.yaml",
+            "https://github.com/guzzle/guzzle",
+            "https://github.com/guzzle/guzzle/commit/e3ff079b22820c2029d4c2a87796b6a0b8716ad8",
+            "https://github.com/guzzle/guzzle/security/advisories/GHSA-f2wf-25xc-69c9",
+            "https://nvd.nist.gov/vuln/detail/CVE-2022-31042",
+            "https://www.debian.org/security/2022/dsa-5246",
+            "https://www.drupal.org/sa-core-2022-011",
+            "https://www.rfc-editor.org/rfc/rfc9110.html#name-redirection-3xx"
+          ],
+          "PublishedDate": "2022-06-10T00:15:07.69Z",
+          "LastModifiedDate": "2026-06-17T04:44:40.3Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2022-31043",
+          "PkgID": "guzzlehttp/guzzle@7.4.0",
+          "PkgName": "guzzlehttp/guzzle",
+          "PkgIdentifier": {
+            "PURL": "pkg:composer/guzzlehttp/guzzle@7.4.0",
+            "UID": "9900227892078da2"
+          },
+          "InstalledVersion": "7.4.0",
+          "FixedVersion": "7.4.4, 6.5.7",
+          "Status": "fixed",
+          "SeveritySource": "nvd",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2022-31043",
+          "DataSource": {
+            "ID": "php-security-advisories",
+            "Name": "PHP Security Advisories Database",
+            "URL": "https://github.com/FriendsOfPHP/security-advisories"
+          },
+          "Fingerprint": "sha256:4a47becf42dc5147f879c1d2e838a46afa59c4b49c47e941cd5762a57169ab40",
+          "Title": "Guzzle is an open source PHP HTTP client. In affected versions `Author ...",
+          "Description": "Guzzle is an open source PHP HTTP client. In affected versions `Authorization` headers on requests are sensitive information. On making a request using the `https` scheme to a server which responds with a redirect to a URI with the `http` scheme, we should not forward the `Authorization` header on. This is much the same as to how we don't forward on the header if the host changes. Prior to this fix, `https` to `http` downgrades did not result in the `Authorization` header being removed, only changes to the host. Affected Guzzle 7 users should upgrade to Guzzle 7.4.4 as soon as possible. Affected users using any earlier series of Guzzle should upgrade to Guzzle 6.5.7 or 7.4.4. Users unable to upgrade may consider an alternative approach which would be to use their own redirect middleware. Alternately users may simply disable redirects all together if redirects are not expected or required.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-200",
+            "CWE-212"
+          ],
+          "VendorSeverity": {
+            "bitnami": 3,
+            "ghsa": 3,
+            "nvd": 3
+          },
+          "CVSS": {
+            "bitnami": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+              "V3Score": 7.5
+            },
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+              "V3Score": 7.5
+            },
+            "nvd": {
+              "V2Vector": "AV:N/AC:L/Au:N/C:P/I:N/A:N",
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+              "V2Score": 5,
+              "V3Score": 7.5
+            }
+          },
+          "References": [
+            "https://github.com/FriendsOfPHP/security-advisories/blob/master/guzzlehttp/guzzle/CVE-2022-31043.yaml",
+            "https://github.com/guzzle/guzzle",
+            "https://github.com/guzzle/guzzle/commit/e3ff079b22820c2029d4c2a87796b6a0b8716ad8",
+            "https://github.com/guzzle/guzzle/security/advisories/GHSA-w248-ffj2-4v5q",
+            "https://nvd.nist.gov/vuln/detail/CVE-2022-31043",
+            "https://www.debian.org/security/2022/dsa-5246",
+            "https://www.drupal.org/sa-core-2022-011",
+            "https://www.rfc-editor.org/rfc/rfc9110.html#name-redirection-3xx"
+          ],
+          "PublishedDate": "2022-06-10T00:15:07.757Z",
+          "LastModifiedDate": "2026-06-17T04:44:40.427Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2022-31090",
+          "PkgID": "guzzlehttp/guzzle@7.4.0",
+          "PkgName": "guzzlehttp/guzzle",
+          "PkgIdentifier": {
+            "PURL": "pkg:composer/guzzlehttp/guzzle@7.4.0",
+            "UID": "9900227892078da2"
+          },
+          "InstalledVersion": "7.4.0",
+          "FixedVersion": "7.4.5, 6.5.8",
+          "Status": "fixed",
+          "SeveritySource": "nvd",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2022-31090",
+          "DataSource": {
+            "ID": "php-security-advisories",
+            "Name": "PHP Security Advisories Database",
+            "URL": "https://github.com/FriendsOfPHP/security-advisories"
+          },
+          "Fingerprint": "sha256:d80324d191c48bc2b73dacb1fbfcef5ead27b89171195c4486d46c2fdcc58639",
+          "Title": "Guzzle, an extensible PHP HTTP client. `Authorization` headers on requ ...",
+          "Description": "Guzzle, an extensible PHP HTTP client. `Authorization` headers on requests are sensitive information. In affected versions when using our Curl handler, it is possible to use the `CURLOPT_HTTPAUTH` option to specify an `Authorization` header. On making a request which responds with a redirect to a URI with a different origin (change in host, scheme or port), if we choose to follow it, we should remove the `CURLOPT_HTTPAUTH` option before continuing, stopping curl from appending the `Authorization` header to the new request. Affected Guzzle 7 users should upgrade to Guzzle 7.4.5 as soon as possible. Affected users using any earlier series of Guzzle should upgrade to Guzzle 6.5.8 or 7.4.5. Note that a partial fix was implemented in Guzzle 7.4.2, where a change in host would trigger removal of the curl-added Authorization header, however this earlier fix did not cover change in scheme or change in port. If you do not require or expect redirects to be followed, one should simply disable redirects all together. Alternatively, one can specify to use the Guzzle steam handler backend, rather than curl.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-200",
+            "CWE-212"
+          ],
+          "VendorSeverity": {
+            "ghsa": 3,
+            "nvd": 3
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:N/A:N",
+              "V3Score": 7.7
+            },
+            "nvd": {
+              "V2Vector": "AV:N/AC:L/Au:S/C:P/I:N/A:N",
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:N/A:N",
+              "V2Score": 4,
+              "V3Score": 7.7
+            }
+          },
+          "References": [
+            "https://github.com/FriendsOfPHP/security-advisories/blob/master/guzzlehttp/guzzle/CVE-2022-31090.yaml",
+            "https://github.com/guzzle/guzzle",
+            "https://github.com/guzzle/guzzle/blob/6.5.8/CHANGELOG.md",
+            "https://github.com/guzzle/guzzle/blob/7.4.5/CHANGELOG.md",
+            "https://github.com/guzzle/guzzle/commit/1dd98b0564cb3f6bd16ce683cb755f94c10fbd82",
+            "https://github.com/guzzle/guzzle/security/advisories/GHSA-25mq-v84q-4j7r",
+            "https://nvd.nist.gov/vuln/detail/CVE-2022-31090",
+            "https://security.gentoo.org/glsa/202305-24",
+            "https://www.debian.org/security/2022/dsa-5246"
+          ],
+          "PublishedDate": "2022-06-27T22:15:08.873Z",
+          "LastModifiedDate": "2026-06-17T04:44:46.55Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2022-31091",
+          "PkgID": "guzzlehttp/guzzle@7.4.0",
+          "PkgName": "guzzlehttp/guzzle",
+          "PkgIdentifier": {
+            "PURL": "pkg:composer/guzzlehttp/guzzle@7.4.0",
+            "UID": "9900227892078da2"
+          },
+          "InstalledVersion": "7.4.0",
+          "FixedVersion": "7.4.5, 6.5.8",
+          "Status": "fixed",
+          "SeveritySource": "nvd",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2022-31091",
+          "DataSource": {
+            "ID": "php-security-advisories",
+            "Name": "PHP Security Advisories Database",
+            "URL": "https://github.com/FriendsOfPHP/security-advisories"
+          },
+          "Fingerprint": "sha256:b938627c9046d587572bf733adedd798b24e6396434a96ab03fe3bcea9e74340",
+          "Title": "Guzzle, an extensible PHP HTTP client. `Authorization` and `Cookie` he ...",
+          "Description": "Guzzle, an extensible PHP HTTP client. `Authorization` and `Cookie` headers on requests are sensitive information. In affected versions on making a request which responds with a redirect to a URI with a different port, if we choose to follow it, we should remove the `Authorization` and `Cookie` headers from the request, before containing. Previously, we would only consider a change in host or scheme. Affected Guzzle 7 users should upgrade to Guzzle 7.4.5 as soon as possible. Affected users using any earlier series of Guzzle should upgrade to Guzzle 6.5.8 or 7.4.5. Note that a partial fix was implemented in Guzzle 7.4.2, where a change in host would trigger removal of the curl-added Authorization header, however this earlier fix did not cover change in scheme or change in port. An alternative approach would be to use your own redirect middleware, rather than ours, if you are unable to upgrade. If you do not require or expect redirects to be followed, one should simply disable redirects all together.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-200"
+          ],
+          "VendorSeverity": {
+            "ghsa": 3,
+            "nvd": 3
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:N/A:N",
+              "V3Score": 7.7
+            },
+            "nvd": {
+              "V2Vector": "AV:N/AC:L/Au:S/C:P/I:N/A:N",
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:N/A:N",
+              "V2Score": 4,
+              "V3Score": 7.7
+            }
+          },
+          "References": [
+            "https://github.com/FriendsOfPHP/security-advisories/blob/master/guzzlehttp/guzzle/CVE-2022-31091.yaml",
+            "https://github.com/guzzle/guzzle",
+            "https://github.com/guzzle/guzzle/commit/1dd98b0564cb3f6bd16ce683cb755f94c10fbd82",
+            "https://github.com/guzzle/guzzle/security/advisories/GHSA-q559-8m2m-g699",
+            "https://nvd.nist.gov/vuln/detail/CVE-2022-31091",
+            "https://security.gentoo.org/glsa/202305-24",
+            "https://www.debian.org/security/2022/dsa-5246"
+          ],
+          "PublishedDate": "2022-06-27T22:15:08.933Z",
+          "LastModifiedDate": "2026-06-17T04:44:46.673Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-69246",
+          "VendorIDs": [
+            "GHSA-v5mv-p594-2x33"
+          ],
+          "PkgID": "guzzlehttp/guzzle@7.4.0",
+          "PkgName": "guzzlehttp/guzzle",
+          "PkgIdentifier": {
+            "PURL": "pkg:composer/guzzlehttp/guzzle@7.4.0",
+            "UID": "9900227892078da2"
+          },
+          "InstalledVersion": "7.4.0",
+          "FixedVersion": "7.15.2, 8.0.1",
+          "Status": "fixed",
+          "SeveritySource": "ghsa",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-69246",
+          "DataSource": {
+            "ID": "ghsa",
+            "Name": "GitHub Security Advisory Composer",
+            "URL": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Acomposer"
+          },
+          "Fingerprint": "sha256:43a88c1cd96f8f9ac4d72c8919d8fe4d5c870e6b81c14ead1919fda552f33c31",
+          "Title": "Guzzle is an extensible PHP HTTP client. Prior to 7.15.2 and 8.0.1, Gu ...",
+          "Description": "Guzzle is an extensible PHP HTTP client. Prior to 7.15.2 and 8.0.1, Guzzle gives a transport the request URI as text and supplies the Host header separately. The cURL handlers set CURLOPT_URL to the URI exactly as written and push that Host into CURLOPT_HTTPHEADER; StreamHandler does the same through fopen(). libcurl then parses the authority itself, percent-decoding it and, on an IDN-capable build, applying IDNA mapping, and uses the result to resolve, connect, name the TLS peer and address a proxy CONNECT, while the supplied Host suppresses the aligned one libcurl would have generated. For a URI host written as 127.0.0.%31, filter_var() rejects the host as an IP literal, yet libcurl decodes it to 127.0.0.1 and reaches loopback with no DNS lookup while the server receives Host: 127.0.0.%31. An attacker who influences a fetched URI can therefore reach a host the application's checks excluded and read whatever the host exposes of the response. The same divergence moves Guzzle's own decisions onto a spelling the transport does not use: no_proxy selects proxy routing from the literal host, and RedirectMiddleware decides from it whether to strip Authorization and Cookie. Exploitation requires the application to build a request URI from untrusted input and to make a host decision before handing it to Guzzle. This issue is fixed in versions 7.15.2 and 8.0.1.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-180",
+            "CWE-436",
+            "CWE-918",
+            "CWE-941"
+          ],
+          "VendorSeverity": {
+            "ghsa": 3
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:L/I:L/A:N",
+              "V3Score": 7.2
+            }
+          },
+          "References": [
+            "https://github.com/guzzle/guzzle",
+            "https://github.com/guzzle/guzzle/commit/3aeea0406aab88cbbd86531313d7cebf8ae149a4",
+            "https://github.com/guzzle/guzzle/commit/744101956d78b7c1384d0cbf379db13e859167bf",
+            "https://github.com/guzzle/guzzle/pull/3907",
+            "https://github.com/guzzle/guzzle/pull/3908",
+            "https://github.com/guzzle/guzzle/releases/tag/7.15.2",
+            "https://github.com/guzzle/guzzle/releases/tag/8.0.1",
+            "https://github.com/guzzle/guzzle/security/advisories/GHSA-v5mv-p594-2x33"
+          ],
+          "PublishedDate": "2026-08-03T21:16:42.563Z",
+          "LastModifiedDate": "2026-09-08T20:41:31.497Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-55568",
+          "PkgID": "guzzlehttp/guzzle@7.4.0",
+          "PkgName": "guzzlehttp/guzzle",
+          "PkgIdentifier": {
+            "PURL": "pkg:composer/guzzlehttp/guzzle@7.4.0",
+            "UID": "9900227892078da2"
+          },
+          "InstalledVersion": "7.4.0",
+          "FixedVersion": "7.12.1",
+          "Status": "fixed",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-55568",
+          "DataSource": {
+            "ID": "php-security-advisories",
+            "Name": "PHP Security Advisories Database",
+            "URL": "https://github.com/FriendsOfPHP/security-advisories"
+          },
+          "Fingerprint": "sha256:97a6828036ee235ddca15b2c75f84aa1648c2b83cce490e6cb5e545616555215",
+          "Title": "Guzzle is an extensible PHP HTTP client. Prior to 7.12.1, in certain c ...",
+          "Description": "Guzzle is an extensible PHP HTTP client. Prior to 7.12.1, in certain configurations, traffic expected to be protected by TLS on the hop to the proxy is transmitted in cleartext. Proxy authentication credentials (the Proxy-Authorization header, proxy userinfo in the proxy URL, or CURLOPT_PROXYUSERPWD) are sent without encryption, and the CONNECT target host and port for tunneled HTTPS requests are exposed. The built-in cURL handlers (GuzzleHttp\\Handler\\CurlHandler and GuzzleHttp\\Handler\\CurlMultiHandler, used by default whenever the PHP cURL extension is available) accept an https:// proxy. libcurl older than 7.50.2 silently treats an https:// proxy as a plaintext http:// proxy. The TLS connection to the proxy is never established, and the proxy leg is cleartext with no error or warning. An application is affected when it sends requests through one of the built-in cURL handlers, configures an https:// proxy expecting the proxy connection itself to be encrypted, and runs with libcurl older than 7.50.2. This vulnerability is fixed in 7.12.1.",
+          "Severity": "MEDIUM",
+          "CweIDs": [
+            "CWE-311",
+            "CWE-319",
+            "CWE-636"
+          ],
+          "VendorSeverity": {
+            "ghsa": 2
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+              "V3Score": 5.9
+            }
+          },
+          "References": [
+            "https://github.com/guzzle/guzzle",
+            "https://github.com/guzzle/guzzle/security/advisories/GHSA-wpwq-4j6v-78m3"
+          ],
+          "PublishedDate": "2026-06-23T16:17:02.99Z",
+          "LastModifiedDate": "2026-06-26T19:34:13.833Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-55767",
+          "PkgID": "guzzlehttp/guzzle@7.4.0",
+          "PkgName": "guzzlehttp/guzzle",
+          "PkgIdentifier": {
+            "PURL": "pkg:composer/guzzlehttp/guzzle@7.4.0",
+            "UID": "9900227892078da2"
+          },
+          "InstalledVersion": "7.4.0",
+          "FixedVersion": "7.12.1",
+          "Status": "fixed",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-55767",
+          "DataSource": {
+            "ID": "php-security-advisories",
+            "Name": "PHP Security Advisories Database",
+            "URL": "https://github.com/FriendsOfPHP/security-advisories"
+          },
+          "Fingerprint": "sha256:2bab726900125859c6a1296fea84bb5faca3f8f6d2a5b32baf8b12fddc1e052d",
+          "Title": "Guzzle is an extensible PHP HTTP client. Prior to 7.12.1, CookieJar in ...",
+          "Description": "Guzzle is an extensible PHP HTTP client. Prior to 7.12.1, CookieJar incorrectly accepts cookies with a dot-only Domain attribute and whitespace-padded variants. SetCookie::matchesDomain() removes leading dots from the cookie domain, normalizing dot-only values to the empty string; SetCookie::validate() only rejected a strictly empty domain, so these cookies could be stored and the empty normalized domain was treated as matching any request host. An attacker-controlled origin that an application requests with a shared cookie jar can therefore set a cookie that Guzzle later sends to unrelated hosts using the same jar. This may allow cookie injection or session fixation against downstream services, depending on how those services interpret the injected cookie. This vulnerability is fixed in 7.12.1.",
+          "Severity": "MEDIUM",
+          "CweIDs": [
+            "CWE-346",
+            "CWE-1286"
+          ],
+          "VendorSeverity": {
+            "ghsa": 2
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:N/I:L/A:N",
+              "V3Score": 5.8
+            }
+          },
+          "References": [
+            "https://github.com/FriendsOfPHP/security-advisories/blob/master/guzzlehttp/guzzle/CVE-2026-55767.yaml",
+            "https://github.com/guzzle/guzzle",
+            "https://github.com/guzzle/guzzle/commit/7f537cded1912349abf5081258d6db19106d774d",
+            "https://github.com/guzzle/guzzle/pull/3653",
+            "https://github.com/guzzle/guzzle/releases/tag/7.12.1",
+            "https://github.com/guzzle/guzzle/security/advisories/GHSA-cwxw-98qj-8qjx",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-55767"
+          ],
+          "PublishedDate": "2026-06-23T16:17:03.263Z",
+          "LastModifiedDate": "2026-08-05T22:17:07.543Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-59883",
+          "VendorIDs": [
+            "GHSA-g446-98w2-8p5w"
+          ],
+          "PkgID": "guzzlehttp/guzzle@7.4.0",
+          "PkgName": "guzzlehttp/guzzle",
+          "PkgIdentifier": {
+            "PURL": "pkg:composer/guzzlehttp/guzzle@7.4.0",
+            "UID": "9900227892078da2"
+          },
+          "InstalledVersion": "7.4.0",
+          "FixedVersion": "7.12.3",
+          "Status": "fixed",
+          "SeveritySource": "ghsa",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-59883",
+          "DataSource": {
+            "ID": "ghsa",
+            "Name": "GitHub Security Advisory Composer",
+            "URL": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Acomposer"
+          },
+          "Fingerprint": "sha256:71fd6fcb406ac1b163f0f01381948200185ba574d8835e0a0885e55372eb6d6c",
+          "Title": "guzzle/guzzle: Guzzle: Cross-host cookie disclosure and injection due to improper domain matching in CookieJar.",
+          "Description": "Guzzle is an extensible PHP HTTP client. Prior to 7.12.3, CookieJar did not restrict cookies scoped to IP-address or bare-numeric Domain values to the exact host that set them, because SetCookie::matchesDomain() applied ordinary suffix matching to domains such as 192.168.0.1, [::1], or 1, allowing cross-host cookie disclosure, cookie injection, or session fixation. This issue is fixed in version 7.12.3.",
+          "Severity": "MEDIUM",
+          "CweIDs": [
+            "CWE-346",
+            "CWE-384"
+          ],
+          "VendorSeverity": {
+            "ghsa": 2,
+            "nvd": 2,
+            "redhat": 2
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:C/C:L/I:L/A:N",
+              "V3Score": 4.7
+            },
+            "nvd": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N",
+              "V3Score": 6.1
+            },
+            "redhat": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:C/C:L/I:L/A:N",
+              "V3Score": 4.7
+            }
+          },
+          "References": [
+            "https://access.redhat.com/security/cve/CVE-2026-59883",
+            "https://github.com/guzzle/guzzle",
+            "https://github.com/guzzle/guzzle/commit/b9944c161b12d9ee9c9334cfc5b9659ecd7451f8",
+            "https://github.com/guzzle/guzzle/pull/3694",
+            "https://github.com/guzzle/guzzle/releases/tag/7.12.3",
+            "https://github.com/guzzle/guzzle/security/advisories/GHSA-g446-98w2-8p5w",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-59883",
+            "https://www.cve.org/CVERecord?id=CVE-2026-59883"
+          ],
+          "PublishedDate": "2026-07-08T17:17:26.737Z",
+          "LastModifiedDate": "2026-07-13T14:01:39.7Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-67339",
+          "VendorIDs": [
+            "GHSA-94pj-82f3-465w"
+          ],
+          "PkgID": "guzzlehttp/guzzle@7.4.0",
+          "PkgName": "guzzlehttp/guzzle",
+          "PkgIdentifier": {
+            "PURL": "pkg:composer/guzzlehttp/guzzle@7.4.0",
+            "UID": "9900227892078da2"
+          },
+          "InstalledVersion": "7.4.0",
+          "FixedVersion": "7.14.2",
+          "Status": "fixed",
+          "SeveritySource": "ghsa",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-67339",
+          "DataSource": {
+            "ID": "ghsa",
+            "Name": "GitHub Security Advisory Composer",
+            "URL": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Acomposer"
+          },
+          "Fingerprint": "sha256:e3523465ae0d1c51eb711db175074fc11827a284a01900829ba9b69f00bfbdc9",
+          "Title": "guzzlehttp/guzzle: guzzlehttp/guzzle: Proxy-Authorization header disclosure via improper isolation",
+          "Description": "guzzlehttp/guzzle versions before 7.14.2 fail to properly isolate Proxy-Authorization headers from origin servers in cURL handlers. Attackers can capture proxy credentials through origin server access logs when requests are redirected, bypassed, or sent through SOCKS proxies that Guzzle misclassifies as direct connections.",
+          "Severity": "MEDIUM",
+          "CweIDs": [
+            "CWE-200"
+          ],
+          "VendorSeverity": {
+            "ghsa": 2,
+            "redhat": 2
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N",
+              "V3Score": 5.3
+            },
+            "redhat": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N",
+              "V3Score": 5.3
+            }
+          },
+          "References": [
+            "https://access.redhat.com/security/cve/CVE-2026-67339",
+            "https://github.com/guzzle/guzzle",
+            "https://github.com/guzzle/guzzle/commit/9e4580d4b9981e903dc6323fe37f50a96e85b05e",
+            "https://github.com/guzzle/guzzle/pull/3876",
+            "https://github.com/guzzle/guzzle/releases/tag/7.14.2",
+            "https://github.com/guzzle/guzzle/security/advisories/GHSA-94pj-82f3-465w",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-67339",
+            "https://www.cve.org/CVERecord?id=CVE-2026-67339",
+            "https://www.vulncheck.com/advisories/guzzlehttp-guzzle-before-proxy-authorization-header-disclosure"
+          ],
+          "PublishedDate": "2026-08-01T13:17:04.99Z",
+          "LastModifiedDate": "2026-09-08T20:35:01.26Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-67353",
+          "VendorIDs": [
+            "GHSA-f283-ghqc-fg79"
+          ],
+          "PkgID": "guzzlehttp/guzzle@7.4.0",
+          "PkgName": "guzzlehttp/guzzle",
+          "PkgIdentifier": {
+            "PURL": "pkg:composer/guzzlehttp/guzzle@7.4.0",
+            "UID": "9900227892078da2"
+          },
+          "InstalledVersion": "7.4.0",
+          "FixedVersion": "7.15.1",
+          "Status": "fixed",
+          "SeveritySource": "ghsa",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-67353",
+          "DataSource": {
+            "ID": "ghsa",
+            "Name": "GitHub Security Advisory Composer",
+            "URL": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Acomposer"
+          },
+          "Fingerprint": "sha256:5836df0f1603c2b5329993368fc754b5a743b6b27a61cc8766c631a7d4851c14",
+          "Title": "guzzlehttp/guzzle: guzzlehttp/guzzle: Denial of Service via unbounded cookie storage",
+          "Description": "guzzlehttp/guzzle versions before 7.15.1 contain a denial of service vulnerability in the CookieJar that accepts unlimited Set-Cookie header fields with no size restrictions. Attackers can return many large cookies from a malicious server, causing Guzzle to store excessive data in memory and generate oversized Cookie headers that fail in handlers or destination servers.",
+          "Severity": "MEDIUM",
+          "CweIDs": [
+            "CWE-770"
+          ],
+          "VendorSeverity": {
+            "ghsa": 2,
+            "redhat": 2
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+              "V3Score": 5.3
+            },
+            "redhat": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+              "V3Score": 5.3
+            }
+          },
+          "References": [
+            "https://access.redhat.com/security/cve/CVE-2026-67353",
+            "https://github.com/guzzle/guzzle",
+            "https://github.com/guzzle/guzzle/commit/7b68220d6543f6f80fe62e633361fc9d4ead14d4",
+            "https://github.com/guzzle/guzzle/pull/3901",
+            "https://github.com/guzzle/guzzle/releases/tag/7.15.1",
+            "https://github.com/guzzle/guzzle/security/advisories/GHSA-f283-ghqc-fg79",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-67353",
+            "https://www.cve.org/CVERecord?id=CVE-2026-67353",
+            "https://www.vulncheck.com/advisories/guzzlehttp-guzzle-before-unbounded-cookie-denial-of-service"
+          ],
+          "PublishedDate": "2026-08-01T13:17:06Z",
+          "LastModifiedDate": "2026-09-08T20:35:01.26Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-67354",
+          "VendorIDs": [
+            "GHSA-h95v-h523-3mw8"
+          ],
+          "PkgID": "guzzlehttp/guzzle@7.4.0",
+          "PkgName": "guzzlehttp/guzzle",
+          "PkgIdentifier": {
+            "PURL": "pkg:composer/guzzlehttp/guzzle@7.4.0",
+            "UID": "9900227892078da2"
+          },
+          "InstalledVersion": "7.4.0",
+          "FixedVersion": "7.15.1",
+          "Status": "fixed",
+          "SeveritySource": "ghsa",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-67354",
+          "DataSource": {
+            "ID": "ghsa",
+            "Name": "GitHub Security Advisory Composer",
+            "URL": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Acomposer"
+          },
+          "Fingerprint": "sha256:e25d20257c8476681c9785a98e28bd9d8712157f25f23b6d7cd508271bf24ea1",
+          "Title": "guzzlehttp/guzzle: guzzlehttp/guzzle: URI Fragment Disclosure in Referer Header",
+          "Description": "guzzlehttp/guzzle versions before 7.15.1 contain an information disclosure vulnerability in RedirectMiddleware. When the optional allow_redirects.referer setting is enabled, the middleware copies the URI fragment (the portion after '#') from the referring request into the generated Referer header when following a same-scheme redirect (e.g., HTTPS to HTTPS). An attacker who controls the redirect destination can read this fragment from the incoming Referer header, potentially disclosing one-time login secrets, access tokens, state values, or other sensitive client data to a server never meant to receive it. The referer setting is disabled by default. Fixed in 7.15.1, which strips the fragment before generating the Referer value.",
+          "Severity": "MEDIUM",
+          "CweIDs": [
+            "CWE-201"
+          ],
+          "VendorSeverity": {
+            "ghsa": 2,
+            "redhat": 2
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+              "V3Score": 5.9
+            },
+            "redhat": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+              "V3Score": 5.9
+            }
+          },
+          "References": [
+            "https://access.redhat.com/security/cve/CVE-2026-67354",
+            "https://github.com/guzzle/guzzle",
+            "https://github.com/guzzle/guzzle/commit/7b68220d6543f6f80fe62e633361fc9d4ead14d4",
+            "https://github.com/guzzle/guzzle/pull/3901",
+            "https://github.com/guzzle/guzzle/releases/tag/7.15.1",
+            "https://github.com/guzzle/guzzle/security/advisories/GHSA-h95v-h523-3mw8",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-67354",
+            "https://www.cve.org/CVERecord?id=CVE-2026-67354",
+            "https://www.vulncheck.com/advisories/guzzlehttp-guzzle-before-uri-fragment-disclosure-via-referer"
+          ],
+          "PublishedDate": "2026-08-01T13:17:06.143Z",
+          "LastModifiedDate": "2026-09-08T20:35:01.26Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-67355",
+          "VendorIDs": [
+            "GHSA-wm3w-8rrp-j577"
+          ],
+          "PkgID": "guzzlehttp/guzzle@7.4.0",
+          "PkgName": "guzzlehttp/guzzle",
+          "PkgIdentifier": {
+            "PURL": "pkg:composer/guzzlehttp/guzzle@7.4.0",
+            "UID": "9900227892078da2"
+          },
+          "InstalledVersion": "7.4.0",
+          "FixedVersion": "7.15.1",
+          "Status": "fixed",
+          "SeveritySource": "ghsa",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-67355",
+          "DataSource": {
+            "ID": "ghsa",
+            "Name": "GitHub Security Advisory Composer",
+            "URL": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Acomposer"
+          },
+          "Fingerprint": "sha256:c17ce6df31eee0b9a6b88c26c480798d0bd3ca7c2e5b7a80e73b17458830dde2",
+          "Title": "guzzlehttp/guzzle: guzzlehttp/guzzle: Information disclosure from host-only cookie scope issue",
+          "Description": "guzzlehttp/guzzle versions before 7.15.1 fail to preserve host-only cookie scope, storing the request host in the Domain field instead of marking cookies as host-only. Attackers controlling child hosts can receive host-only cookies intended only for parent hosts, potentially disclosing session identifiers and authorization tokens when the same cookie jar is reused across trust boundaries.",
+          "Severity": "MEDIUM",
+          "CweIDs": [
+            "CWE-201"
+          ],
+          "VendorSeverity": {
+            "ghsa": 2,
+            "redhat": 2
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+              "V3Score": 5.9
+            },
+            "redhat": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+              "V3Score": 5.9
+            }
+          },
+          "References": [
+            "https://access.redhat.com/security/cve/CVE-2026-67355",
+            "https://github.com/guzzle/guzzle",
+            "https://github.com/guzzle/guzzle/commit/7b68220d6543f6f80fe62e633361fc9d4ead14d4",
+            "https://github.com/guzzle/guzzle/pull/3901",
+            "https://github.com/guzzle/guzzle/releases/tag/7.15.1",
+            "https://github.com/guzzle/guzzle/security/advisories/GHSA-wm3w-8rrp-j577",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-67355",
+            "https://www.cve.org/CVERecord?id=CVE-2026-67355",
+            "https://www.vulncheck.com/advisories/guzzlehttp-guzzle-before-host-only-cookie-scope"
+          ],
+          "PublishedDate": "2026-08-01T13:17:06.283Z",
+          "LastModifiedDate": "2026-09-08T20:35:01.26Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-69245",
+          "VendorIDs": [
+            "GHSA-f7vp-7xgx-4w4r"
+          ],
+          "PkgID": "guzzlehttp/guzzle@7.4.0",
+          "PkgName": "guzzlehttp/guzzle",
+          "PkgIdentifier": {
+            "PURL": "pkg:composer/guzzlehttp/guzzle@7.4.0",
+            "UID": "9900227892078da2"
+          },
+          "InstalledVersion": "7.4.0",
+          "FixedVersion": "7.15.2, 8.0.1",
+          "Status": "fixed",
+          "SeveritySource": "ghsa",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-69245",
+          "DataSource": {
+            "ID": "ghsa",
+            "Name": "GitHub Security Advisory Composer",
+            "URL": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Acomposer"
+          },
+          "Fingerprint": "sha256:1be67e6f49ce85ad188507349e90a35063a1e0571007f6b3b256c59819ea2af5",
+          "Title": "Guzzle is an extensible PHP HTTP client. Prior to 7.15.2 and 8.0.1, Se ...",
+          "Description": "Guzzle is an extensible PHP HTTP client. Prior to 7.15.2 and 8.0.1, SetCookie::matchesDomain() gives every subdomain of a cookie Domain that cookie unless SetCookie::matchesDomain() recognizes the Domain as an IP literal or a numeric host, and the decision comes from the domain's own text, so two spellings a transport reads as an address keep subdomain scope. Hexadecimal and mixed-base forms such as 0x7f000001 and 0177.0.0.0x1 go unrecognized while libcurl 8.21.0 reads both as 127.0.0.1. A percent-escaped Domain keeps that scope on both branches because percent-decoding sits above numeric parsing, so 192.168.0.%31 and 127.0.0.1%2e are registered names in the URI grammar rather than address literals, and no numeric rule in any base classifies them, while libcurl decodes the host before resolving and reads them as 192.168.0.1 and 127.0.0.1. A cookie stored for Domain=0x7f000001 is placed in the Cookie header of a request to evil.0x7f000001, disclosing a session identifier or token to a host that is not that address, and a response from evil.0x7f000001 setting Domain=0x7f000001 is accepted into the jar and replayed to the address, so a server answering for the look-alike name can fix a session or set application state. Exploitation requires the application to enable cookie support, address an origin by one of these spellings, and contact a host whose name ends in that spelling. This issue is fixed in versions 7.15.2 and 8.0.1.",
+          "Severity": "MEDIUM",
+          "CweIDs": [
+            "CWE-180",
+            "CWE-346",
+            "CWE-384"
+          ],
+          "VendorSeverity": {
+            "ghsa": 2
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:N",
+              "V3Score": 6.5
+            }
+          },
+          "References": [
+            "https://github.com/guzzle/guzzle",
+            "https://github.com/guzzle/guzzle/commit/3aeea0406aab88cbbd86531313d7cebf8ae149a4",
+            "https://github.com/guzzle/guzzle/commit/744101956d78b7c1384d0cbf379db13e859167bf",
+            "https://github.com/guzzle/guzzle/pull/3907",
+            "https://github.com/guzzle/guzzle/pull/3908",
+            "https://github.com/guzzle/guzzle/releases/tag/7.15.2",
+            "https://github.com/guzzle/guzzle/releases/tag/8.0.1",
+            "https://github.com/guzzle/guzzle/security/advisories/GHSA-f7vp-7xgx-4w4r"
+          ],
+          "PublishedDate": "2026-08-03T21:16:42.413Z",
+          "LastModifiedDate": "2026-09-08T20:41:31.497Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2022-24775",
+          "PkgID": "guzzlehttp/psr7@1.8.1",
+          "PkgName": "guzzlehttp/psr7",
+          "PkgIdentifier": {
+            "PURL": "pkg:composer/guzzlehttp/psr7@1.8.1",
+            "UID": "e66d7ec4fa8ac581"
+          },
+          "InstalledVersion": "1.8.1",
+          "FixedVersion": "2.1.1, 1.8.4",
+          "Status": "fixed",
+          "SeveritySource": "nvd",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2022-24775",
+          "DataSource": {
+            "ID": "php-security-advisories",
+            "Name": "PHP Security Advisories Database",
+            "URL": "https://github.com/FriendsOfPHP/security-advisories"
+          },
+          "Fingerprint": "sha256:4561c9530a897698e5f9066a9fce18419f852fedbc9eddd81e37c6a82e737db0",
+          "Title": "guzzlehttp/psr7 is a PSR-7 HTTP message library. Versions prior to 1.8 ...",
+          "Description": "guzzlehttp/psr7 is a PSR-7 HTTP message library. Versions prior to 1.8.4 and 2.1.1 are vulnerable to improper header parsing. An attacker could sneak in a new line character and pass untrusted values. The issue is patched in 1.8.4 and 2.1.1. There are currently no known workarounds.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-20"
+          ],
+          "VendorSeverity": {
+            "bitnami": 3,
+            "ghsa": 2,
+            "nvd": 3,
+            "ubuntu": 2
+          },
+          "CVSS": {
+            "bitnami": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:N",
+              "V3Score": 7.5
+            },
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:N",
+              "V3Score": 5.3
+            },
+            "nvd": {
+              "V2Vector": "AV:N/AC:L/Au:N/C:N/I:P/A:N",
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:N",
+              "V2Score": 5,
+              "V3Score": 7.5
+            }
+          },
+          "References": [
+            "https://github.com/FriendsOfPHP/security-advisories/blob/master/guzzlehttp/psr7/CVE-2022-24775.yaml",
+            "https://github.com/guzzle/psr7",
+            "https://github.com/guzzle/psr7/pull/485/commits/e55afaa3fc138c89adf3b55a8ba20dc60d17f1f1",
+            "https://github.com/guzzle/psr7/pull/486/commits/9a96d9db668b485361ed9de7b5bf1e54895df1dc",
+            "https://github.com/guzzle/psr7/security/advisories/GHSA-q7rv-6hp3-vh96",
+            "https://nvd.nist.gov/vuln/detail/CVE-2022-24775",
+            "https://ubuntu.com/security/notices/USN-6670-1",
+            "https://www.cve.org/CVERecord?id=CVE-2022-24775",
+            "https://www.drupal.org/sa-core-2022-006",
+            "https://www.rfc-editor.org/rfc/rfc7230#section-3.2.4"
+          ],
+          "PublishedDate": "2022-03-21T19:15:11.677Z",
+          "LastModifiedDate": "2026-06-17T04:32:29.66Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2023-29197",
+          "PkgID": "guzzlehttp/psr7@1.8.1",
+          "PkgName": "guzzlehttp/psr7",
+          "PkgIdentifier": {
+            "PURL": "pkg:composer/guzzlehttp/psr7@1.8.1",
+            "UID": "e66d7ec4fa8ac581"
+          },
+          "InstalledVersion": "1.8.1",
+          "FixedVersion": "2.4.5, 1.9.1",
+          "Status": "fixed",
+          "SeveritySource": "nvd",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2023-29197",
+          "DataSource": {
+            "ID": "php-security-advisories",
+            "Name": "PHP Security Advisories Database",
+            "URL": "https://github.com/FriendsOfPHP/security-advisories"
+          },
+          "Fingerprint": "sha256:6c95d61828be8ec2620ca9c46643c2c858d8180a7b08dad0239279c8bebf7bb8",
+          "Title": "guzzlehttp/psr7 is a PSR-7 HTTP message library implementation in PHP. ...",
+          "Description": "guzzlehttp/psr7 is a PSR-7 HTTP message library implementation in PHP. Affected versions are subject to improper header parsing. An attacker could sneak in a newline (\\n) into both the header names and values. While the specification states that \\r\\n\\r\\n is used to terminate the header list, many servers in the wild will also accept \\n\\n. This is a follow-up to CVE-2022-24775 where the fix was incomplete. The issue has been patched in versions 1.9.1 and 2.4.5. There are no known workarounds for this vulnerability. Users are advised to upgrade.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-436"
+          ],
+          "VendorSeverity": {
+            "ghsa": 2,
+            "nvd": 3,
+            "ubuntu": 2
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:N",
+              "V3Score": 5.3
+            },
+            "nvd": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:N",
+              "V3Score": 7.5
+            }
+          },
+          "References": [
+            "https://cve.mitre.org/cgi-bin/cvename.cgi?name=2022-24775",
+            "https://github.com/FriendsOfPHP/security-advisories/blob/master/guzzlehttp/psr7/CVE-2023-29197.yaml",
+            "https://github.com/Nyholm/psr7/commit/1029a2671cbdd3e075a21952082c2be7c8018426%20%281.6.1%29",
+            "https://github.com/Nyholm/psr7/security/advisories/GHSA-wjfc-pgfp-pv9c",
+            "https://github.com/guzzle/psr7",
+            "https://github.com/guzzle/psr7/commit/0454e12ef0cd597ccd2adb036f7bda4e7fface66%20%282.4.5%29",
+            "https://github.com/guzzle/psr7/security/advisories/GHSA-q7rv-6hp3-vh96",
+            "https://github.com/guzzle/psr7/security/advisories/GHSA-wxmh-65f7-jcvw",
+            "https://lists.debian.org/debian-lts-announce/2023/12/msg00028.html",
+            "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/FJANWDXJZE5BGLN4MQ4FEHV5LJ6CMKQF",
+            "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/FJANWDXJZE5BGLN4MQ4FEHV5LJ6CMKQF/",
+            "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/O35UN4IK6VS2LXSRWUDFWY7NI73RKY2U",
+            "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/O35UN4IK6VS2LXSRWUDFWY7NI73RKY2U/",
+            "https://nvd.nist.gov/vuln/detail/CVE-2023-29197",
+            "https://ubuntu.com/security/notices/USN-6670-1",
+            "https://ubuntu.com/security/notices/USN-6671-1",
+            "https://www.cve.org/CVERecord?id=CVE-2023-29197",
+            "https://www.rfc-editor.org/rfc/rfc7230#section-3.2.4"
+          ],
+          "PublishedDate": "2023-04-17T22:15:09.947Z",
+          "LastModifiedDate": "2026-06-17T05:49:35.32Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-48998",
+          "PkgID": "guzzlehttp/psr7@1.8.1",
+          "PkgName": "guzzlehttp/psr7",
+          "PkgIdentifier": {
+            "PURL": "pkg:composer/guzzlehttp/psr7@1.8.1",
+            "UID": "e66d7ec4fa8ac581"
+          },
+          "InstalledVersion": "1.8.1",
+          "FixedVersion": "2.10.2",
+          "Status": "fixed",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-48998",
+          "DataSource": {
+            "ID": "php-security-advisories",
+            "Name": "PHP Security Advisories Database",
+            "URL": "https://github.com/FriendsOfPHP/security-advisories"
+          },
+          "Fingerprint": "sha256:ab11fef883d7c11bc7cf04234a286bb59cc25d6e93c3220929794401ddef129e",
+          "Title": "guzzlehttp/psr7: guzzlehttp/psr7: Information disclosure via improper Host header validation",
+          "Description": "guzzlehttp/psr7 is a PSR-7 HTTP message library implementation in PHP. Versions prior to 2.10.2 contain improper Host header validation when parsing raw HTTP request messages and when deriving a server request URI from server variables. An attacker can provide a malformed Host header containing URI authority delimiters, such as `trusted.example@evil.example`. When the Host value is used to construct a URI, the malformed value can be reinterpreted as URI userinfo and host. This can cause the PSR-7 request URI host to differ from the original Host header value. Applications are affected if they parse attacker-controlled raw HTTP requests with `GuzzleHttp\\Psr7\\Message::parseRequest()` or the legacy 1.x `GuzzleHttp\\Psr7\\parse_request()` function, or if they build server requests from attacker-controlled server variables, then rely on the resulting URI host for routing, allow-list checks, or forwarding decisions. In affected forwarding or gateway scenarios, this may cause requests or credentials to be sent to an unintended host. The issue is patched in `2.10.2`. `1.x` is end-of-life and will not receive a patch. Some workarounds are available. Validate the `Host` header as `uri-host [ \":\" port ]` before calling `Message::parseRequest()` or legacy `parse_request()` on untrusted HTTP request data, or before deriving routing and forwarding decisions from a parsed request URI. Reject Host values containing userinfo, path, query, or fragment delimiters.",
+          "Severity": "MEDIUM",
+          "CweIDs": [
+            "CWE-20",
+            "CWE-918"
+          ],
+          "VendorSeverity": {
+            "ghsa": 2,
+            "redhat": 2
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N",
+              "V3Score": 5.3
+            },
+            "redhat": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N",
+              "V3Score": 5.3
+            }
+          },
+          "References": [
+            "https://access.redhat.com/security/cve/CVE-2026-48998",
+            "https://github.com/FriendsOfPHP/security-advisories/blob/master/guzzlehttp/psr7/CVE-2026-48998.yaml",
+            "https://github.com/guzzle/psr7",
+            "https://github.com/guzzle/psr7/security/advisories/GHSA-34xg-wgjx-8xph",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-48998",
+            "https://www.cve.org/CVERecord?id=CVE-2026-48998"
+          ],
+          "PublishedDate": "2026-06-11T13:16:33.133Z",
+          "LastModifiedDate": "2026-06-17T10:55:26.46Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-49214",
+          "PkgID": "guzzlehttp/psr7@1.8.1",
+          "PkgName": "guzzlehttp/psr7",
+          "PkgIdentifier": {
+            "PURL": "pkg:composer/guzzlehttp/psr7@1.8.1",
+            "UID": "e66d7ec4fa8ac581"
+          },
+          "InstalledVersion": "1.8.1",
+          "FixedVersion": "2.10.2",
+          "Status": "fixed",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-49214",
+          "DataSource": {
+            "ID": "php-security-advisories",
+            "Name": "PHP Security Advisories Database",
+            "URL": "https://github.com/FriendsOfPHP/security-advisories"
+          },
+          "Fingerprint": "sha256:597fc9c0fbf3e7b40953c25e246e4a1de6ec5164a9e11345a9350466b15d4df3",
+          "Title": "guzzlehttp/psr7 is a PSR-7 HTTP message library implementation in PHP. ...",
+          "Description": "guzzlehttp/psr7 is a PSR-7 HTTP message library implementation in PHP. Versions prior to 2.10.2 did not reject ASCII control characters, whitespace, or DEL in first-party URI host components. A vulnerable flow is: First, an application accepts a user-controlled URL. Second, the URL is used to construct a PSR-7 `Uri` or `Request`. Third, the host component contains CRLF or another header-unsafe character. Fourth, the host is copied into the PSR-7 `Host` header when no explicit `Host` header is provided. Finally, the request is serialized or sent by an HTTP client that does not independently reject the malformed host. In that flow, an attacker can cause the serialized request to contain additional attacker-controlled header lines. For example, a host containing `\"\\r\\nX-Injected: yes\"` can cause the generated `Host` header to span multiple HTTP header lines. Applications are affected when they use user-controlled URLs for outbound HTTP requests, URL forwarding, proxying, crawling, webhook delivery, or similar request-dispatch flows. In deployments involving HTTP/1.1 connection reuse, proxies, gateways, or load balancers, this malformed request may also contribute to request smuggling or cache poisoning, depending on how downstream components parse the request. The issue is patched in `2.10.2` and later. `1.x` is end-of-life and will not receive a patch. As a workaround, validate and reject all untrusted URI strings before constructing PSR-7 `Uri` or `Request` instances. Reject input containing ASCII control characters, whitespace, or DEL, including CRLF, tab, space, NUL, or DEL characters. Applications that forward requests should also ensure the final HTTP client or serializer rejects invalid URI and header data before writing requests to the network.",
+          "Severity": "MEDIUM",
+          "CweIDs": [
+            "CWE-20",
+            "CWE-93",
+            "CWE-113"
+          ],
+          "VendorSeverity": {
+            "ghsa": 2
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:N",
+              "V3Score": 5.3
+            }
+          },
+          "References": [
+            "https://github.com/FriendsOfPHP/security-advisories/blob/master/guzzlehttp/psr7/CVE-2026-49214.yaml",
+            "https://github.com/guzzle/psr7",
+            "https://github.com/guzzle/psr7/security/advisories/GHSA-hq7v-mx3g-29hw",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-49214"
+          ],
+          "PublishedDate": "2026-06-11T13:16:33.3Z",
+          "LastModifiedDate": "2026-06-17T10:55:35.823Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-55766",
+          "PkgID": "guzzlehttp/psr7@1.8.1",
+          "PkgName": "guzzlehttp/psr7",
+          "PkgIdentifier": {
+            "PURL": "pkg:composer/guzzlehttp/psr7@1.8.1",
+            "UID": "e66d7ec4fa8ac581"
+          },
+          "InstalledVersion": "1.8.1",
+          "FixedVersion": "2.12.1",
+          "Status": "fixed",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-55766",
+          "DataSource": {
+            "ID": "php-security-advisories",
+            "Name": "PHP Security Advisories Database",
+            "URL": "https://github.com/FriendsOfPHP/security-advisories"
+          },
+          "Fingerprint": "sha256:2607603cfa21a3247afed5ffb1b605ca19a34cff6a93d13eb806d66605584c18",
+          "Title": "guzzlehttp/psr7 is a PSR-7 HTTP message library implementation in PHP. ...",
+          "Description": "guzzlehttp/psr7 is a PSR-7 HTTP message library implementation in PHP. Prior to 2.12.1, guzzlehttp/psr7 did not reject CR/LF characters in certain first-party HTTP start-line fields: the request method, protocol version, and response reason phrase. If an application placed attacker-controlled data into one of those fields and later serialized the PSR-7 message as raw HTTP/1.x, for example with Message::toString() or an equivalent serializer, the serialized message could contain attacker-controlled header lines. The issue can also be reached through Message::parseRequest() or Message::parseResponse() when malformed raw messages are parsed into first-party PSR-7 objects and then serialized again. Creating or modifying a Request, Response, or other PSR-7 object alone is not sufficient. The issue requires the malformed message to be serialized and written to the network, forwarded, replayed, or otherwise processed by software that does not independently reject the malformed start line. This vulnerability is fixed in 2.12.1.",
+          "Severity": "MEDIUM",
+          "CweIDs": [
+            "CWE-93",
+            "CWE-113"
+          ],
+          "VendorSeverity": {
+            "ghsa": 2
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:N",
+              "V3Score": 4.8
+            }
+          },
+          "References": [
+            "https://github.com/guzzle/psr7",
+            "https://github.com/guzzle/psr7/security/advisories/GHSA-vm85-hxw5-5432"
+          ],
+          "PublishedDate": "2026-06-23T16:17:03.127Z",
+          "LastModifiedDate": "2026-06-30T17:17:36.993Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-59882",
+          "VendorIDs": [
+            "GHSA-c2w2-prh8-qm98"
+          ],
+          "PkgID": "guzzlehttp/psr7@1.8.1",
+          "PkgName": "guzzlehttp/psr7",
+          "PkgIdentifier": {
+            "PURL": "pkg:composer/guzzlehttp/psr7@1.8.1",
+            "UID": "e66d7ec4fa8ac581"
+          },
+          "InstalledVersion": "1.8.1",
+          "FixedVersion": "2.12.3",
+          "Status": "fixed",
+          "SeveritySource": "ghsa",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-59882",
+          "DataSource": {
+            "ID": "ghsa",
+            "Name": "GitHub Security Advisory Composer",
+            "URL": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Acomposer"
+          },
+          "Fingerprint": "sha256:f2e8d1e948ab5b093476e609dd09b6705ed0b2d205d24f9d7f39477b5a5cc52c",
+          "Title": "guzzlehttp/psr7 is a PSR-7 HTTP message library implementation in PHP. ...",
+          "Description": "guzzlehttp/psr7 is a PSR-7 HTTP message library implementation in PHP. Prior to 2.12.3, Uri::assertValidHost() does not reject URI host components containing authority delimiters, embedded ports, or malformed IPv6 brackets, allowing Uri::getHost() to disagree with the URI authority used for security or routing decisions. This issue is fixed in version 2.12.3.",
+          "Severity": "MEDIUM",
+          "CweIDs": [
+            "CWE-436"
+          ],
+          "VendorSeverity": {
+            "ghsa": 2,
+            "nvd": 2
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:L/I:L/A:N",
+              "V3Score": 4.2
+            },
+            "nvd": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:N",
+              "V3Score": 6.5
+            }
+          },
+          "References": [
+            "https://github.com/guzzle/psr7",
+            "https://github.com/guzzle/psr7/commit/ddd64f17d4cc1f7e5ffe6fd2c989ec7221712580",
+            "https://github.com/guzzle/psr7/pull/811",
+            "https://github.com/guzzle/psr7/releases/tag/2.12.3",
+            "https://github.com/guzzle/psr7/security/advisories/GHSA-c2w2-prh8-qm98",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-59882"
+          ],
+          "PublishedDate": "2026-07-08T17:17:26.597Z",
+          "LastModifiedDate": "2026-07-17T14:29:51.78Z"
+        }
+      ]
+    },
+    {
+      "Target": "Dockerfile",
+      "Class": "config",
+      "Type": "dockerfile",
+      "MisconfSummary": {
+        "Successes": 24,
+        "Failures": 3
+      },
+      "Misconfigurations": [
+        {
+          "Type": "Dockerfile Security Check",
+          "ID": "DS-0001",
+          "Title": "':latest' tag used",
+          "Description": "When using a 'FROM' statement you should use a specific tag to avoid uncontrolled behavior when the image is updated.",
+          "Message": "Specify a tag in the 'FROM' statement for image 'php'",
+          "Namespace": "builtin.dockerfile.DS001",
+          "Query": "data.builtin.dockerfile.DS001.deny",
+          "Resolution": "Add a tag to the image in the 'FROM' statement",
+          "Severity": "MEDIUM",
+          "PrimaryURL": "https://avd.aquasec.com/misconfig/ds-0001",
+          "References": [
+            "https://avd.aquasec.com/misconfig/ds-0001"
+          ],
+          "Status": "FAIL",
+          "CauseMetadata": {
+            "Provider": "Dockerfile",
+            "Service": "general",
+            "StartLine": 2,
+            "EndLine": 2,
+            "Code": {
+              "Lines": [
+                {
+                  "Number": 2,
+                  "Content": "FROM php:latest",
+                  "IsCause": true,
+                  "Annotation": "",
+                  "Truncated": false,
+                  "Highlighted": "\u001b[38;5;64mFROM\u001b[0m\u001b[38;5;37m php:latest\u001b[0m",
+                  "FirstCause": true,
+                  "LastCause": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "Type": "Dockerfile Security Check",
+          "ID": "DS-0002",
+          "Title": "Image user should not be 'root'",
+          "Description": "Running containers with 'root' user can lead to a container escape situation. It is a best practice to run containers as non-root users, which can be done by adding a 'USER' statement to the Dockerfile.",
+          "Message": "Specify at least 1 USER command in Dockerfile with non-root user as argument",
+          "Namespace": "builtin.dockerfile.DS002",
+          "Query": "data.builtin.dockerfile.DS002.deny",
+          "Resolution": "Add 'USER \u003cnon root user name\u003e' line to the Dockerfile",
+          "Severity": "HIGH",
+          "PrimaryURL": "https://avd.aquasec.com/misconfig/ds-0002",
+          "References": [
+            "https://docs.docker.com/develop/develop-images/dockerfile_best-practices/",
+            "https://avd.aquasec.com/misconfig/ds-0002"
+          ],
+          "Status": "FAIL",
+          "CauseMetadata": {
+            "Provider": "Dockerfile",
+            "Service": "general"
+          }
+        },
+        {
+          "Type": "Dockerfile Security Check",
+          "ID": "DS-0026",
+          "Title": "No HEALTHCHECK defined",
+          "Description": "You should add HEALTHCHECK instruction in your docker container images to perform the health check on running containers.",
+          "Message": "Add HEALTHCHECK instruction in your Dockerfile",
+          "Namespace": "builtin.dockerfile.DS026",
+          "Query": "data.builtin.dockerfile.DS026.deny",
+          "Resolution": "Add HEALTHCHECK instruction in Dockerfile",
+          "Severity": "LOW",
+          "PrimaryURL": "https://avd.aquasec.com/misconfig/ds-0026",
+          "References": [
+            "https://blog.aquasec.com/docker-security-best-practices",
+            "https://avd.aquasec.com/misconfig/ds-0026"
+          ],
+          "Status": "FAIL",
+          "CauseMetadata": {
+            "Provider": "Dockerfile",
+            "Service": "general"
+          }
+        }
+      ]
+    }
+  ]
+}

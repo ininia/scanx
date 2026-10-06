@@ -1,0 +1,223 @@
+[
+  {
+    "tool": "opengrep",
+    "rule_id": "scanx.php.scanx-php-sqli-string-building",
+    "category": "sast",
+    "severity": "medium",
+    "confidence": "medium",
+    "title": "An SQL query is built from a variable by string concatenation or interpolation.",
+    "description": "An SQL query is built from a variable by string concatenation or interpolation. If the variable can contain user input this is SQL injection. Use prepared statements.",
+    "cwe": [
+      "CWE-89"
+    ],
+    "owasp": [
+      "A03:2021"
+    ],
+    "file": "public/index.php",
+    "start_line": 10,
+    "end_line": 10,
+    "fingerprint": "84b8831d37007085758cb80b03392707f599eab696cea6e979e1aa2524757306",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Query_Parameterization_Cheat_Sheet.html"
+    ]
+  },
+  {
+    "tool": "opengrep",
+    "rule_id": "scanx.php.scanx-php-sqli-taint",
+    "category": "sast",
+    "severity": "high",
+    "confidence": "high",
+    "title": "User input reaches an SQL query without parameterization.",
+    "description": "User input reaches an SQL query without parameterization. An attacker can read or modify the database (SQL injection). Use prepared statements with bound parameters.",
+    "cwe": [
+      "CWE-89"
+    ],
+    "owasp": [
+      "A03:2021"
+    ],
+    "file": "public/index.php",
+    "start_line": 10,
+    "end_line": 10,
+    "fingerprint": "802028e57074ee9df56a6e1e67479c9c37b0b4872fec871b32d97d005c3c4566",
+    "references": [
+      "https://owasp.org/www-community/attacks/SQL_Injection",
+      "https://www.php.net/manual/en/mysqli.quickstart.prepared-statements.php"
+    ]
+  },
+  {
+    "tool": "opengrep",
+    "rule_id": "scanx.php.scanx-php-xss-echo",
+    "category": "sast",
+    "severity": "high",
+    "confidence": "high",
+    "title": "User input is written to the HTML response without escaping (cross-site scripting).",
+    "description": "User input is written to the HTML response without escaping (cross-site scripting). An attacker can run JavaScript in other users' browsers. Escape with htmlspecialchars().",
+    "cwe": [
+      "CWE-79"
+    ],
+    "owasp": [
+      "A03:2021"
+    ],
+    "file": "public/index.php",
+    "start_line": 13,
+    "end_line": 13,
+    "fingerprint": "d47c8b84df34960b6f9ffa2f8e732b8a2788f8798edfe8b71d6f7a4eeb13e3cc",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html"
+    ]
+  },
+  {
+    "tool": "opengrep",
+    "rule_id": "scanx.php.scanx-php-command-injection",
+    "category": "sast",
+    "severity": "high",
+    "confidence": "high",
+    "title": "User input reaches an operating system command.",
+    "description": "User input reaches an operating system command. An attacker can run arbitrary commands on the server. Avoid shell commands or pass each argument through escapeshellarg().",
+    "cwe": [
+      "CWE-78"
+    ],
+    "owasp": [
+      "A03:2021"
+    ],
+    "file": "public/index.php",
+    "start_line": 17,
+    "end_line": 17,
+    "fingerprint": "0f05189b3e706beca13e4e81782172b2c246b14c271e99bdf6b3515b1f995edb",
+    "references": [
+      "https://owasp.org/www-community/attacks/Command_Injection"
+    ]
+  },
+  {
+    "tool": "opengrep",
+    "rule_id": "scanx.php.scanx-php-file-inclusion",
+    "category": "sast",
+    "severity": "high",
+    "confidence": "high",
+    "title": "User input controls the path of an include/require statement.",
+    "description": "User input controls the path of an include/require statement. An attacker can read local files or execute code (file inclusion). Map allowed values to fixed paths instead.",
+    "cwe": [
+      "CWE-98"
+    ],
+    "owasp": [
+      "A03:2021"
+    ],
+    "file": "public/index.php",
+    "start_line": 20,
+    "end_line": 20,
+    "fingerprint": "84849ffb610043307051229375b8918a8352ccce0521d26297c4c8a065fb57ad",
+    "references": [
+      "https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/07-Input_Validation_Testing/11.1-Testing_for_Local_File_Inclusion"
+    ]
+  },
+  {
+    "tool": "opengrep",
+    "rule_id": "scanx.php.scanx-php-unserialize-user-input",
+    "category": "sast",
+    "severity": "high",
+    "confidence": "high",
+    "title": "User input is passed to unserialize().",
+    "description": "User input is passed to unserialize(). Crafted payloads can trigger object injection and remote code execution. Use json_decode() for untrusted data.",
+    "cwe": [
+      "CWE-502"
+    ],
+    "owasp": [
+      "A08:2021"
+    ],
+    "file": "public/index.php",
+    "start_line": 23,
+    "end_line": 23,
+    "fingerprint": "169ad34a7b5ad72b3a34cf5e7a019ed475d277aac6f105948282bbd8ea71b367",
+    "references": [
+      "https://owasp.org/www-community/vulnerabilities/PHP_Object_Injection"
+    ]
+  },
+  {
+    "tool": "opengrep",
+    "rule_id": "scanx.php.scanx-php-open-redirect",
+    "category": "sast",
+    "severity": "medium",
+    "confidence": "medium",
+    "title": "User input controls an HTTP header such as Location (open redirect / header injection).",
+    "description": "User input controls an HTTP header such as Location (open redirect / header injection). Only redirect to allow-listed, relative URLs.",
+    "cwe": [
+      "CWE-601"
+    ],
+    "owasp": [
+      "A01:2021"
+    ],
+    "file": "public/index.php",
+    "start_line": 26,
+    "end_line": 26,
+    "fingerprint": "5372c7964231bf9191e5b0516ddf9e8ae5b98fbea64b5e6d9398fff629ffc2a3",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.html"
+    ]
+  },
+  {
+    "tool": "opengrep",
+    "rule_id": "scanx.php.scanx-php-code-injection",
+    "category": "sast",
+    "severity": "high",
+    "confidence": "high",
+    "title": "User input is evaluated as PHP code.",
+    "description": "User input is evaluated as PHP code. An attacker can execute arbitrary code on the server. Never pass request data to eval(), assert() or create_function().",
+    "cwe": [
+      "CWE-95"
+    ],
+    "owasp": [
+      "A03:2021"
+    ],
+    "file": "public/index.php",
+    "start_line": 29,
+    "end_line": 29,
+    "fingerprint": "122cb6819c7e4ed48c77d9cc996d9d03a035d43aaa80071feb570bbc7f55c5ef",
+    "references": [
+      "https://owasp.org/www-community/attacks/Code_Injection"
+    ]
+  },
+  {
+    "tool": "opengrep",
+    "rule_id": "scanx.php.scanx-php-sqli-string-building",
+    "category": "sast",
+    "severity": "medium",
+    "confidence": "medium",
+    "title": "An SQL query is built from a variable by string concatenation or interpolation.",
+    "description": "An SQL query is built from a variable by string concatenation or interpolation. If the variable can contain user input this is SQL injection. Use prepared statements.",
+    "cwe": [
+      "CWE-89"
+    ],
+    "owasp": [
+      "A03:2021"
+    ],
+    "file": "src/db.php",
+    "start_line": 11,
+    "end_line": 11,
+    "fingerprint": "8805a1cc38ad9072728352754e6d7e85ae300b868752470aaa676fb301010c6f",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Query_Parameterization_Cheat_Sheet.html"
+    ]
+  },
+  {
+    "tool": "opengrep",
+    "rule_id": "scanx.php.scanx-php-weak-password-hash",
+    "category": "sast",
+    "severity": "medium",
+    "confidence": "medium",
+    "title": "A password is hashed with a fast, broken hash function (MD5/SHA-1).",
+    "description": "A password is hashed with a fast, broken hash function (MD5/SHA-1). Use password_hash() with PASSWORD_DEFAULT or PASSWORD_ARGON2ID.",
+    "cwe": [
+      "CWE-328"
+    ],
+    "owasp": [
+      "A02:2021"
+    ],
+    "file": "src/db.php",
+    "start_line": 17,
+    "end_line": 17,
+    "fingerprint": "f22de556ead2d7f55d1bdd8e092166246e98176ffcd69c2ff51210a9b1127e31",
+    "references": [
+      "https://www.php.net/manual/en/function.password-hash.php"
+    ]
+  }
+]

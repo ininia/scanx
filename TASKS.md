@@ -68,3 +68,55 @@ Format ve yaşam döngüsü: şartname §20.2–20.4. Ürün adı/karar kayıtla
 - Kanıt: public `ininia/scanx`; açıklama + 12 topic; wiki/projects kapalı, discussions açık; yalnızca squash merge, head branch otomatik silme, release immutability;
   private vulnerability reporting, dependency graph, Dependabot alerts + malware alerts + security updates, secret scanning + push protection, CodeQL default setup;
   `protect-main` ruleset (PR + 1 onay, 4 zorunlu CI check'i, linear history, force-push/silme engeli; admin bypass).
+
+---
+
+# FAZ 1 — Tarama motoru + `scanx scan` CLI
+
+## T-0101 — ADR-006 yürütme modeli
+- Faz: 1 · P0 · Durum: DONE · Sahibi: Mimar — all-in-one imaj + exec/docker motorları; kural lisans eki.
+
+## T-0102 — `internal/finding`
+- Faz: 1 · P0 · Durum: DONE
+- Kanıt: %92.4 kapsam; severity eşlemeleri, maskeleme, güvenli snippet (symlink/`..` kaçışı reddi), fingerprint (satırdan bağımsız, araç ailesi), araçlar arası tekilleştirme.
+- Güvenlik bulgusu (gerçek opengrep çıktısıyla): SAST snippet'inde sır görünüyordu → artık tüm kategorilerde maskeleniyor; regresyon testi `TestNormalizeMasksSecretsInNonSecretSnippets`.
+
+## T-0103 — `internal/detect`
+- Faz: 1 · P0 · Durum: DONE — %92.0; diller, ekosistemler, lock dosyaları, IaC, `.git`.
+
+## T-0104 — Scanner arayüzü + registry
+- Faz: 1 · P0 · Durum: DONE — `Scanner`, `VersionReporter`, `PostProcessor`, `OptIn`; profil/disable/enable seçimi.
+
+## T-0105 — Adaptörler (gitleaks dir/git, opengrep, trivy, osv-scanner, syft)
+- Faz: 1 · P0 · Durum: DONE
+- Kanıt: altın dosyalar **gerçek araç çıktılarından** (`scripts/capture-golden.sh`, sertleştirilmiş konteyner); her adaptör için bulgulu + boş örnek; `go test ./internal/scanner/...` yeşil.
+- Gerçek çalıştırmayla düzeltilen araştırma notları: `docs/research/verified-corrections.md`.
+
+## T-0106 — Kural paketi lisans kapısı + scanX PHP kuralları
+- Faz: 1 · P0 · Durum: DONE — 776 kural dosyası, 0 lisanssız; Commons Clause / Semgrep Rules License / EE / NC build'i kırar; `RULES-LICENSES.json`; gürültülü kurallar `full` profiline ayrıldı.
+- scanX PHP taint kuralları (açık lisanslı setlerde PHP yoktu): SQLi, XSS, komut/kod enjeksiyonu, dosya dahil etme, unserialize, açık yönlendirme, zayıf parola hash'i.
+
+## T-0107 — `scanners/all-in-one` imajı
+- Faz: 1 · P0 · Durum: DONE
+- Kanıt: gitleaks/trivy/osv/syft SHA256 resmi checksum dosyalarıyla, opengrep cosign imzasıyla doğrulandı; salt-okunur kök + noexec /tmp + ağ yok + uid 65532 ile çalışıyor; offline DB'ler.
+
+## T-0108 — `internal/engine`
+- Faz: 1 · P0 · Durum: DONE — %97.3; paralellik, araç başı zaman aşımı (süreç grubu öldürülür), kısmi sonuç, log maskeleme, ortak exclude filtresi.
+
+## T-0109 — `internal/report`
+- Faz: 1 · P0 · Durum: DONE — %92.1; özet, skor (§7.6), kalite kapısı (fail-on + eşikler), JSON / SARIF 2.1.0 / HTML (marka dili, JS'siz, XSS kaçış testi).
+
+## T-0110 — `scanx scan` CLI
+- Faz: 1 · P0 · Durum: DONE — exec/docker/auto motorları, çıkış kodları 0/1/2/3, `scripts/scan.sh` (sadece Docker).
+
+## T-0111 — Fixture + beklenen bulgular
+- Faz: 1 · P0 · Durum: DONE — `testdata/repos/php-vuln`, `testdata/expected/php-vuln.json` (14 zorunlu bulgu).
+
+## T-0112 — CI: tarayıcı imajı + e2e + self-scan
+- Faz: 1 · P0 · Durum: IN_REVIEW (ilk CI koşusu bekleniyor)
+- Yerel kanıt: `scripts/e2e-scan.sh` → `TestPHPVulnFixture PASS` (çıkış kodu 1, 14/14 bulgu, raporlarda sır yok, SBOM var); self-scan → kalite kapısı PASSED (0 kritik / 0 yüksek).
+
+## Açık borçlar
+- **T-0113** `.scanx.yml` ignore / kabul edilmiş risk (Ek B) — self-scan'deki bilinçli orta bulgular için (`curl -k` dokümanları, iç ağda `sslmode=disable`).
+- **T-0114** İmajları ve Actions'ı digest/SHA ile pin'le (T-0007b + T-0008b).
+- **T-0115** Zafiyet DB'lerini imajdan ayrı volume'a taşı + günlük güncelleme işi (Faz 3).

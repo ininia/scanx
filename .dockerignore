@@ -7,3 +7,4 @@ deploy/data
 testdata/repos
 coverage*.out
 **/*.local
+.e2e-out

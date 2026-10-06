@@ -11,12 +11,14 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 
 	"github.com/ininia/scanx/internal/app"
 	"github.com/ininia/scanx/internal/config"
 	"github.com/ininia/scanx/internal/logging"
+	"github.com/ininia/scanx/internal/rules"
 	"github.com/ininia/scanx/internal/store"
 	"github.com/ininia/scanx/internal/version"
 )
@@ -35,11 +37,13 @@ Usage:
   scanx <command> [flags]
 
 Commands:
+  scan          Scan a source tree locally (code never leaves the machine)
   server        Run the web/API server
   migrate       Apply DB migrations and exit
   healthcheck   Probe the local server (container HEALTHCHECK)
   gen-secrets   Print freshly generated secrets in .env format
   gen-cert      Generate a self-signed TLS certificate
+  rules-bundle  Build the SAST rule bundle with the license gate (image build)
   version       Print version information
 `
 
@@ -62,6 +66,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 			func(ctx context.Context, cfg *config.Config, log *slog.Logger) error {
 				return app.RunServer(ctx, cfg, log)
 			})
+	case "scan":
+		return runScan(ctx, rest, stdout, stderr)
 	case "migrate":
 		return withConfig(ctx, stderr, config.NeedMigrations,
 			func(ctx context.Context, cfg *config.Config, log *slog.Logger) error {
@@ -105,6 +111,26 @@ func run(args []string, stdout, stderr io.Writer) int {
 			return exitScanError
 		}
 		return exitOK
+	case "rules-bundle":
+		fs := flag.NewFlagSet(cmd, flag.ContinueOnError)
+		fs.SetOutput(stderr)
+		sourcesPath := fs.String("sources", "scanners/rules/sources.json", "rule sources manifest")
+		out := fs.String("out", "rules-bundle", "output directory")
+		if err := fs.Parse(rest); err != nil {
+			return exitConfig
+		}
+		srcs, err := rules.LoadSources(*sourcesPath)
+		if err != nil {
+			fmt.Fprintln(stderr, err)
+			return exitConfig
+		}
+		m, err := rules.Bundle(filepath.Dir(*sourcesPath), *out, srcs)
+		if err != nil {
+			fmt.Fprintln(stderr, err)
+			return exitScanError
+		}
+		fmt.Fprintf(stdout, "bundled %d rule files (%d skipped: unknown license)\n", len(m.Rules), len(m.Skipped))
+		return exitOK
 	case "version", "--version", "-v":
 		fmt.Fprintf(stdout, "scanx %s (commit %s, built %s)\n", version.Version, version.Commit, version.Date)
 		return exitOK
@@ -140,4 +166,48 @@ func withConfig(ctx context.Context, stderr io.Writer, req config.Requirement,
 		return exitScanError
 	}
 	return exitOK
+}
+
+// runScan parses `scanx scan` flags (spec §12.1).
+func runScan(ctx context.Context, args []string, stdout, stderr io.Writer) int {
+	fs := flag.NewFlagSet("scan", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	o := app.ScanOptions{}
+	fs.StringVar(&o.Path, "path", ".", "source directory to scan")
+	fs.StringVar(&o.Out, "out", "scanx-results", "output directory for reports")
+	formats := fs.String("format", "json,sarif,html", "comma-separated report formats: json,sarif,html")
+	fs.StringVar(&o.FailOn, "fail-on", "high", "fail (exit 1) on findings at or above: critical|high|medium|low|info|none")
+	fs.StringVar(&o.Engine, "engine", "auto", "auto | exec (tools in this environment) | docker (scanner image)")
+	fs.StringVar(&o.Image, "image", "", "scanner image for the docker engine (default "+app.DefaultScannerImage+")")
+	fs.BoolVar(&o.History, "history", true, "scan git history for secrets")
+	fs.StringVar(&o.Profile, "profile", "default", "fast | default | full")
+	fs.BoolVar(&o.NoSnippets, "no-snippets", false, "do not store code snippets in reports")
+	fs.IntVar(&o.Parallelism, "parallelism", 3, "scanners run in parallel")
+	fs.StringVar(&o.Branch, "branch", envFirst("SCANX_BRANCH", "GITHUB_REF_NAME", "CI_COMMIT_REF_NAME"), "branch name for the report")
+	fs.StringVar(&o.Commit, "commit", envFirst("SCANX_COMMIT", "GITHUB_SHA", "CI_COMMIT_SHA"), "commit SHA for the report")
+	fs.StringVar(&o.Repo, "repo", envFirst("SCANX_REPO", "GITHUB_REPOSITORY", "CI_PROJECT_PATH"), "repository name for the report")
+	fs.StringVar(&o.DisplayPath, "display-path", "", "path shown in reports (set by the docker engine)")
+	fs.StringVar(&o.DisplayOut, "display-out", "", "output path shown to the user (set by the docker engine)")
+	fs.Func("exclude", "path or glob to exclude (repeatable)", func(v string) error {
+		o.Exclude = append(o.Exclude, v)
+		return nil
+	})
+	if err := fs.Parse(args); err != nil {
+		return exitConfig
+	}
+	for _, f := range strings.Split(*formats, ",") {
+		if f = strings.TrimSpace(f); f != "" {
+			o.Formats = append(o.Formats, f)
+		}
+	}
+	return app.RunScan(ctx, o, stdout, stderr)
+}
+
+func envFirst(keys ...string) string {
+	for _, k := range keys {
+		if v := os.Getenv(k); v != "" {
+			return v
+		}
+	}
+	return ""
 }

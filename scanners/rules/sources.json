@@ -1,0 +1,61 @@
+[
+  {
+    "name": "scanx",
+    "dir": "scanx",
+    "license": "BUSL-1.1"
+  },
+  {
+    "name": "gitlab",
+    "url": "https://gitlab.com/gitlab-org/security-products/sast-rules.git",
+    "commit": "53bf5cf6df3c51b6c02110f5a638b5e6213666cd",
+    "dir": "src/gitlab",
+    "include": [
+      "c",
+      "csharp",
+      "go",
+      "java",
+      "javascript",
+      "python",
+      "scala",
+      "rules/lgpl"
+    ],
+    "license": "per-file",
+    "license_file": "LICENSE"
+  },
+  {
+    "name": "trailofbits",
+    "url": "https://github.com/trailofbits/semgrep-rules.git",
+    "commit": "31390b3a99c04c81522d1b37c8d1900aa2dd4094",
+    "dir": "src/trailofbits",
+    "license": "AGPL-3.0-only",
+    "license_file": "LICENSE"
+  },
+  {
+    "name": "dgryski",
+    "url": "https://github.com/dgryski/semgrep-go.git",
+    "commit": "db0227c03f4b3c4e71d900188d51db4c81d66932",
+    "dir": "src/dgryski",
+    "license": "MIT",
+    "license_file": "LICENSE"
+  },
+  {
+    "name": "0xdea",
+    "url": "https://github.com/0xdea/semgrep-rules.git",
+    "commit": "dae50da6e6e629750f1daec73a01ef9206a372ab",
+    "dir": "src/0xdea",
+    "license": "MIT",
+    "license_file": "LICENSE",
+    "include": [
+      "rules/c"
+    ]
+  },
+  {
+    "name": "elttam",
+    "url": "https://github.com/elttam/semgrep-rules.git",
+    "commit": "244268562cc92d33f54b8a60a187df5520f91b26",
+    "dir": "src/elttam",
+    "license": "MIT",
+    "license_file": "LICENSE",
+    "profile": "full"
+  }
+]

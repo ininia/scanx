@@ -1,0 +1,110 @@
+# scanX PHP security rules — (c) 2026 İninia Teknoloji Limited Şirketi
+# License: BUSL-1.1 (same as scanX, see LICENSE). Change License: AGPL-3.0-or-later.
+rules:
+  - id: scanx-php-xss-echo
+    mode: taint
+    languages: [php]
+    severity: ERROR
+    message: >-
+      User input is written to the HTML response without escaping (cross-site scripting). An
+      attacker can run JavaScript in other users' browsers. Escape with htmlspecialchars().
+    metadata:
+      cwe: ["CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')"]
+      owasp: ["A03:2021 - Injection"]
+      confidence: HIGH
+      category: security
+      references:
+        - https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html
+    pattern-sources:
+      - pattern-either:
+          - pattern: $_GET
+          - pattern: $_POST
+          - pattern: $_REQUEST
+          - pattern: $_COOKIE
+    pattern-sanitizers:
+      - pattern-either:
+          - pattern: htmlspecialchars(...)
+          - pattern: htmlentities(...)
+          - pattern: intval(...)
+          - pattern: (int) $X
+          - pattern: json_encode(...)
+          - pattern: urlencode(...)
+    pattern-sinks:
+      - pattern-either:
+          - pattern: echo ...;
+          - pattern: print(...);
+          - pattern: printf(...);
+          - pattern: vprintf(...);
+
+  - id: scanx-php-unserialize-user-input
+    mode: taint
+    languages: [php]
+    severity: ERROR
+    message: >-
+      User input is passed to unserialize(). Crafted payloads can trigger object injection and
+      remote code execution. Use json_decode() for untrusted data.
+    metadata:
+      cwe: ["CWE-502: Deserialization of Untrusted Data"]
+      owasp: ["A08:2021 - Software and Data Integrity Failures"]
+      confidence: HIGH
+      category: security
+      references:
+        - https://owasp.org/www-community/vulnerabilities/PHP_Object_Injection
+    pattern-sources:
+      - pattern-either:
+          - pattern: $_GET
+          - pattern: $_POST
+          - pattern: $_REQUEST
+          - pattern: $_COOKIE
+    pattern-sinks:
+      - patterns:
+          - pattern: unserialize($X, ...)
+          - focus-metavariable: $X
+
+  - id: scanx-php-open-redirect
+    mode: taint
+    languages: [php]
+    severity: WARNING
+    message: >-
+      User input controls an HTTP header such as Location (open redirect / header injection).
+      Only redirect to allow-listed, relative URLs.
+    metadata:
+      cwe: ["CWE-601: URL Redirection to Untrusted Site ('Open Redirect')"]
+      owasp: ["A01:2021 - Broken Access Control"]
+      confidence: MEDIUM
+      category: security
+      references:
+        - https://cheatsheetseries.owasp.org/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.html
+    pattern-sources:
+      - pattern-either:
+          - pattern: $_GET
+          - pattern: $_POST
+          - pattern: $_REQUEST
+          - pattern: $_COOKIE
+    pattern-sinks:
+      - patterns:
+          - pattern: header($X, ...)
+          - focus-metavariable: $X
+
+  - id: scanx-php-weak-password-hash
+    languages: [php]
+    severity: WARNING
+    message: >-
+      A password is hashed with a fast, broken hash function (MD5/SHA-1). Use password_hash()
+      with PASSWORD_DEFAULT or PASSWORD_ARGON2ID.
+    metadata:
+      cwe: ["CWE-328: Use of Weak Hash"]
+      owasp: ["A02:2021 - Cryptographic Failures"]
+      confidence: MEDIUM
+      category: security
+      references:
+        - https://www.php.net/manual/en/function.password-hash.php
+    patterns:
+      - pattern-either:
+          - pattern: md5($X, ...)
+          - pattern: sha1($X, ...)
+          - pattern: hash("md5", $X, ...)
+          - pattern: hash("sha1", $X, ...)
+      - metavariable-regex:
+          metavariable: $X
+          regex: (?i).*(pass|pwd|secret).*
