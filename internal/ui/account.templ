@@ -1,0 +1,172 @@
+package ui
+
+import (
+	"strconv"
+
+	"github.com/ininia/scanx/internal/service"
+	"github.com/ininia/scanx/internal/store/db"
+)
+
+// AccountView holds the account page data.
+type AccountView struct {
+	TOTPEnabled bool
+	Enroll      *TOTPView // non-nil while enrolling
+	ForceTOTP   bool
+	Sessions    []service.SessionInfo
+	ProfileForm *Form
+	PassForm    *Form
+	TOTPForm    *Form
+}
+
+templ Account(p *Page, v *AccountView) {
+	@AppShell(p) {
+		<div class="page-head">
+			<div>
+				<div class="crumbs">{ p.User.Email }</div>
+				<h1>{ p.T("nav.account") }</h1>
+			</div>
+		</div>
+		if v.ForceTOTP {
+			<div class="alert warn">{ p.T("account.force_totp") }</div>
+		}
+		<div class="grid cols-2">
+			<div class="card">
+				<h2>{ p.T("account.profile") }</h2>
+				@formErr(p, v.ProfileForm)
+				<form class="stack" method="post" action="/account/profile">
+					@csrf(p)
+					<div class="field">
+						<label for="name">{ p.T("field.name") }</label>
+						<input id="name" name="name" type="text" required value={ p.User.Name }/>
+						@fieldErr(p, v.ProfileForm, "name")
+					</div>
+					<div class="field">
+						<label for="locale">{ p.T("setup.language") }</label>
+						<select id="locale" name="locale">
+							<option value="" selected?={ p.User.Locale == "" }>{ p.T("account.lang_auto") }</option>
+							<option value="tr" selected?={ p.User.Locale == "tr" }>Türkçe</option>
+							<option value="en" selected?={ p.User.Locale == "en" }>English</option>
+						</select>
+					</div>
+					<div><button class="btn primary" type="submit">{ p.T("action.save") }</button></div>
+				</form>
+			</div>
+			<div class="card">
+				<h2>{ p.T("account.password") }</h2>
+				@formErr(p, v.PassForm)
+				<form class="stack" method="post" action="/account/password">
+					@csrf(p)
+					<div class="field">
+						<label for="current">{ p.T("field.current_password") }</label>
+						<input id="current" name="current" type="password" autocomplete="current-password" required/>
+						@fieldErr(p, v.PassForm, "current_password")
+					</div>
+					<div class="field">
+						<label for="new">{ p.T("field.new_password") }</label>
+						<input id="new" name="new" type="password" autocomplete="new-password" minlength="12" required/>
+						<span class="hint">{ p.T("password.hint") }</span>
+						@fieldErr(p, v.PassForm, "new_password")
+					</div>
+					<div><button class="btn primary" type="submit">{ p.T("account.change_password") }</button></div>
+				</form>
+			</div>
+		</div>
+		<div class="card">
+			<h2>{ p.T("account.2fa") }
+				if v.TOTPEnabled {
+					<span class="badge ok">{ p.T("state.on") }</span>
+				} else {
+					<span class="badge off">{ p.T("state.off") }</span>
+				}
+			</h2>
+			if v.Enroll != nil {
+				@totpEnroll(p, v.TOTPForm, v.Enroll, "/account/2fa/confirm")
+			} else if !v.TOTPEnabled {
+				<p class="muted">{ p.T("account.2fa_help") }</p>
+				<form method="post" action="/account/2fa/begin">
+					@csrf(p)
+					<button class="btn primary" type="submit">{ p.T("account.2fa_setup") }</button>
+				</form>
+			} else if !p.User.IsSuperadmin {
+				@formErr(p, v.TOTPForm)
+				<form method="post" action="/account/2fa/disable" class="row">
+					@csrf(p)
+					<div class="field">
+						<label for="pw">{ p.T("field.current_password") }</label>
+						<input id="pw" name="password" type="password" required/>
+					</div>
+					<button class="btn danger" type="submit">{ p.T("account.2fa_disable") }</button>
+				</form>
+			} else {
+				<p class="muted">{ p.T("account.2fa_required_admin") }</p>
+			}
+		</div>
+		<div class="card">
+			<h2>{ p.T("account.sessions") }</h2>
+			<div class="tablewrap">
+				<table>
+					<thead><tr><th>{ p.T("account.device") }</th><th>IP</th><th>{ p.T("tokens.last_used") }</th><th></th></tr></thead>
+					<tbody>
+						for _, s := range v.Sessions {
+							<tr>
+								<td>{ s.UserAgent }</td>
+								<td class="mono">{ s.IP }</td>
+								<td>{ Date(s.LastSeenAt) }</td>
+								<td>
+									if s.Current {
+										<span class="badge ok">{ p.T("account.this_session") }</span>
+									} else {
+										<form method="post" action={ templ.SafeURL("/account/sessions/" + s.ID.String() + "/revoke") }>
+											@csrf(p)
+											<button class="btn small" type="submit">{ p.T("action.revoke") }</button>
+										</form>
+									}
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	}
+}
+
+templ Admin(p *Page, f *Form, orgs []db.ListAllOrgsRow) {
+	@AppShell(p) {
+		<div class="page-head">
+			<div>
+				<div class="crumbs">{ p.T("nav.instance") }</div>
+				<h1>{ p.T("nav.admin") }</h1>
+			</div>
+		</div>
+		<div class="card">
+			<h2>{ p.T("admin.create_org") }</h2>
+			@formErr(p, f)
+			<form method="post" action="/admin/orgs" class="row">
+				@csrf(p)
+				<div class="field">
+					<label for="name">{ p.T("field.org_name") }</label>
+					<input id="name" name="name" type="text" required value={ f.V("name") }/>
+					@fieldErr(p, f, "name")
+					@fieldErr(p, f, "slug")
+				</div>
+				<button class="btn primary" type="submit">{ p.T("action.create") }</button>
+			</form>
+		</div>
+		<div class="tablewrap">
+			<table>
+				<thead><tr><th>{ p.T("field.org_name") }</th><th>Slug</th><th>{ p.T("nav.members") }</th><th>{ p.T("field.created") }</th></tr></thead>
+				<tbody>
+					for _, o := range orgs {
+						<tr>
+							<td><a href={ templ.SafeURL("/o/" + o.Slug) }>{ o.Name }</a></td>
+							<td class="mono">{ o.Slug }</td>
+							<td>{ strconv.FormatInt(o.MemberCount, 10) }</td>
+							<td>{ Date(o.CreatedAt) }</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	}
+}

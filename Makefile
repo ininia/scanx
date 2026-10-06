@@ -11,12 +11,17 @@ LDFLAGS := -s -w -X $(PKG)/internal/version.Version=$(VERSION) \
 IMAGE   ?= ghcr.io/ininia/scanx
 COMPOSE := docker compose -f deploy/docker-compose.yml --env-file deploy/.env
 
-.PHONY: all fmt lint vet test test-integration cover build images up down logs tidy
+.PHONY: all fmt lint vet test test-integration cover build images up down logs tidy generate
 
 all: lint test build
 
 fmt:
 	gofumpt -w .
+
+# Regenerate sqlc (queries/ → internal/store/db) and templ (internal/ui) code.
+generate:
+	sqlc generate
+	templ generate -path internal/ui
 
 lint:
 	golangci-lint run ./...

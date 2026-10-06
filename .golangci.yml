@@ -32,7 +32,11 @@ linters:
     presets: [std-error-handling]
     rules:
       - path: _test\.go
-        linters: [gosec, noctx]
+        linters: [gosec, noctx, bodyclose]
+      - path: internal/i18n/
+        linters: [misspell, gosec]
+      - path: internal/store/db/
+        linters: [revive]
 
 formatters:
   enable:

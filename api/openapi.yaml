@@ -1,0 +1,517 @@
+openapi: 3.1.0
+info:
+  title: scanX API
+  version: 1.0.0-phase2
+  description: |
+    scanX REST API (spec §9). Authenticate with `Authorization: Bearer scanx_pat_…`
+    (personal API token) or with the browser session cookie plus `X-CSRF-Token`.
+    Resources of organizations you do not belong to are reported as 404.
+  license:
+    name: BUSL-1.1
+    url: https://github.com/ininia/scanx/blob/main/LICENSE
+servers:
+  - url: /api/v1
+security:
+  - bearer: []
+  - session: []
+tags:
+  - name: auth
+  - name: orgs
+  - name: members
+  - name: tokens
+  - name: projects
+paths:
+  /auth/login:
+    post:
+      tags: [auth]
+      security: []
+      summary: Log in with e-mail and password (sets the session cookie)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [email, password]
+              properties:
+                email: { type: string }
+                password: { type: string }
+      responses:
+        "200":
+          description: Logged in; if mfa_required, POST /auth/mfa next
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LoginResult" }
+        "401": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /auth/mfa:
+    post:
+      tags: [auth]
+      security: []
+      summary: Complete a 2FA login with a TOTP code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [code]
+              properties:
+                code: { type: string }
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LoginResult" }
+        "401": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /auth/logout:
+    post:
+      tags: [auth]
+      responses:
+        "204": { description: Logged out }
+        "401": { $ref: "#/components/responses/Error" }
+  /me:
+    get:
+      tags: [auth]
+      responses:
+        "200":
+          description: The caller
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Me" }
+        "401": { $ref: "#/components/responses/Error" }
+  /orgs:
+    get:
+      tags: [orgs]
+      responses:
+        "200":
+          description: Organizations the caller belongs to
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OrgPage" }
+        "401": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [orgs]
+      summary: Create an organization (superadmin, or signup mode)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 200 }
+                slug: { type: string }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Org" }
+        "403": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /orgs/{org}:
+    parameters: [{ $ref: "#/components/parameters/org" }]
+    get:
+      tags: [orgs]
+      responses:
+        "200":
+          description: Organization
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Org" }
+        "404": { $ref: "#/components/responses/Error" }
+    patch:
+      tags: [orgs]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name]
+              properties:
+                name: { type: string }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Org" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /orgs/{org}/members:
+    parameters: [{ $ref: "#/components/parameters/org" }]
+    get:
+      tags: [members]
+      responses:
+        "200":
+          description: Members
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MemberPage" }
+        "404": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [members]
+      summary: Add an existing user by e-mail
+      requestBody: { $ref: "#/components/requestBodies/EmailRole" }
+      responses:
+        "204": { description: Added }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /orgs/{org}/members/{user}:
+    parameters:
+      - { $ref: "#/components/parameters/org" }
+      - { name: user, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      tags: [members]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [role]
+              properties:
+                role: { $ref: "#/components/schemas/Role" }
+      responses:
+        "204": { description: Updated }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+    delete:
+      tags: [members]
+      responses:
+        "204": { description: Removed }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /orgs/{org}/invitations:
+    parameters: [{ $ref: "#/components/parameters/org" }]
+    get:
+      tags: [members]
+      responses:
+        "200":
+          description: Open invitations
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InvitationPage" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [members]
+      summary: Invite by e-mail; the response contains the one-time token
+      requestBody: { $ref: "#/components/requestBodies/EmailRole" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Invitation" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /orgs/{org}/invitations/{id}:
+    parameters:
+      - { $ref: "#/components/parameters/org" }
+      - { $ref: "#/components/parameters/id" }
+    delete:
+      tags: [members]
+      responses:
+        "204": { description: Revoked }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /orgs/{org}/tokens:
+    parameters: [{ $ref: "#/components/parameters/org" }]
+    get:
+      tags: [tokens]
+      responses:
+        "200":
+          description: The caller's API tokens in this organization
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TokenPage" }
+        "404": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [tokens]
+      summary: Create a personal API token (shown once)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name]
+              properties:
+                name: { type: string }
+                scopes: { type: array, items: { type: string, enum: [read, write] } }
+                expires_in_days: { type: integer, minimum: 0, maximum: 3650 }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Token" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /orgs/{org}/tokens/{id}:
+    parameters:
+      - { $ref: "#/components/parameters/org" }
+      - { $ref: "#/components/parameters/id" }
+    delete:
+      tags: [tokens]
+      responses:
+        "204": { description: Revoked }
+        "404": { $ref: "#/components/responses/Error" }
+  /orgs/{org}/audit:
+    parameters:
+      - { $ref: "#/components/parameters/org" }
+      - { $ref: "#/components/parameters/page" }
+      - { $ref: "#/components/parameters/per_page" }
+    get:
+      tags: [orgs]
+      responses:
+        "200":
+          description: Audit log (newest first); total is -1 (not counted)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuditPage" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /orgs/{org}/projects:
+    parameters:
+      - { $ref: "#/components/parameters/org" }
+      - { $ref: "#/components/parameters/page" }
+      - { $ref: "#/components/parameters/per_page" }
+    get:
+      tags: [projects]
+      responses:
+        "200":
+          description: Projects
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectPage" }
+        "404": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [projects]
+      requestBody: { $ref: "#/components/requestBodies/Project" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Project" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /orgs/{org}/projects/{project}:
+    parameters:
+      - { $ref: "#/components/parameters/org" }
+      - { name: project, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [projects]
+      responses:
+        "200":
+          description: Project
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Project" }
+        "404": { $ref: "#/components/responses/Error" }
+    patch:
+      tags: [projects]
+      requestBody: { $ref: "#/components/requestBodies/Project" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Project" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+    delete:
+      tags: [projects]
+      responses:
+        "204": { description: Deleted }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+components:
+  securitySchemes:
+    bearer: { type: http, scheme: bearer }
+    session: { type: apiKey, in: cookie, name: __Host-scanx_session }
+  parameters:
+    org: { name: org, in: path, required: true, schema: { type: string } }
+    id: { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    page: { name: page, in: query, required: false, schema: { type: integer, minimum: 1 } }
+    per_page: { name: per_page, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 200 } }
+  requestBodies:
+    EmailRole:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [email, role]
+            properties:
+              email: { type: string }
+              role: { $ref: "#/components/schemas/Role" }
+    Project:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            properties:
+              name: { type: string }
+              slug: { type: string }
+              repo_url: { type: string }
+              provider: { type: string, enum: [github, gitlab, gitea, bitbucket, generic, ""] }
+              branches: { type: array, items: { type: string } }
+  responses:
+    Error:
+      description: Error envelope
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            request_id: { type: string }
+            field: { type: string }
+            reason: { type: string }
+    Role: { type: string, enum: [owner, admin, member, viewer] }
+    LoginResult:
+      type: object
+      required: [mfa_required]
+      properties:
+        mfa_required: { type: boolean }
+    Me:
+      type: object
+      required: [id, email, name, is_superadmin, locale, via_token]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string }
+        name: { type: string }
+        is_superadmin: { type: boolean }
+        locale: { type: string }
+        via_token: { type: boolean }
+    Org:
+      type: object
+      required: [id, name, slug]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        slug: { type: string }
+        role: { $ref: "#/components/schemas/Role" }
+        created_at: { type: string, format: date-time }
+    Member:
+      type: object
+      required: [user_id, email, name, role, totp_enabled, last_login_at]
+      properties:
+        user_id: { type: string, format: uuid }
+        email: { type: string }
+        name: { type: string }
+        role: { $ref: "#/components/schemas/Role" }
+        totp_enabled: { type: boolean }
+        last_login_at: { type: [string, "null"], format: date-time }
+    Invitation:
+      type: object
+      required: [id, email, role, expires_at]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string }
+        role: { $ref: "#/components/schemas/Role" }
+        expires_at: { type: string, format: date-time }
+        token: { type: string, description: Only present in the create response }
+    Token:
+      type: object
+      required: [id, name, prefix, scopes, last_used_at, expires_at, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        prefix: { type: string }
+        scopes: { type: [array, "null"], items: { type: string } }
+        last_used_at: { type: [string, "null"], format: date-time }
+        expires_at: { type: [string, "null"], format: date-time }
+        created_at: { type: string, format: date-time }
+        token: { type: string, description: Only present in the create response }
+    Audit:
+      type: object
+      required: [id, action, user_email, target_type, target_id, ip, metadata, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        action: { type: string }
+        user_email: { type: string }
+        target_type: { type: string }
+        target_id: { type: string }
+        ip: { type: string }
+        metadata: { type: object }
+        created_at: { type: string, format: date-time }
+    Project:
+      type: object
+      required: [id, name, slug, repo_url, provider, auth_mode, branches, created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        slug: { type: string }
+        repo_url: { type: string }
+        provider: { type: string }
+        auth_mode: { type: string }
+        branches: { type: array, items: { type: string } }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    PageMeta:
+      type: object
+      required: [items, page, per_page, total]
+      properties:
+        page: { type: integer }
+        per_page: { type: integer }
+        total: { type: integer }
+    OrgPage:
+      allOf:
+        - $ref: "#/components/schemas/PageMeta"
+        - properties: { items: { type: array, items: { $ref: "#/components/schemas/Org" } } }
+    MemberPage:
+      allOf:
+        - $ref: "#/components/schemas/PageMeta"
+        - properties: { items: { type: array, items: { $ref: "#/components/schemas/Member" } } }
+    InvitationPage:
+      allOf:
+        - $ref: "#/components/schemas/PageMeta"
+        - properties: { items: { type: array, items: { $ref: "#/components/schemas/Invitation" } } }
+    TokenPage:
+      allOf:
+        - $ref: "#/components/schemas/PageMeta"
+        - properties: { items: { type: array, items: { $ref: "#/components/schemas/Token" } } }
+    AuditPage:
+      allOf:
+        - $ref: "#/components/schemas/PageMeta"
+        - properties: { items: { type: array, items: { $ref: "#/components/schemas/Audit" } } }
+    ProjectPage:
+      allOf:
+        - $ref: "#/components/schemas/PageMeta"
+        - properties: { items: { type: array, items: { $ref: "#/components/schemas/Project" } } }

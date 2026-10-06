@@ -1,0 +1,191 @@
+package ui
+
+import "strconv"
+
+templ steps(cur, total int) {
+	<ol class="steps" aria-label={ "step " + strconv.Itoa(cur) + "/" + strconv.Itoa(total) }>
+		for i := 1; i <= total; i++ {
+			<li class={ templ.KV("done", i < cur), templ.KV("cur", i == cur) }></li>
+		}
+	</ol>
+}
+
+const setupSteps = 6
+
+templ SetupToken(p *Page, f *Form) {
+	@AuthShell(p, true) {
+		<div class="card">
+			@steps(1, setupSteps)
+			<h1>{ p.T("setup.welcome") }</h1>
+			<p class="muted">{ p.T("setup.token_help") }</p>
+			@formErr(p, f)
+			<form class="stack" method="post" action="/setup/token">
+				@csrf(p)
+				<div class="field">
+					<label for="token">{ p.T("setup.token") }</label>
+					<input id="token" name="token" type="password" autocomplete="off" required autofocus class="mono"/>
+					<span class="hint">{ p.T("setup.token_where") }</span>
+				</div>
+				<button class="btn primary block" type="submit">{ p.T("action.continue") }</button>
+			</form>
+		</div>
+	}
+}
+
+templ SetupAdmin(p *Page, f *Form) {
+	@AuthShell(p, true) {
+		<div class="card">
+			@steps(2, setupSteps)
+			<h1>{ p.T("setup.admin_title") }</h1>
+			<p class="muted">{ p.T("setup.admin_help") }</p>
+			@formErr(p, f)
+			<form class="stack" method="post" action="/setup/admin">
+				@csrf(p)
+				<div class="field">
+					<label for="name">{ p.T("field.name") }</label>
+					<input id="name" name="name" type="text" autocomplete="name" required value={ f.V("name") } autofocus/>
+					@fieldErr(p, f, "name")
+				</div>
+				<div class="field">
+					<label for="email">{ p.T("field.email") }</label>
+					<input id="email" name="email" type="email" autocomplete="username" required value={ f.V("email") }/>
+					@fieldErr(p, f, "email")
+				</div>
+				<div class="field">
+					<label for="password">{ p.T("field.new_password") }</label>
+					<input id="password" name="password" type="password" autocomplete="new-password" minlength="12" required/>
+					<span class="hint">{ p.T("password.hint") }</span>
+					@fieldErr(p, f, "password")
+				</div>
+				<div class="field">
+					<label for="password2">{ p.T("field.password_repeat") }</label>
+					<input id="password2" name="password2" type="password" autocomplete="new-password" required/>
+					@fieldErr(p, f, "password2")
+				</div>
+				<button class="btn primary block" type="submit">{ p.T("action.continue") }</button>
+			</form>
+		</div>
+	}
+}
+
+// TOTPView shows 2FA enrollment data.
+type TOTPView struct {
+	QR     string // data: URI of the QR PNG (generated server-side)
+	Secret string
+}
+
+templ totpEnroll(p *Page, f *Form, v *TOTPView, action string) {
+	<div class="qr">
+		<img src={ templ.SafeURL(v.QR) } alt={ p.T("totp.qr_alt") }/>
+		<div>
+			<p>{ p.T("totp.scan") }</p>
+			<p class="muted">{ p.T("totp.manual") }</p>
+			<div class="secret-box">{ v.Secret }</div>
+		</div>
+	</div>
+	@formErr(p, f)
+	<form class="stack" method="post" action={ templ.SafeURL(action) }>
+		@csrf(p)
+		<div class="field">
+			<label for="code">{ p.T("field.code") }</label>
+			<input id="code" class="code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" required autofocus/>
+			@fieldErr(p, f, "code")
+		</div>
+		<button class="btn primary" type="submit">{ p.T("totp.enable") }</button>
+	</form>
+}
+
+templ Setup2FA(p *Page, f *Form, v *TOTPView) {
+	@AuthShell(p, true) {
+		<div class="card">
+			@steps(3, setupSteps)
+			<h1>{ p.T("setup.2fa_title") }</h1>
+			<p class="muted">{ p.T("setup.2fa_help") }</p>
+			@totpEnroll(p, f, v, "/setup/2fa")
+		</div>
+	}
+}
+
+templ SetupInstance(p *Page, f *Form) {
+	@AuthShell(p, true) {
+		<div class="card">
+			@steps(4, setupSteps)
+			<h1>{ p.T("setup.instance_title") }</h1>
+			@formErr(p, f)
+			<form class="stack" method="post" action="/setup/instance">
+				@csrf(p)
+				<div class="field">
+					<label for="name">{ p.T("setup.instance_name") }</label>
+					<input id="name" name="name" type="text" required value={ f.V("name") }/>
+					@fieldErr(p, f, "name")
+				</div>
+				<div class="field">
+					<label for="base_url">{ p.T("setup.base_url") }</label>
+					<input id="base_url" name="base_url" type="url" required value={ f.V("base_url") }/>
+					<span class="hint">{ p.T("setup.base_url_hint") }</span>
+					@fieldErr(p, f, "base_url")
+				</div>
+				<div class="row">
+					<div class="field">
+						<label for="default_locale">{ p.T("setup.language") }</label>
+						<select id="default_locale" name="default_locale">
+							<option value="tr" selected?={ f.V("default_locale") != "en" }>Türkçe</option>
+							<option value="en" selected?={ f.V("default_locale") == "en" }>English</option>
+						</select>
+					</div>
+					<div class="field">
+						<label for="timezone">{ p.T("setup.timezone") }</label>
+						<input id="timezone" name="timezone" type="text" required value={ f.V("timezone") }/>
+						@fieldErr(p, f, "timezone")
+					</div>
+				</div>
+				<div class="alert warn">{ p.T("setup.later_note") }</div>
+				<button class="btn primary block" type="submit">{ p.T("action.continue") }</button>
+			</form>
+		</div>
+	}
+}
+
+templ SetupOrg(p *Page, f *Form) {
+	@AuthShell(p, true) {
+		<div class="card">
+			@steps(5, setupSteps)
+			<h1>{ p.T("setup.org_title") }</h1>
+			<p class="muted">{ p.T("setup.org_help") }</p>
+			@formErr(p, f)
+			<form class="stack" method="post" action="/setup/org">
+				@csrf(p)
+				<div class="field">
+					<label for="name">{ p.T("field.org_name") }</label>
+					<input id="name" name="name" type="text" required value={ f.V("name") } autofocus/>
+					@fieldErr(p, f, "name")
+					@fieldErr(p, f, "slug")
+				</div>
+				<button class="btn primary block" type="submit">{ p.T("action.continue") }</button>
+			</form>
+		</div>
+	}
+}
+
+templ SetupDone(p *Page, f *Form, inst string, admin string, org string) {
+	@AuthShell(p, true) {
+		<div class="card">
+			@steps(6, setupSteps)
+			<h1>{ p.T("setup.done_title") }</h1>
+			@formErr(p, f)
+			<div class="tablewrap">
+				<table>
+					<tr><th>{ p.T("setup.instance_name") }</th><td>{ inst }</td></tr>
+					<tr><th>{ p.T("setup.admin_title") }</th><td>{ admin } <span class="badge ok">2FA</span></td></tr>
+					<tr><th>{ p.T("field.org_name") }</th><td>{ org }</td></tr>
+				</table>
+			</div>
+			<p></p>
+			<div class="alert warn">{ p.T("setup.backup_key") }</div>
+			<form method="post" action="/setup/complete">
+				@csrf(p)
+				<button class="btn primary block" type="submit">{ p.T("setup.finish") }</button>
+			</form>
+		</div>
+	}
+}

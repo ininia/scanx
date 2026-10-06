@@ -8,15 +8,19 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # Git Bash on Windows: give Docker a Windows path and stop MSYS path mangling.
+USER_ARGS=()
 if command -v cygpath >/dev/null 2>&1; then
   ROOT="$(cygpath -w "$ROOT")"
   export MSYS_NO_PATHCONV=1
+  # Docker Desktop bind mounts on Windows show host files as root:644, so the
+  # unprivileged image user could not write go.sum etc. Use root there only.
+  USER_ARGS=(--user 0:0)
 fi
 
 IMAGE=scanx-dev:local
 docker build -q -t "$IMAGE" "$ROOT/build/dev" >/dev/null
 
-RUN_ARGS=(--rm -v "$ROOT:/src" -w /src
+RUN_ARGS=(--rm "${USER_ARGS[@]}" -v "$ROOT:/src" -w /src
   -v scanx-gomod-v3:/home/dev/go/pkg/mod -v scanx-gocache-v3:/home/dev/.cache/go-build)
 if [ -t 0 ] && [ -t 1 ]; then RUN_ARGS+=(-it); fi
 

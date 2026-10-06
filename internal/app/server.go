@@ -9,11 +9,9 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/ininia/scanx/internal/config"
-	"github.com/ininia/scanx/internal/server"
 	"github.com/ininia/scanx/internal/store"
 )
 
@@ -35,13 +33,11 @@ func RunServer(ctx context.Context, cfg *config.Config, log *slog.Logger) error 
 		return fmt.Errorf("%w (run `scanx migrate` first)", err)
 	}
 
-	handler := server.New(server.Options{
-		HSTS: strings.HasPrefix(cfg.BaseURL, "https://"),
-		ReadyChecks: []server.Check{
-			{Name: "database", Fn: pool.Ping},
-			{Name: "migrations", Fn: func(ctx context.Context) error { return store.MigrationsCurrent(ctx, pool) }},
-		},
-	})
+	handler, err := BuildHandler(cfg, pool, log)
+	if err != nil {
+		return err
+	}
+	go cleanupSessions(ctx, pool, log)
 
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,

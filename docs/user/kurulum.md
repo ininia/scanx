@@ -3,9 +3,9 @@
 Bu kılavuz yazılım bilgisi gerektirmez. Linux sunucuda komut çalıştırabiliyor ve Docker
 kullanabiliyorsanız yeterli.
 
-> **Durum (Faz 1):** Tarama motoru çalışıyor — bir klasörü/repoyu bugün tarayabilirsiniz (Bölüm 0).
-> Sunucu, veritabanı ve HTTPS katmanı kurulabiliyor; web arayüzü ve GitHub bağlantısı sonraki
-> fazlarda gelecek. Bu kılavuz her fazda güncellenir.
+> **Durum (Faz 2):** Tarama motoru (Bölüm 0) ve web arayüzü çalışıyor: kurulum sihirbazı, kullanıcılar,
+> 2FA, organizasyonlar, roller, API token'ları ve projeler. Sunucu tarafında otomatik tarama ve GitHub
+> bağlantısı bir sonraki sürümde. Bu kılavuz her fazda güncellenir.
 
 ## 0. Hemen dene: bir repoyu tara (sadece Docker)
 
@@ -63,6 +63,20 @@ Komut bittiğinde şuna benzer bir çıktı görürsünüz:
 Bu dosya tüm parolaları ve **ana şifreleme anahtarını** (`SCANX_MASTER_KEY`) içerir. Kaybolursa
 kayıtlı repo anahtarları bir daha çözülemez. Dosyayı şirketinizin parola kasasına
 (Vault, 1Password, Bitwarden…) koyun. Dosyayı **asla** git'e, e-postaya veya sohbete koymayın.
+
+## 2.1 Kurulum sihirbazı (tarayıcıda)
+
+1. Komutun yazdığı adresi açın (ör. `https://scan.sirketiniz.com`). Kendinden imzalı sertifika
+   kullanıyorsanız tarayıcı bir kez uyarı verir.
+2. **Kurulum token'ı**: komut çıktısındaki ya da `deploy/.env` içindeki `SCANX_SETUP_TOKEN` değeri.
+3. **Yönetici hesabı**: ad, e-posta, en az 12 karakterlik parola.
+4. **İki adımlı doğrulama (zorunlu)**: telefonunuzdaki doğrulama uygulamasıyla (Google/Microsoft
+   Authenticator, 1Password…) QR kodu okutun, 6 haneli kodu girin.
+5. **Sunucu ayarları**: ad, erişim adresi, dil, saat dilimi.
+6. **İlk organizasyon**: örn. şirketinizin adı → **Kurulumu tamamla**.
+
+Kurulum bittikten sonra sihirbaz kapanır ve token geçersiz olur. Ekip arkadaşlarını **Üyeler → Üye
+davet et** ile eklersiniz: oluşan bağlantıyı kişiye iletin (e-posta gönderimi sonraki sürümde).
 
 ## 3. Çalıştığını doğrulama
 ```bash

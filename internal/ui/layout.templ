@@ -1,0 +1,164 @@
+package ui
+
+templ head(p *Page) {
+	<meta charset="utf-8"/>
+	<meta name="viewport" content="width=device-width, initial-scale=1"/>
+	<meta name="color-scheme" content="dark light"/>
+	<meta name="htmx-config" content='{"includeIndicatorStyles":false,"allowScriptTags":false,"allowEval":false}'/>
+	<title>
+		if p.Title != "" {
+			{ p.Title } · { p.Instance }
+		} else {
+			{ p.Instance }
+		}
+	</title>
+	<link rel="icon" href="/static/img/scanx-mark.svg" type="image/svg+xml"/>
+	<link rel="stylesheet" href={ Asset("css/tokens.css") }/>
+	<link rel="stylesheet" href={ Asset("css/app.css") }/>
+	<script src={ Asset("js/htmx.min.js") } defer></script>
+}
+
+templ brand() {
+	<a class="brand" href="/" aria-label="scanX">
+		<img src="/static/img/scanx-mark.svg" alt=""/>
+		<span>scan<span class="x">X</span></span>
+	</a>
+}
+
+templ flash(p *Page) {
+	if p.Flash != "" {
+		<div class={ "alert", p.FlashKind } role="status">{ p.T(p.Flash) }</div>
+	}
+}
+
+// AuthShell is the centered layout for login, 2FA, setup and invitations.
+templ AuthShell(p *Page, wide bool) {
+	<!DOCTYPE html>
+	<html lang={ p.Lang }>
+		<head>
+			@head(p)
+		</head>
+		<body class={ templ.KV("wide", wide) }>
+			<main class="auth">
+				<div class="auth-card">
+					@brand()
+					<p class="tagline">{ p.T("app.tagline") }</p>
+					@flash(p)
+					{ children... }
+					<div class="auth-foot">
+						<a href={ templ.SafeURL("/lang/" + p.OtherLang() + "?next=" + p.Path) }>{ p.T("lang.switch") }</a>
+						<span>scanX { p.Version }</span>
+					</div>
+				</div>
+			</main>
+		</body>
+	</html>
+}
+
+templ navLink(p *Page, key, href, label string) {
+	<a href={ templ.SafeURL(href) } class={ templ.KV("active", p.Nav == key) }>{ label }</a>
+}
+
+// AppShell is the signed-in layout with sidebar, org switcher and user menu.
+templ AppShell(p *Page) {
+	<!DOCTYPE html>
+	<html lang={ p.Lang }>
+		<head>
+			@head(p)
+		</head>
+		<body hx-boost="true">
+			<div class="shell">
+				<aside class="sidebar">
+					@brand()
+					if len(p.Orgs) > 0 {
+						<details class="dropdown">
+							<summary>
+								<span class="org-chip">
+									if p.Org != nil {
+										{ p.Org.Org.Name }
+									} else {
+										{ p.T("nav.choose_org") }
+									}
+								</span>
+							</summary>
+							<div class="menu">
+								for _, o := range p.Orgs {
+									<a href={ templ.SafeURL("/o/" + o.Slug) }>{ o.Name } <span class="faint">· { p.T("role." + string(o.Role)) }</span></a>
+								}
+							</div>
+						</details>
+					}
+					<nav class="nav" aria-label={ p.T("nav.main") }>
+						if p.Org != nil {
+							@navLink(p, "dashboard", p.OrgURL(""), p.T("nav.dashboard"))
+							@navLink(p, "projects", p.OrgURL("/projects"), p.T("nav.projects"))
+							<span class="sep">{ p.T("nav.organization") }</span>
+							@navLink(p, "members", p.OrgURL("/members"), p.T("nav.members"))
+							@navLink(p, "tokens", p.OrgURL("/tokens"), p.T("nav.tokens"))
+							if p.Can("audit.read") {
+								@navLink(p, "audit", p.OrgURL("/audit"), p.T("nav.audit"))
+							}
+						}
+						if p.User != nil && p.User.IsSuperadmin {
+							<span class="sep">{ p.T("nav.instance") }</span>
+							@navLink(p, "admin", "/admin", p.T("nav.admin"))
+						}
+					</nav>
+					<div class="sidebar-foot">
+						<span>scanX { p.Version }</span>
+						<a href="https://github.com/ininia/scanx" rel="noopener noreferrer">GitHub</a>
+					</div>
+				</aside>
+				<div class="main">
+					<header class="topbar">
+						<span class="spacer"></span>
+						<a href={ templ.SafeURL("/lang/" + p.OtherLang() + "?next=" + p.Path) } class="muted">{ p.T("lang.switch") }</a>
+						if p.User != nil {
+							<details class="dropdown right">
+								<summary aria-label={ p.T("nav.account") }>{ Initials(p.User.Name, p.User.Email) }</summary>
+								<div class="menu">
+									<a href="/account">{ p.T("nav.account") }</a>
+									<form method="post" action="/logout">
+										<input type="hidden" name="csrf_token" value={ p.CSRF }/>
+										<button type="submit">{ p.T("nav.logout") }</button>
+									</form>
+								</div>
+							</details>
+						}
+					</header>
+					<main class="content" id="content">
+						@flash(p)
+						{ children... }
+					</main>
+				</div>
+			</div>
+		</body>
+	</html>
+}
+
+templ csrf(p *Page) {
+	<input type="hidden" name="csrf_token" value={ p.CSRF }/>
+}
+
+templ fieldErr(p *Page, f *Form, name string) {
+	if f.E(name) != "" {
+		<span class="err">{ p.T(f.E(name)) }</span>
+	}
+}
+
+templ formErr(p *Page, f *Form) {
+	if f != nil && f.Error != "" {
+		<div class="alert err" role="alert">{ p.T(f.Error) }</div>
+	}
+}
+
+// ErrorPage renders 403/404/500 pages.
+templ ErrorPage(p *Page, code int, titleKey, msgKey string) {
+	@AuthShell(p, false) {
+		<div class="card">
+			<h1>{ p.T(titleKey) }</h1>
+			<p class="muted">{ p.T(msgKey) }</p>
+			<a class="btn primary" href="/">{ p.T("action.home") }</a>
+		</div>
+	}
+}

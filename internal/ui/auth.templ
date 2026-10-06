@@ -1,0 +1,86 @@
+package ui
+
+templ LoginPage(p *Page, f *Form, next string) {
+	@AuthShell(p, false) {
+		<div class="card">
+			<h1>{ p.T("login.title") }</h1>
+			@formErr(p, f)
+			<form class="stack" method="post" action="/login">
+				@csrf(p)
+				<input type="hidden" name="next" value={ next }/>
+				<div class="field">
+					<label for="email">{ p.T("field.email") }</label>
+					<input id="email" name="email" type="email" autocomplete="username" required value={ f.V("email") } autofocus/>
+				</div>
+				<div class="field">
+					<label for="password">{ p.T("field.password") }</label>
+					<input id="password" name="password" type="password" autocomplete="current-password" required/>
+				</div>
+				<button class="btn primary block" type="submit">{ p.T("login.submit") }</button>
+			</form>
+		</div>
+	}
+}
+
+templ MFAPage(p *Page, f *Form) {
+	@AuthShell(p, false) {
+		<div class="card">
+			<h1>{ p.T("mfa.title") }</h1>
+			<p class="muted">{ p.T("mfa.help") }</p>
+			@formErr(p, f)
+			<form class="stack" method="post" action="/login/2fa">
+				@csrf(p)
+				<div class="field">
+					<label for="code">{ p.T("field.code") }</label>
+					<input id="code" class="code" name="code" type="text" inputmode="numeric" pattern="[0-9 ]{6,7}" autocomplete="one-time-code" required autofocus/>
+				</div>
+				<button class="btn primary block" type="submit">{ p.T("mfa.submit") }</button>
+			</form>
+		</div>
+	}
+}
+
+templ InvitePage(p *Page, f *Form, inv *InviteView) {
+	@AuthShell(p, false) {
+		<div class="card">
+			<h1>{ p.T("invite.title", inv.OrgName) }</h1>
+			<p class="muted">{ p.T("invite.body", inv.Email, p.T("role." + inv.Role)) }</p>
+			@formErr(p, f)
+			if inv.NeedsLogin {
+				<p>{ p.T("invite.login_first") }</p>
+				<a class="btn primary block" href={ templ.SafeURL("/login?next=/invite/" + inv.Token) }>{ p.T("login.submit") }</a>
+			} else if inv.LoggedIn {
+				<form class="stack" method="post" action={ templ.SafeURL("/invite/" + inv.Token) }>
+					@csrf(p)
+					<button class="btn primary block" type="submit">{ p.T("invite.accept") }</button>
+				</form>
+			} else {
+				<form class="stack" method="post" action={ templ.SafeURL("/invite/" + inv.Token) }>
+					@csrf(p)
+					<div class="field">
+						<label for="name">{ p.T("field.name") }</label>
+						<input id="name" name="name" type="text" autocomplete="name" required value={ f.V("name") }/>
+						@fieldErr(p, f, "name")
+					</div>
+					<div class="field">
+						<label for="password">{ p.T("field.new_password") }</label>
+						<input id="password" name="password" type="password" autocomplete="new-password" minlength="12" required/>
+						<span class="hint">{ p.T("password.hint") }</span>
+						@fieldErr(p, f, "password")
+					</div>
+					<button class="btn primary block" type="submit">{ p.T("invite.create_and_join") }</button>
+				</form>
+			}
+		</div>
+	}
+}
+
+// InviteView is what the invitation page shows.
+type InviteView struct {
+	Token      string
+	OrgName    string
+	Email      string
+	Role       string
+	NeedsLogin bool
+	LoggedIn   bool
+}

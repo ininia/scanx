@@ -12,9 +12,11 @@ mkdir -p "$OUT"
 chmod 0777 "$OUT" # the scanner runs as uid 65532
 
 HOST_ROOT="$ROOT"
+USER_ARGS=()
 if command -v cygpath >/dev/null 2>&1; then
   HOST_ROOT="$(cygpath -w "$ROOT")"
   export MSYS_NO_PATHCONV=1
+  USER_ARGS=(--user 0:0) # see scripts/dev.sh
 fi
 HOST_OUT="$HOST_ROOT/.e2e-out"
 
@@ -31,6 +33,6 @@ if [ "$code" -ne 1 ]; then
 fi
 
 docker build -q -t scanx-dev:local "$HOST_ROOT/build/dev" >/dev/null
-docker run --rm -v "$HOST_ROOT:/src" -w /src -e SCANX_E2E_OUT=/src/.e2e-out \
+docker run --rm "${USER_ARGS[@]}" -v "$HOST_ROOT:/src" -w /src -e SCANX_E2E_OUT=/src/.e2e-out \
   -v scanx-gomod-v3:/home/dev/go/pkg/mod -v scanx-gocache-v3:/home/dev/.cache/go-build \
   scanx-dev:local go test -tags e2e -count=1 -v ./test/e2e/

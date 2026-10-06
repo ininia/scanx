@@ -1,0 +1,394 @@
+package ui
+
+import (
+	"strconv"
+	"strings"
+
+	"github.com/ininia/scanx/internal/store/db"
+)
+
+templ NoOrg(p *Page) {
+	@AppShell(p) {
+		<div class="card empty">
+			<img class="mark" src="/static/img/scanx-mark.svg" alt=""/>
+			<h1>{ p.T("noorg.title") }</h1>
+			<p>{ p.T("noorg.body") }</p>
+			if p.User != nil && p.User.IsSuperadmin {
+				<a class="btn primary" href="/admin">{ p.T("admin.create_org") }</a>
+			}
+		</div>
+	}
+}
+
+// DashboardView holds dashboard numbers.
+type DashboardView struct {
+	Projects int64
+	Members  int
+	Recent   []db.Project
+}
+
+templ Dashboard(p *Page, v *DashboardView) {
+	@AppShell(p) {
+		<div class="page-head">
+			<div>
+				<div class="crumbs">{ p.T("nav.dashboard") }</div>
+				<h1>{ p.Org.Org.Name }</h1>
+			</div>
+			<div class="actions">
+				if p.Can("project.write") {
+					<a class="btn primary" href={ templ.SafeURL(p.OrgURL("/projects/new")) }>{ p.T("projects.new") }</a>
+				}
+			</div>
+		</div>
+		<div class="grid cols-4">
+			<div class="card stat accent"><div class="n">{ strconv.FormatInt(v.Projects, 10) }</div><div class="l">{ p.T("nav.projects") }</div></div>
+			<div class="card stat"><div class="n">{ strconv.Itoa(v.Members) }</div><div class="l">{ p.T("nav.members") }</div></div>
+			<div class="card stat crit"><div class="n">—</div><div class="l">{ p.T("sev.critical") }</div></div>
+			<div class="card stat high"><div class="n">—</div><div class="l">{ p.T("sev.high") }</div></div>
+		</div>
+		<div class="card">
+			<h2>{ p.T("dashboard.recent_projects") }</h2>
+			if len(v.Recent) == 0 {
+				<div class="empty">
+					<img class="mark" src="/static/img/scanx-mark.svg" alt=""/>
+					<p>{ p.T("projects.empty") }</p>
+				</div>
+			} else {
+				@projectTable(p, v.Recent)
+			}
+			<p class="faint">{ p.T("dashboard.scans_soon") }</p>
+		</div>
+	}
+}
+
+templ projectTable(p *Page, ps []db.Project) {
+	<div class="tablewrap">
+		<table>
+			<thead><tr><th>{ p.T("field.name") }</th><th>{ p.T("field.repo_url") }</th><th>{ p.T("field.branches") }</th><th>{ p.T("field.provider") }</th></tr></thead>
+			<tbody>
+				for _, pr := range ps {
+					<tr>
+						<td><a href={ templ.SafeURL(p.OrgURL("/projects/" + pr.Slug)) }>{ pr.Name }</a></td>
+						<td class="mono">{ pr.RepoUrl }</td>
+						<td>{ strings.Join(pr.Branches, ", ") }</td>
+						<td><span class="provider">{ pr.Provider }</span></td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+}
+
+templ Projects(p *Page, ps []db.Project, total int64) {
+	@AppShell(p) {
+		<div class="page-head">
+			<div>
+				<div class="crumbs">{ p.Org.Org.Name }</div>
+				<h1>{ p.T("nav.projects") } <span class="faint">({ strconv.FormatInt(total, 10) })</span></h1>
+			</div>
+			<div class="actions">
+				if p.Can("project.write") {
+					<a class="btn primary" href={ templ.SafeURL(p.OrgURL("/projects/new")) }>{ p.T("projects.new") }</a>
+				}
+			</div>
+		</div>
+		if len(ps) == 0 {
+			<div class="card empty">
+				<img class="mark" src="/static/img/scanx-mark.svg" alt=""/>
+				<p>{ p.T("projects.empty") }</p>
+			</div>
+		} else {
+			@projectTable(p, ps)
+		}
+	}
+}
+
+templ ProjectNew(p *Page, f *Form) {
+	@AppShell(p) {
+		<div class="page-head">
+			<div>
+				<div class="crumbs">{ p.T("nav.projects") }</div>
+				<h1>{ p.T("projects.new") }</h1>
+			</div>
+		</div>
+		<div class="card">
+			@formErr(p, f)
+			<form class="stack" method="post" action={ templ.SafeURL(p.OrgURL("/projects/new")) }>
+				@csrf(p)
+				<div class="field">
+					<label for="repo_url">{ p.T("field.repo_url") }</label>
+					<input id="repo_url" name="repo_url" type="text" required class="mono" placeholder="git@github.com:company/app.git" value={ f.V("repo_url") } autofocus/>
+					<span class="hint">{ p.T("projects.repo_hint") }</span>
+					@fieldErr(p, f, "repo_url")
+				</div>
+				<div class="row">
+					<div class="field">
+						<label for="name">{ p.T("field.name") }</label>
+						<input id="name" name="name" type="text" value={ f.V("name") } placeholder={ p.T("projects.name_auto") }/>
+						@fieldErr(p, f, "name")
+						@fieldErr(p, f, "slug")
+					</div>
+					<div class="field">
+						<label for="branches">{ p.T("field.branches") }</label>
+						<input id="branches" name="branches" type="text" value={ f.V("branches") } placeholder="main, master"/>
+						<span class="hint">{ p.T("projects.branches_hint") }</span>
+						@fieldErr(p, f, "branches")
+					</div>
+				</div>
+				<div>
+					<button class="btn primary" type="submit">{ p.T("action.create") }</button>
+					<a class="btn" href={ templ.SafeURL(p.OrgURL("/projects")) }>{ p.T("action.cancel") }</a>
+				</div>
+			</form>
+		</div>
+	}
+}
+
+templ ProjectDetail(p *Page, pr *db.Project) {
+	@AppShell(p) {
+		<div class="page-head">
+			<div>
+				<div class="crumbs"><a href={ templ.SafeURL(p.OrgURL("/projects")) }>{ p.T("nav.projects") }</a></div>
+				<h1>{ pr.Name }</h1>
+			</div>
+		</div>
+		<div class="grid cols-2">
+			<div class="card">
+				<h2>{ p.T("projects.repository") }</h2>
+				<div class="tablewrap">
+					<table>
+						<tr><th>{ p.T("field.repo_url") }</th><td class="mono">{ pr.RepoUrl }</td></tr>
+						<tr><th>{ p.T("field.provider") }</th><td>{ pr.Provider }</td></tr>
+						<tr><th>{ p.T("field.branches") }</th><td>{ strings.Join(pr.Branches, ", ") }</td></tr>
+						<tr><th>{ p.T("field.created") }</th><td>{ Date(pr.CreatedAt) }</td></tr>
+					</table>
+				</div>
+			</div>
+			<div class="card">
+				<h2>{ p.T("projects.next_steps") }</h2>
+				<p class="muted">{ p.T("projects.next_steps_body") }</p>
+			</div>
+		</div>
+		if p.Can("project.delete") {
+			<div class="card">
+				<h2>{ p.T("projects.danger") }</h2>
+				<form method="post" action={ templ.SafeURL(p.OrgURL("/projects/" + pr.Slug + "/delete")) } hx-confirm={ p.T("projects.delete_confirm") }>
+					@csrf(p)
+					<button class="btn danger" type="submit">{ p.T("projects.delete") }</button>
+				</form>
+			</div>
+		}
+	}
+}
+
+// MembersView lists members and invitations.
+type MembersView struct {
+	Members     []db.ListMembersRow
+	Invitations []db.ListInvitationsRow
+	NewInvite   string // full invitation link, shown once
+}
+
+templ Members(p *Page, f *Form, v *MembersView) {
+	@AppShell(p) {
+		<div class="page-head">
+			<div>
+				<div class="crumbs">{ p.Org.Org.Name }</div>
+				<h1>{ p.T("nav.members") }</h1>
+			</div>
+		</div>
+		if v.NewInvite != "" {
+			<div class="alert ok">
+				<p>{ p.T("members.invite_created") }</p>
+				<div class="secret-box">{ v.NewInvite }</div>
+			</div>
+		}
+		<div class="tablewrap">
+			<table>
+				<thead><tr><th>{ p.T("field.name") }</th><th>{ p.T("field.email") }</th><th>{ p.T("field.role") }</th><th>2FA</th><th></th></tr></thead>
+				<tbody>
+					for _, m := range v.Members {
+						<tr>
+							<td>{ m.Name }</td>
+							<td>{ m.Email }</td>
+							<td>
+								if p.Can("members.manage") && (m.Role != "owner" || p.Can("ownership.grant")) {
+									<form method="post" action={ templ.SafeURL(p.OrgURL("/members/" + m.UserID.String() + "/role")) } class="row inline">
+										@csrf(p)
+										@roleSelect(p, m.Role, p.Can("ownership.grant"))
+										<button class="btn small" type="submit">{ p.T("action.save") }</button>
+									</form>
+								} else {
+									<span class={ "badge", templ.KV("owner", m.Role == "owner") }>{ p.T("role." + m.Role) }</span>
+								}
+							</td>
+							<td>
+								if m.TotpEnabled {
+									<span class="badge ok">{ p.T("state.on") }</span>
+								} else {
+									<span class="badge off">{ p.T("state.off") }</span>
+								}
+							</td>
+							<td>
+								if p.Can("members.manage") || (p.User != nil && p.User.UserID == m.UserID) {
+									<form method="post" action={ templ.SafeURL(p.OrgURL("/members/" + m.UserID.String() + "/remove")) } hx-confirm={ p.T("members.remove_confirm") }>
+										@csrf(p)
+										<button class="btn small danger" type="submit">{ p.T("members.remove") }</button>
+									</form>
+								}
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+		if p.Can("members.manage") {
+			<div class="card">
+				<h2>{ p.T("members.invite") }</h2>
+				<p class="muted">{ p.T("members.invite_help") }</p>
+				@formErr(p, f)
+				<form method="post" action={ templ.SafeURL(p.OrgURL("/members/invite")) } class="row">
+					@csrf(p)
+					<div class="field">
+						<label for="email">{ p.T("field.email") }</label>
+						<input id="email" name="email" type="email" required value={ f.V("email") }/>
+						@fieldErr(p, f, "email")
+					</div>
+					<div class="field">
+						<label for="role">{ p.T("field.role") }</label>
+						@roleSelect(p, "member", p.Can("ownership.grant"))
+					</div>
+					<button class="btn primary" type="submit">{ p.T("members.invite_send") }</button>
+				</form>
+			</div>
+			if len(v.Invitations) > 0 {
+				<div class="card">
+					<h2>{ p.T("members.pending") }</h2>
+					<div class="tablewrap">
+						<table>
+							<thead><tr><th>{ p.T("field.email") }</th><th>{ p.T("field.role") }</th><th>{ p.T("field.expires") }</th><th></th></tr></thead>
+							<tbody>
+								for _, i := range v.Invitations {
+									<tr>
+										<td>{ i.Email }</td>
+										<td>{ p.T("role." + i.Role) }</td>
+										<td>{ Date(i.ExpiresAt) }</td>
+										<td>
+											<form method="post" action={ templ.SafeURL(p.OrgURL("/invitations/" + i.ID.String() + "/revoke")) }>
+												@csrf(p)
+												<button class="btn small" type="submit">{ p.T("action.revoke") }</button>
+											</form>
+										</td>
+									</tr>
+								}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			}
+		}
+	}
+}
+
+templ roleSelect(p *Page, cur string, allowOwner bool) {
+	<select name="role" aria-label={ p.T("field.role") }>
+		if allowOwner {
+			<option value="owner" selected?={ cur == "owner" }>{ p.T("role.owner") }</option>
+		}
+		<option value="admin" selected?={ cur == "admin" }>{ p.T("role.admin") }</option>
+		<option value="member" selected?={ cur == "member" }>{ p.T("role.member") }</option>
+		<option value="viewer" selected?={ cur == "viewer" }>{ p.T("role.viewer") }</option>
+	</select>
+}
+
+templ Tokens(p *Page, f *Form, rows []db.ListUserAPITokensRow, created string) {
+	@AppShell(p) {
+		<div class="page-head">
+			<div>
+				<div class="crumbs">{ p.Org.Org.Name }</div>
+				<h1>{ p.T("nav.tokens") }</h1>
+			</div>
+		</div>
+		if created != "" {
+			<div class="alert ok">
+				<p>{ p.T("tokens.created") }</p>
+				<div class="secret-box">{ created }</div>
+			</div>
+		}
+		<div class="card">
+			<h2>{ p.T("tokens.new") }</h2>
+			<p class="muted">{ p.T("tokens.help") }</p>
+			@formErr(p, f)
+			<form method="post" action={ templ.SafeURL(p.OrgURL("/tokens")) } class="row">
+				@csrf(p)
+				<div class="field">
+					<label for="name">{ p.T("field.name") }</label>
+					<input id="name" name="name" type="text" required placeholder="ci-pipeline" value={ f.V("name") }/>
+					@fieldErr(p, f, "name")
+				</div>
+				<div class="field">
+					<label for="scope">{ p.T("tokens.scope") }</label>
+					<select id="scope" name="scope">
+						<option value="read">{ p.T("tokens.scope_read") }</option>
+						<option value="write">{ p.T("tokens.scope_write") }</option>
+					</select>
+				</div>
+				<div class="field">
+					<label for="days">{ p.T("tokens.expires_days") }</label>
+					<input id="days" name="days" type="number" min="0" max="3650" value="90"/>
+				</div>
+				<button class="btn primary" type="submit">{ p.T("action.create") }</button>
+			</form>
+		</div>
+		if len(rows) > 0 {
+			<div class="tablewrap">
+				<table>
+					<thead><tr><th>{ p.T("field.name") }</th><th>{ p.T("tokens.prefix") }</th><th>{ p.T("tokens.scope") }</th><th>{ p.T("tokens.last_used") }</th><th>{ p.T("field.expires") }</th><th></th></tr></thead>
+					<tbody>
+						for _, t := range rows {
+							<tr>
+								<td>{ t.Name }</td>
+								<td class="mono">{ t.TokenPrefix }…</td>
+								<td>{ strings.Join(t.Scopes, ", ") }</td>
+								<td>{ DatePtr(t.LastUsedAt) }</td>
+								<td>{ DatePtr(t.ExpiresAt) }</td>
+								<td>
+									<form method="post" action={ templ.SafeURL(p.OrgURL("/tokens/" + t.ID.String() + "/revoke")) }>
+										@csrf(p)
+										<button class="btn small danger" type="submit">{ p.T("action.revoke") }</button>
+									</form>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		}
+	}
+}
+
+templ Audit(p *Page, rows []db.ListAuditLogsRow) {
+	@AppShell(p) {
+		<div class="page-head">
+			<div>
+				<div class="crumbs">{ p.Org.Org.Name }</div>
+				<h1>{ p.T("nav.audit") }</h1>
+			</div>
+		</div>
+		<div class="tablewrap">
+			<table>
+				<thead><tr><th>{ p.T("audit.when") }</th><th>{ p.T("audit.who") }</th><th>{ p.T("audit.action") }</th><th>{ p.T("audit.target") }</th><th>IP</th></tr></thead>
+				<tbody>
+					for _, a := range rows {
+						<tr>
+							<td>{ Date(a.CreatedAt) }</td>
+							<td>{ a.UserEmail }</td>
+							<td class="mono">{ a.Action }</td>
+							<td class="mono faint">{ a.TargetType } { a.TargetID }</td>
+							<td class="mono faint">{ a.Ip }</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	}
+}

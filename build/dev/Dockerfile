@@ -22,6 +22,8 @@ USER dev
 # Linters are built with the same Go version so they understand go1.27 code.
 RUN go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest \
  && go install mvdan.cc/gofumpt@latest \
+ && go install github.com/a-h/templ/cmd/templ@v0.3.1070 \
+ && CGO_ENABLED=1 go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1 \
  && go clean -cache -modcache \
  && mkdir -p /home/dev/.cache/go-build /home/dev/go/pkg/mod
 

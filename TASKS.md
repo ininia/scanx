@@ -120,3 +120,20 @@ Format ve yaşam döngüsü: şartname §20.2–20.4. Ürün adı/karar kayıtla
 - **T-0113** `.scanx.yml` ignore / kabul edilmiş risk (Ek B) — self-scan'deki bilinçli orta bulgular için (`curl -k` dokümanları, iç ağda `sslmode=disable`).
 - **T-0114** İmajları ve Actions'ı digest/SHA ile pin'le (T-0007b + T-0008b).
 - **T-0115** Zafiyet DB'lerini imajdan ayrı volume'a taşı + günlük güncelleme işi (Faz 3).
+
+---
+
+# FAZ 2 — Sunucu, auth, çok kiracılık, web arayüzü
+
+## T-0201..T-0209 — DONE
+- Migration 00002 + RLS (projects, invitations, api_tokens, audit_logs) + SECURITY DEFINER lookup fonksiyonları (ADR-007).
+- sqlc (22 sorgu) + templ kod üretimi; CI'da "üretilen kod güncel" kontrolü.
+- `internal/crypto` (%84), `internal/auth` (%94, RFC 6238 test vektörleri), `internal/gitutil` (%97), `internal/i18n` (TR/EN, anahtar eşitliği testi).
+- Servis entegrasyon testleri (9): kilitleme commit, IP rate limit, 2FA + replay + fixation, kiracı izolasyonu (RLS dahil), son sahip, davet, token kapsamları, audit append-only, kurulum sihirbazı (temiz DB).
+- API: `TestAPIEndToEndAndContract` (her yanıt OpenAPI 3.1'e karşı doğrulanır), `TestCSRFRequiredForCookieRequests`, **`TestTenantIsolationAllEndpoints` — 19 uç nokta × (oturum + write token) → 404**.
+- Web: `TestSetupWizardLoginAndProjects` (6 adımlı sihirbaz, zorunlu 2FA, sihirbazın kapanması, 2FA'lı giriş, proje oluşturma + HTML kaçışı, CSRF reddi, açık yönlendirme koruması, dil değiştirme) + Chrome'da manuel görsel doğrulama.
+- Kabul: kiracı izolasyonu %100 uç nokta ✔, sihirbaz uçtan uca ✔.
+
+## Borçlar
+- **T-0213** SMTP + davet/bildirim e-postaları (Faz 4).
+- **T-0214** Sihirbaza SSH anahtarı ve tarayıcı politikası adımları (Faz 3–4).

@@ -20,6 +20,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: bash scripts/dev.sh lint
+      - name: Generated code (sqlc, templ) is up to date
+        run: |
+          chmod -R a+rwX .   # the dev container runs as an unprivileged user
+          bash scripts/dev.sh generate
+          git diff --exit-code -- internal/store/db internal/ui
 
   test:
     runs-on: ubuntu-latest

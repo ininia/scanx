@@ -13,9 +13,10 @@
 
 ---
 
-> **Project status: Phase 1 of 8.** The **scan engine works today**: scan any folder locally with
-> Docker and get JSON / SARIF / HTML reports. The web UI, accounts and GitHub connection arrive in
-> the next phases. Follow progress in [`TASKS.md`](TASKS.md) and the roadmap below.
+> **Project status: Phase 2 of 8.** Working today: the **scan engine** (scan any folder locally with
+> Docker) and the **server** with setup wizard, accounts + 2FA, organizations, roles, API tokens,
+> projects and audit log (Turkish / English UI). Server-side scans and GitHub connection come next.
+> Follow progress in [`TASKS.md`](TASKS.md) and the roadmap below.
 
 ## Scan a repository now (only Docker needed)
 
@@ -59,7 +60,9 @@ cd scanx
 ```
 
 The script builds scanX, generates all passwords and keys, creates a TLS certificate and starts
-everything. When it finishes it prints the address and a one-time setup token.
+everything. When it finishes it prints the address and a one-time setup token: open the address,
+enter the token and the **setup wizard** walks you through the administrator account (with
+mandatory 2FA), instance settings and your first organization.
 **Back up `deploy/.env` immediately** — see the [installation guide](docs/user/install.md) for
 firewall, real TLS certificates, updates, backups and troubleshooting.
 
@@ -69,8 +72,8 @@ firewall, real TLS certificates, updates, backups and troubleshooting.
 |---|---|---|
 | 0 | Foundation: server, DB, TLS proxy, installer skeleton, CI | ✅ done |
 | 1 | Scan engine + `scanx scan` CLI (Gitleaks, Opengrep, Trivy, OSV, Syft) | ✅ done |
-| 2 | Accounts, organizations, 2FA, web UI, setup wizard | ⏳ next |
-| 3 | Isolated sandbox, Git + deploy keys, manual scans, report pages | |
+| 2 | Accounts, organizations, 2FA, web UI, setup wizard | ✅ done |
+| 3 | Isolated sandbox, Git + deploy keys, manual scans, report pages | ⏳ next |
 | 4 | Webhooks (GitHub/GitLab/Gitea/Bitbucket), schedules, notifications | |
 | 5 | GitHub Action, GitLab CI template, SARIF upload | |
 | 6 | One-line `install.sh`, Let's Encrypt, backup/restore/update | |

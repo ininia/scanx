@@ -3,6 +3,14 @@
 Format: [Keep a Changelog](https://keepachangelog.com/). Versioning: SemVer.
 
 ## [Unreleased]
+### Added — Phase 2 (server, accounts, multi-tenancy, web UI)
+- First-run setup wizard (setup token → admin → mandatory 2FA → instance settings → first organization).
+- Accounts with Argon2id passwords, TOTP 2FA, server-side sessions, account lockout and rate limiting.
+- Organizations, roles (owner/admin/member/viewer), invitations without SMTP, personal API tokens, audit log.
+- Projects (repository URL validation, branches) via web UI and REST API (`/api/v1`, OpenAPI 3.1 contract).
+- Web interface in Turkish and English with the scanX brand design (dark theme, logo-derived colors).
+- Row-level security on every tenant table; table-driven tenant isolation tests across all endpoints.
+
 ### Added — Phase 1 (scan engine)
 - `scanx scan`: local scanning with exec/docker engines, JSON / SARIF 2.1.0 / HTML reports, quality gate and exit codes.
 - All-in-one scanner image with checksum/cosign-verified Opengrep, Gitleaks, Trivy, OSV-Scanner, Syft and offline vulnerability databases.
