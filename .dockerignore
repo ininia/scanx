@@ -1,0 +1,9 @@
+.git
+bin
+dist
+docs
+deploy/.env
+deploy/data
+testdata/repos
+coverage*.out
+**/*.local

@@ -1,0 +1,43 @@
+version: "2"
+
+run:
+  timeout: 5m
+  build-tags: [integration]
+
+linters:
+  default: standard   # errcheck, govet, ineffassign, staticcheck, unused
+  enable:
+    - gosec
+    - revive
+    - bodyclose
+    - sqlclosecheck
+    - contextcheck
+    - errorlint
+    - noctx
+    - misspell
+    - unconvert
+    - nolintlint
+  settings:
+    revive:
+      rules:
+        - name: exported
+        - name: package-comments
+        - name: var-naming
+        - name: indent-error-flow
+        - name: error-strings
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+  exclusions:
+    presets: [std-error-handling]
+    rules:
+      - path: _test\.go
+        linters: [gosec, noctx]
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes: [github.com/ininia/scanx]

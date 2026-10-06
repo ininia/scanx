@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -80 540 535" role="img" aria-label="scanX">
+  <defs>
+    <linearGradient id="sxg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#00ec93"/>
+      <stop offset=".55" stop-color="#00c774"/>
+      <stop offset="1" stop-color="#009e5c"/>
+    </linearGradient>
+  </defs>
+  <g fill="url(#sxg)">
+    <polygon points="0,373 127,373 520,0 375,0"/>
+    <polygon points="85,0 212,0 280,95 205,170"/>
+    <polygon points="280,275 355,200 460,345 330,345"/>
+  </g>
+</svg>

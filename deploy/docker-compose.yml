@@ -1,0 +1,102 @@
+# scanX — Faz 0 stack: nginx (TLS) → server → postgres.
+# Worker, docker-socket-proxy and certbot are added in later phases (spec §14.1).
+#   cp deploy/.env.example deploy/.env && docker run --rm ghcr.io/ininia/scanx gen-secrets >> deploy/.env
+#   docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d --build
+name: scanx
+
+x-hardening: &hardening
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  restart: unless-stopped
+
+services:
+  nginx:
+    image: nginx:1.27-alpine # TODO(T-0007b): pin by digest before release
+    ports: ["${SCANX_HTTP_PORT:-80}:8080", "${SCANX_HTTPS_PORT:-443}:8443"]
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - certs:/etc/nginx/certs:ro
+    tmpfs: ["/var/cache/nginx:size=64m", "/var/run:size=1m", "/tmp:size=16m"]
+    depends_on:
+      server: { condition: service_healthy }
+      certinit: { condition: service_completed_successfully }
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [CHOWN, SETUID, SETGID] # nginx master drops to the nginx user
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+    networks: [edge]
+
+  # One-shot: create a self-signed certificate if none exists yet.
+  certinit:
+    image: ghcr.io/ininia/scanx:${SCANX_VERSION:-dev}
+    command: ["gen-cert", "--dir", "/certs", "--hosts", "${SCANX_DOMAIN:-localhost},localhost,127.0.0.1", "--if-missing"]
+    user: "0:0" # writes into the root-owned named volume; no capabilities
+    volumes: ["certs:/certs"]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    network_mode: none
+    restart: "no"
+
+  # One-shot: apply DB migrations. The only service holding the schema-owner
+  # credentials; the internet-facing server never sees them (ADR-005).
+  migrate:
+    build: { context: .., args: { VERSION: "${SCANX_VERSION:-dev}" } }
+    image: ghcr.io/ininia/scanx:${SCANX_VERSION:-dev}
+    command: ["migrate"]
+    environment:
+      SCANX_DATABASE_ADMIN_URL: postgres://scanx:${POSTGRES_PASSWORD:?set in .env}@postgres:5432/scanx?sslmode=disable
+      SCANX_LOG_FORMAT: ${SCANX_LOG_FORMAT:-json}
+    depends_on:
+      postgres: { condition: service_healthy }
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    restart: "no"
+    networks: [internal]
+
+  server:
+    image: ghcr.io/ininia/scanx:${SCANX_VERSION:-dev}
+    command: ["server"]
+    environment:
+      SCANX_BASE_URL: ${SCANX_BASE_URL:-https://localhost}
+      SCANX_DATABASE_URL: postgres://scanx_app:${SCANX_APP_DB_PASSWORD:?set in .env}@postgres:5432/scanx?sslmode=disable
+      SCANX_MASTER_KEY: ${SCANX_MASTER_KEY:?set in .env}
+      SCANX_SESSION_KEY: ${SCANX_SESSION_KEY:?set in .env}
+      SCANX_SETUP_TOKEN: ${SCANX_SETUP_TOKEN:?set in .env}
+      SCANX_LOG_LEVEL: ${SCANX_LOG_LEVEL:-info}
+      SCANX_LOG_FORMAT: ${SCANX_LOG_FORMAT:-json}
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    tmpfs: ["/tmp:size=64m"]
+    <<: *hardening
+    networks: [edge, internal]
+
+  postgres:
+    image: postgres:16-alpine # TODO(T-0007b): pin by digest before release
+    environment:
+      POSTGRES_DB: scanx
+      POSTGRES_USER: scanx
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+      SCANX_APP_DB_PASSWORD: ${SCANX_APP_DB_PASSWORD:?set in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scanx -d scanx"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    shm_size: 128m
+    restart: unless-stopped
+    networks: [internal]
+
+volumes:
+  pgdata: {}
+  certs: {}
+
+networks:
+  edge: {}
+  internal: { internal: true }

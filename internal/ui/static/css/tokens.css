@@ -1,0 +1,97 @@
+/* scanX design tokens — derived from the scanX logo (navy wordmark + green X).
+   Dark theme is the default ("technical" look); light theme via data-theme or OS. */
+
+:root {
+  /* Brand (from logo) */
+  --sx-navy: #33405e;          /* "scan" wordmark */
+  --sx-green-1: #00ec93;       /* X gradient start (top-left) */
+  --sx-green-2: #00c774;
+  --sx-green-3: #009e5c;       /* X gradient end (bottom-right) */
+  --sx-gradient: linear-gradient(135deg, var(--sx-green-1) 0%, var(--sx-green-2) 55%, var(--sx-green-3) 100%);
+
+  /* Dark theme (default) */
+  --bg: #070c17;
+  --bg-grid: rgba(0, 236, 147, 0.04);   /* subtle tech grid overlay */
+  --surface-1: #0d1526;
+  --surface-2: #131e35;
+  --surface-3: #1b2945;
+  --border: #23324f;
+  --border-strong: #33405e;
+  --text: #e6edf7;
+  --text-muted: #8f9db8;
+  --text-faint: #5d6b87;
+  --accent: var(--sx-green-1);
+  --accent-hover: #3df5ab;
+  --accent-contrast: #04140d;           /* text on accent buttons */
+  --accent-glow: 0 0 0 1px rgba(0, 236, 147, .35), 0 0 24px rgba(0, 236, 147, .18);
+  --focus-ring: 0 0 0 3px rgba(0, 236, 147, .45);
+
+  /* Severity (kept distinct from brand green) */
+  --sev-critical: #ff3d68;
+  --sev-high: #ff8a3d;
+  --sev-medium: #ffc53d;
+  --sev-low: #4da3ff;
+  --sev-info: #8f9db8;
+
+  /* Status */
+  --ok: var(--sx-green-2);
+  --warn: #ffc53d;
+  --danger: #ff3d68;
+
+  /* Type */
+  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Cascadia Code", ui-monospace, monospace;
+
+  /* Shape & motion */
+  --radius-sm: 4px;
+  --radius: 8px;
+  --radius-lg: 14px;
+  --skew: -12deg;             /* italic, forward-leaning feel of the wordmark */
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  --shadow: 0 8px 30px rgba(0, 0, 0, .45);
+
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f5f7fb;
+    --bg-grid: rgba(51, 64, 94, 0.05);
+    --surface-1: #ffffff;
+    --surface-2: #eef2f8;
+    --surface-3: #e2e8f2;
+    --border: #d5dce8;
+    --border-strong: #b8c2d4;
+    --text: #1b2438;
+    --text-muted: #55627d;
+    --text-faint: #8590a6;
+    --accent: #00a862;          /* darker green for AA contrast on white */
+    --accent-hover: #008f53;
+    --accent-contrast: #ffffff;
+    --accent-glow: 0 0 0 1px rgba(0, 168, 98, .35);
+    --focus-ring: 0 0 0 3px rgba(0, 168, 98, .35);
+    --shadow: 0 6px 24px rgba(27, 36, 56, .10);
+    color-scheme: light;
+  }
+}
+
+:root[data-theme="light"] {
+  --bg: #f5f7fb;
+  --bg-grid: rgba(51, 64, 94, 0.05);
+  --surface-1: #ffffff;
+  --surface-2: #eef2f8;
+  --surface-3: #e2e8f2;
+  --border: #d5dce8;
+  --border-strong: #b8c2d4;
+  --text: #1b2438;
+  --text-muted: #55627d;
+  --text-faint: #8590a6;
+  --accent: #00a862;
+  --accent-hover: #008f53;
+  --accent-contrast: #ffffff;
+  --accent-glow: 0 0 0 1px rgba(0, 168, 98, .35);
+  --focus-ring: 0 0 0 3px rgba(0, 168, 98, .35);
+  --shadow: 0 6px 24px rgba(27, 36, 56, .10);
+  color-scheme: light;
+}

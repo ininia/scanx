@@ -1,0 +1,8 @@
+/bin/
+/dist/
+/coverage*.out
+deploy/.env
+deploy/data/
+*.local
+.idea/
+.vscode/
