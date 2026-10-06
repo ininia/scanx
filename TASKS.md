@@ -9,7 +9,7 @@ Format ve yaşam döngüsü: şartname §20.2–20.4. Ürün adı/karar kayıtla
 - Kabul kriterleri: `go.mod` (Go 1.27), Makefile, `.golangci.yml`, geliştirme konteyneri, LICENSE, README/CHANGELOG/SECURITY/CONTRIBUTING.
 - Kanıt:
   - [Geliştirici] `scripts/dev.sh lint` → `0 issues.`; `scripts/dev.sh test` → tüm paketler ok
-- Açık nokta: **LICENSE** metni (AGPL-3.0) gnu.org'dan indirilecek — kullanıcı onayı bekleniyor.
+- LICENSE: Business Source License 1.1 (ADR-000 revize). Yayın öncesi hukuki gözden geçirme önerildi.
 
 ## T-0002 — ADR'ler
 - Faz: 0 · P0 · Durum: DONE · Sahibi: Mimar
@@ -39,9 +39,9 @@ Format ve yaşam döngüsü: şartname §20.2–20.4. Ürün adı/karar kayıtla
 - Alt görev **T-0007b** (BACKLOG, P1): tüm imajları digest ile pin'le.
 
 ## T-0008 — GitHub Actions CI
-- Faz: 0 · P0 · Durum: BLOCKED
-- `.github/workflows/ci.yml` yazıldı (lint, test, test-integration, image + compose smoke).
-- Blok: henüz uzak repo yok; ilk push'ta çalıştırılıp kanıt eklenecek. **T-0008b**: action'ları SHA ile pin'le.
+- Faz: 0 · P0 · Durum: DONE
+- Kanıt: github.com/ininia/scanx Actions run 37470627806 (commit c7b4272) → lint ✔, test ✔, test-integration ✔, image-and-smoke ✔ (compose up + `/health/ready` 200)
+- Alt görev **T-0008b** (BACKLOG, P1): action'ları SHA ile pin'le.
 
 ## T-0009 — Faz 0 test planı + entegrasyon altyapısı
 - Faz: 0 · P0 · Durum: DONE · Sahibi: QA
@@ -52,10 +52,19 @@ Format ve yaşam döngüsü: şartname §20.2–20.4. Ürün adı/karar kayıtla
 - Kanıt: `docs/security/threat-model.md`. İnceleme bulgusu → ADR-005 (sunucuda süper kullanıcı kimliği kaldırıldı).
 
 ## T-0011 — Tarayıcı araştırması
-- Faz: 0 · P0 · Durum: IN_PROGRESS · Sahibi: Güvenlik + Geliştirici
+- Faz: 0 · P0 · Durum: DONE · Sahibi: Güvenlik + Geliştirici
 - Çıktı: `docs/research/scanners.md`, `docs/research/licenses.md`
+- Faz 1'e taşınan bulgular: Brakeman lisansı ticari kullanımı kısıtlar (opt-in); Semgrep Registry/opengrep-rules/GitLab EE kuralları kullanılmaz;
+  Psalm/PHPStan/ESLint/Checkov repo config'i ile kod çalıştırabilir → kendi config'imiz zorunlu; `.gitleaks.toml` repo dosyası yok sayılır (`-c`);
+  Trivy v0.69.4–0.69.6 ve Docker Hub `checkmarx/kics` 2026 tedarik zinciri olayları → imajlar doğrulanmış release'ten, digest pin'li.
 
 ## T-0012 — Marka/tasarım token'ları
 - Faz: 0 (kullanıcı talebi) · P1 · Durum: IN_REVIEW
 - Kanıt: `internal/ui/static/css/tokens.css`, `scanx-mark.svg`, `docs/design/brand.md`
 - Bekleyen: orijinal logo dosyası → `internal/ui/static/img/scanx-logo.png` (+ varsa SVG)
+
+## T-0013 — GitHub yayını ve repo ayarları
+- Faz: 0 (kullanıcı talebi) · P0 · Durum: DONE
+- Kanıt: public `ininia/scanx`; açıklama + 12 topic; wiki/projects kapalı, discussions açık; yalnızca squash merge, head branch otomatik silme, release immutability;
+  private vulnerability reporting, dependency graph, Dependabot alerts + malware alerts + security updates, secret scanning + push protection, CodeQL default setup;
+  `protect-main` ruleset (PR + 1 onay, 4 zorunlu CI check'i, linear history, force-push/silme engeli; admin bypass).
