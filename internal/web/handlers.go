@@ -349,7 +349,12 @@ func (h *Handler) dashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	members, _ := h.Svc.ListMembers(r.Context(), o)
-	render(w, r, http.StatusOK, ui.Dashboard(h.page(r, "nav.dashboard", "dashboard"), &ui.DashboardView{Projects: total, Members: len(members), Recent: ps}))
+	stats, err := h.Svc.Stats(r.Context(), o)
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	render(w, r, http.StatusOK, ui.Dashboard(h.page(r, "nav.dashboard", "dashboard"), &ui.DashboardView{Projects: total, Members: len(members), Recent: ps, Stats: stats}))
 }
 
 // ---------- projects ----------
@@ -390,17 +395,6 @@ func (h *Handler) projectNew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	redirect(w, r, "/o/"+o.Org.Slug+"/projects/"+p.Slug, "flash.created")
-}
-
-func (h *Handler) projectDetail(w http.ResponseWriter, r *http.Request) {
-	p, err := h.Svc.GetProject(r.Context(), orgFrom(r), chi.URLParam(r, "project"))
-	if err != nil {
-		h.fail(w, r, err)
-		return
-	}
-	pg := h.page(r, "", "projects")
-	pg.Title = p.Name
-	render(w, r, http.StatusOK, ui.ProjectDetail(pg, p))
 }
 
 func (h *Handler) projectDelete(w http.ResponseWriter, r *http.Request) {

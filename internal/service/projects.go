@@ -53,7 +53,7 @@ func (in *ProjectInput) validate() (*gitutil.RepoURL, error) {
 		if b == "" || seen[b] {
 			continue
 		}
-		if len(b) > 200 || strings.HasPrefix(b, "-") || strings.Contains(b, "..") || strings.ContainsAny(b, " ~^:?*[\\\x00") {
+		if len(b) > 200 || strings.HasPrefix(b, "-") || strings.Contains(b, "..") || strings.ContainsAny(b, " ~^:?[\\\x00") { // "*" allowed: glob for webhook filters
 			return nil, invalid("branches", "invalid")
 		}
 		seen[b] = true
@@ -88,6 +88,12 @@ func (s *Service) CreateProject(ctx context.Context, o *OrgCtx, in ProjectInput,
 			if isUniqueViolation(err) {
 				return invalid("slug", "taken")
 			}
+			return err
+		}
+		if _, err := s.createDeployKey(ctx, q, &p); err != nil {
+			return err
+		}
+		if _, err := s.createWebhookSecret(ctx, q, &p); err != nil {
 			return err
 		}
 		return audit(ctx, q, &o.Org.ID, &o.P.UserID, "project.created", "project", p.ID.String(), m,

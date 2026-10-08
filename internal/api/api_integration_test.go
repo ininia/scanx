@@ -242,6 +242,26 @@ func TestAPIEndToEndAndContract(t *testing.T) {
 	bob.do("DELETE", "/orgs/"+org.Slug+"/projects/web-shop", nil, 403)
 	bob.do("GET", "/orgs/"+org.Slug+"/audit", nil, 403)
 
+	// Scans (Faz 3): deploy key, queue, read back, cancel; viewers cannot scan.
+	alice.do("GET", "/orgs/"+org.Slug+"/projects/web-shop/deploy-key", nil, 200)
+	sc := decodeJSON[struct {
+		ID     uuid.UUID `json:"id"`
+		Status string    `json:"status"`
+	}](t, alice.do("POST", "/orgs/"+org.Slug+"/projects/web-shop/scans", map[string]any{"branch": "main"}, 202))
+	if sc.Status != "queued" {
+		t.Fatalf("scan %+v", sc)
+	}
+	alice.do("POST", "/orgs/"+org.Slug+"/projects/web-shop/scans", map[string]any{"branch": "-x"}, 422)
+	alice.do("GET", "/orgs/"+org.Slug+"/projects/web-shop/scans", nil, 200)
+	alice.do("GET", "/orgs/"+org.Slug+"/scans/"+sc.ID.String(), nil, 200)
+	alice.do("GET", "/orgs/"+org.Slug+"/scans/"+sc.ID.String()+"/issues", nil, 200)
+	alice.do("GET", "/orgs/"+org.Slug+"/scans/"+sc.ID.String()+"/reports/html", nil, 404)
+	alice.do("GET", "/orgs/"+org.Slug+"/projects/web-shop/issues?status=open", nil, 200)
+	bob.do("POST", "/orgs/"+org.Slug+"/projects/web-shop/scans", nil, 403)
+	alice.do("POST", "/orgs/"+org.Slug+"/scans/"+sc.ID.String()+"/cancel", nil, 204)
+	alice.do("POST", "/orgs/"+org.Slug+"/scans/"+sc.ID.String()+"/cancel", nil, 409)
+	(&client{e: e, http: &http.Client{}}).do("POST", "/hooks/github/"+p.ID.String(), map[string]any{"ref": "refs/heads/main"}, 401)
+
 	// Last owner cannot leave.
 	alice.do("DELETE", "/orgs/"+org.Slug+"/members/"+me.ID.String(), nil, 409)
 
@@ -299,6 +319,9 @@ func TestTenantIsolationAllEndpoints(t *testing.T) {
 	orgB := decodeJSON[orgResp](t, bob.do("POST", "/orgs", map[string]string{"name": "Org B"}, 201))
 	bobMe := decodeJSON[meResp](t, bob.do("GET", "/me", nil, 200))
 	bob.do("POST", "/orgs/"+orgB.Slug+"/projects", map[string]any{"repo_url": "git@github.com:b/secret-repo.git"}, 201)
+	scanB := decodeJSON[struct {
+		ID uuid.UUID `json:"id"`
+	}](t, bob.do("POST", "/orgs/"+orgB.Slug+"/projects/secret-repo/scans", map[string]any{"branch": "main"}, 202))
 	invB := decodeJSON[invitationResp](t, bob.do("POST", "/orgs/"+orgB.Slug+"/invitations", map[string]string{"email": "x@example.test", "role": "viewer"}, 201))
 	tokB := decodeJSON[tokenResp](t, bob.do("POST", "/orgs/"+orgB.Slug+"/tokens", map[string]any{"name": "b"}, 201))
 	tokA := decodeJSON[tokenResp](t, alice.do("POST", "/orgs/"+orgA.Slug+"/tokens", map[string]any{"name": "a", "scopes": []string{"write"}}, 201))
@@ -326,6 +349,16 @@ func TestTenantIsolationAllEndpoints(t *testing.T) {
 		{"GET", b + "/projects/secret-repo", nil},
 		{"PATCH", b + "/projects/secret-repo", map[string]any{"name": "pwned"}},
 		{"DELETE", b + "/projects/secret-repo", nil},
+		{"GET", b + "/projects/secret-repo/deploy-key", nil},
+		{"GET", b + "/projects/secret-repo/scans", nil},
+		{"POST", b + "/projects/secret-repo/scans", map[string]any{"branch": "main"}},
+		{"GET", b + "/projects/secret-repo/issues", nil},
+		{"GET", b + "/scans/" + scanB.ID.String(), nil},
+		{"GET", b + "/scans/" + scanB.ID.String() + "/issues", nil},
+		{"POST", b + "/scans/" + scanB.ID.String() + "/cancel", nil},
+		{"GET", b + "/scans/" + scanB.ID.String() + "/reports/html", nil},
+		{"GET", "/orgs/" + orgA.Slug + "/scans/" + scanB.ID.String(), nil},
+		{"POST", "/orgs/" + orgA.Slug + "/scans/" + scanB.ID.String() + "/cancel", nil},
 		// Org A's own resource ids used under org B's slug must not leak either.
 		{"DELETE", "/orgs/" + orgA.Slug + "/tokens/" + tokB.ID.String(), nil},
 	}

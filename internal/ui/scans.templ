@@ -1,0 +1,670 @@
+package ui
+
+import (
+	"strconv"
+	"strings"
+
+	"github.com/ininia/scanx/internal/notify"
+	"github.com/ininia/scanx/internal/service"
+	"github.com/ininia/scanx/internal/store/db"
+)
+
+templ sevBadge(p *Page, sev string) {
+	<span class={ "sev", sev }>{ p.T("sev." + sev) }</span>
+}
+
+templ scanStatus(p *Page, status string, gate *string) {
+	if status == "completed" && gate != nil {
+		<span class={ "badge", "gate-" + *gate }>{ p.T("gate." + *gate) }</span>
+	} else {
+		<span class={ "badge", "st-" + status }>{ p.T("scan.status." + status) }</span>
+	}
+}
+
+templ copyBox(value string) {
+	<div class="secret-box copyable">
+		<code>{ value }</code>
+		<button type="button" class="btn small" data-copy={ value }>⧉</button>
+	</div>
+}
+
+templ orgScanTable(p *Page, scans []db.ListOrgScansRow) {
+	<div class="tablewrap">
+		<table>
+			<thead><tr><th>{ p.T("field.project") }</th><th>{ p.T("field.branch") }</th><th>{ p.T("field.commit") }</th><th>{ p.T("field.status") }</th><th>{ p.T("field.score") }</th><th>{ p.T("field.when") }</th></tr></thead>
+			<tbody>
+				for _, s := range scans {
+					<tr>
+						<td><a href={ templ.SafeURL(p.OrgURL("/projects/" + s.ProjectSlug)) }>{ s.ProjectName }</a></td>
+						<td>{ s.Branch }</td>
+						<td class="mono"><a href={ templ.SafeURL(p.OrgURL("/scans/" + s.ID.String())) }>{ ShortSHA(s.CommitSha) }</a></td>
+						<td>@scanStatus(p, s.Status, s.GateResult)</td>
+						<td>{ ScoreText(s.Score) }</td>
+						<td class="faint">{ Ago(s.QueuedAt) }</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+}
+
+templ scanTable(p *Page, scans []db.Scan) {
+	<div class="tablewrap">
+		<table>
+			<thead><tr><th>{ p.T("field.when") }</th><th>{ p.T("field.branch") }</th><th>{ p.T("field.commit") }</th><th>{ p.T("field.trigger") }</th><th>{ p.T("field.status") }</th><th>{ p.T("field.score") }</th><th>{ p.T("scans.new_fixed") }</th></tr></thead>
+			<tbody>
+				for _, s := range scans {
+					<tr>
+						<td><a href={ templ.SafeURL(p.OrgURL("/scans/" + s.ID.String())) }>{ Date(s.QueuedAt) }</a></td>
+						<td>{ s.Branch }</td>
+						<td class="mono" title={ s.CommitMessage }>{ ShortSHA(s.CommitSha) }</td>
+						<td>{ p.T("trigger." + s.Trigger) }</td>
+						<td>@scanStatus(p, s.Status, s.GateResult)</td>
+						<td>{ ScoreText(s.Score) }</td>
+						<td>
+							if s.Status == "completed" {
+								<span class="delta up">+{ Itoa32(s.NewIssues) }</span> <span class="delta down">−{ Itoa32(s.FixedIssues) }</span>
+							}
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+}
+
+templ ProjectDetail(p *Page, v *ProjectView) {
+	@AppShell(p) {
+		<div class="page-head">
+			<div>
+				<div class="crumbs"><a href={ templ.SafeURL(p.OrgURL("/projects")) }>{ p.T("nav.projects") }</a></div>
+				<h1>{ v.Project.Name }</h1>
+				<div class="mono faint">{ v.Project.RepoUrl }</div>
+			</div>
+			<div class="actions">
+				<a class="btn" href={ templ.SafeURL(p.OrgURL("/projects/" + v.Project.Slug + "/issues")) }>{ p.T("issues.title") }</a>
+				if p.Can("scan.trigger") {
+					<form method="post" action={ templ.SafeURL(p.OrgURL("/projects/" + v.Project.Slug + "/scan")) } class="row inline">
+						@csrf(p)
+						<select name="branch" aria-label={ p.T("field.branch") }>
+							for _, b := range v.Project.Branches {
+								if !strings.ContainsAny(b, "*?[") {
+									<option value={ b }>{ b }</option>
+								}
+							}
+						</select>
+						<button class="btn primary" type="submit">{ p.T("scans.scan_now") }</button>
+					</form>
+				}
+			</div>
+		</div>
+		<div class="grid cols-4">
+			<div class="card stat crit"><div class="n">{ SevCount(v.Open, "critical") }</div><div class="l">{ p.T("sev.critical") }</div></div>
+			<div class="card stat high"><div class="n">{ SevCount(v.Open, "high") }</div><div class="l">{ p.T("sev.high") }</div></div>
+			<div class="card stat med"><div class="n">{ SevCount(v.Open, "medium") }</div><div class="l">{ p.T("sev.medium") }</div></div>
+			<div class="card stat"><div class="n">{ SevCount(v.Open, "low") }</div><div class="l">{ p.T("sev.low") }</div></div>
+		</div>
+		<div class="card">
+			<h2>{ p.T("scans.history") }</h2>
+			if len(v.Scans) == 0 {
+				<p class="muted">{ p.T("scans.none_project") }</p>
+			} else {
+				@scanTable(p, v.Scans)
+			}
+		</div>
+		<h2 class="section">{ p.T("connect.title") }</h2>
+		<div class="grid cols-2">
+			<div class="card">
+				<h2><span class="stepno">1</span>{ p.T("deploykey.title") }</h2>
+				if v.SSH() {
+					if v.DeployKey != nil {
+						<p class="muted">{ p.T("deploykey.body") }</p>
+						@copyBox(v.DeployKey.PublicKey)
+						<p class="faint mono">{ v.DeployKey.Fingerprint }</p>
+						<ol class="howto">
+							if u := v.ProviderSettingsURL("keys"); u != "" {
+								<li>{ p.T("deploykey.step1") } <a href={ templ.URL(u) } target="_blank" rel="noopener noreferrer">{ p.T("deploykey.open_provider") } ↗</a></li>
+							} else {
+								<li>{ p.T("deploykey.step1") }</li>
+							}
+							<li>{ p.T("deploykey.step2") }</li>
+							<li><strong>{ p.T("deploykey.step3") }</strong></li>
+						</ol>
+						if p.Can("project.write") {
+							<form method="post" action={ templ.SafeURL(p.OrgURL("/projects/" + v.Project.Slug + "/deploy-key/rotate")) } hx-confirm={ p.T("deploykey.rotate_confirm") }>
+								@csrf(p)
+								<button class="linkbtn" type="submit">{ p.T("deploykey.rotate") }</button>
+							</form>
+						}
+					}
+					if !v.HostTrusted {
+						<div class="alert warn">{ p.T("deploykey.unknown_host", v.Repo.Host) }</div>
+					}
+				} else {
+					<p class="muted">{ p.T("deploykey.https") }</p>
+				}
+				if p.Can("project.write") {
+					<form method="post" action={ templ.SafeURL(p.OrgURL("/projects/" + v.Project.Slug + "/test")) } class="row inline">
+						@csrf(p)
+						<button class="btn" type="submit">{ p.T("conn.test") }</button>
+					</form>
+				}
+				if v.TestJob != nil {
+					@ConnTestResult(p, &ConnTest{Job: v.TestJob, Result: service.ParseConnectionResult(v.TestJob.Result), PollURL: p.OrgURL("/jobs/" + v.TestJob.ID.String())})
+				}
+			</div>
+			<div class="card">
+				<h2><span class="stepno">2</span>{ p.T("webhook.title") }</h2>
+				<p class="muted">{ p.T("webhook.body") }</p>
+				<div class="field"><label>{ p.T("webhook.url") }</label>@copyBox(v.WebhookURL)</div>
+				if v.WebhookSecret != "" {
+					<details class="field">
+						<summary>{ p.T("webhook.secret_show") }</summary>
+						@copyBox(v.WebhookSecret)
+					</details>
+				} else {
+					<p class="faint">{ p.T("webhook.secret_hidden") }</p>
+				}
+				<ol class="howto">
+					switch v.Project.Provider {
+						case "gitlab":
+							<li>{ p.T("webhook.gitlab1") }</li>
+							<li>{ p.T("webhook.gitlab2") }</li>
+						case "bitbucket":
+							<li>{ p.T("webhook.bitbucket1") }</li>
+							<li>{ p.T("webhook.bitbucket2") }</li>
+						case "gitea":
+							<li>{ p.T("webhook.gitea1") }</li>
+							<li>{ p.T("webhook.gitea2") }</li>
+						default:
+							<li>{ p.T("webhook.github1") }</li>
+							<li>{ p.T("webhook.github2") }</li>
+					}
+					<li>{ p.T("webhook.branches", strings.Join(v.Project.Branches, ", ")) }</li>
+				</ol>
+				if u := v.ProviderSettingsURL("hooks"); u != "" {
+					<p><a href={ templ.URL(u) } target="_blank" rel="noopener noreferrer">{ p.T("webhook.open_provider") } ↗</a></p>
+				}
+				if p.Can("project.write") {
+					<form method="post" action={ templ.SafeURL(p.OrgURL("/projects/" + v.Project.Slug + "/webhook/rotate")) } hx-confirm={ p.T("webhook.rotate_confirm") }>
+						@csrf(p)
+						<button class="linkbtn" type="submit">{ p.T("webhook.rotate") }</button>
+					</form>
+				}
+			</div>
+		</div>
+		<div class="grid cols-2">
+			<div class="card">
+				<h2><span class="stepno">3</span>{ p.T("settings.title") }</h2>
+				if p.Can("project.write") {
+					<form method="post" action={ templ.SafeURL(p.OrgURL("/projects/" + v.Project.Slug + "/settings")) } class="stack">
+						@csrf(p)
+						<div class="field">
+							<label for="fail_on">{ p.T("settings.fail_on") }</label>
+							<select id="fail_on" name="fail_on">
+								for _, l := range service.FailOnLevels {
+									<option value={ l } selected?={ l == v.Project.FailOn }>{ p.T("failon." + l) }</option>
+								}
+							</select>
+							<span class="hint">{ p.T("settings.fail_on_hint") }</span>
+						</div>
+						<label class="check"><input type="checkbox" name="history" value="1" checked?={ v.Project.ScanHistory }/> { p.T("settings.history") }</label>
+						<div><button class="btn" type="submit">{ p.T("action.save") }</button></div>
+					</form>
+				} else {
+					<p>{ p.T("settings.fail_on") }: { p.T("failon." + v.Project.FailOn) }</p>
+				}
+			</div>
+			<div class="card">
+				<h2>{ p.T("projects.repository") }</h2>
+				<div class="tablewrap">
+					<table>
+						<tr><th>{ p.T("field.repo_url") }</th><td class="mono">{ v.Project.RepoUrl }</td></tr>
+						<tr><th>{ p.T("field.provider") }</th><td>{ v.Project.Provider }</td></tr>
+						<tr><th>{ p.T("field.branches") }</th><td>{ strings.Join(v.Project.Branches, ", ") }</td></tr>
+						<tr><th>{ p.T("field.created") }</th><td>{ Date(v.Project.CreatedAt) }</td></tr>
+					</table>
+				</div>
+			</div>
+		</div>
+		if p.Can("project.delete") {
+			<div class="card">
+				<h2>{ p.T("projects.danger") }</h2>
+				<form method="post" action={ templ.SafeURL(p.OrgURL("/projects/" + v.Project.Slug + "/delete")) } hx-confirm={ p.T("projects.delete_confirm") }>
+					@csrf(p)
+					<button class="btn danger" type="submit">{ p.T("projects.delete") }</button>
+				</form>
+			</div>
+		}
+	}
+}
+
+templ ConnTestResult(p *Page, c *ConnTest) {
+	if !c.Done() {
+		<div class="alert" hx-get={ c.PollURL } hx-trigger="every 2s" hx-swap="outerHTML" hx-select=".conn-result,.alert">
+			<span class="spinner"></span> { p.T("conn.running") }
+		</div>
+	} else if c.Job.Status == "failed" {
+		<div class="alert err conn-result">{ p.T("conn.error") }: { c.Job.Error }</div>
+	} else if c.Result.OK {
+		<div class="alert ok conn-result">
+			<strong>{ p.T("conn.ok") }</strong>
+			if len(c.Result.Branches) > 0 {
+				<div class="faint">{ p.T("conn.branches") }: { strings.Join(c.Result.Branches, ", ") }</div>
+			}
+		</div>
+	} else {
+		<div class="alert err conn-result">
+			<strong>{ p.T("conn.failed") }</strong>
+			if c.Result.Code != "" {
+				<p>{ p.T("fail." + c.Result.Code) }</p>
+			}
+			<details><summary>{ p.T("fail.details") }</summary><pre class="snippet">{ c.Result.Message }</pre></details>
+		</div>
+	}
+}
+
+templ ScanDetail(p *Page, v *ScanPage) {
+	@AppShell(p) {
+		<div class="page-head">
+			<div>
+				<div class="crumbs">
+					<a href={ templ.SafeURL(p.OrgURL("/projects")) }>{ p.T("nav.projects") }</a> /
+					<a href={ templ.SafeURL(p.OrgURL("/projects/" + v.View.Project.Slug)) }>{ v.View.Project.Name }</a>
+				</div>
+				<h1>{ p.T("scan.title") } <span class="mono faint">{ v.View.Scan.Branch + " @ " + ShortSHA(v.View.Scan.CommitSha) }</span></h1>
+				if v.View.Scan.CommitMessage != "" {
+					<div class="muted">{ v.View.Scan.CommitMessage } <span class="faint">— { v.View.Scan.CommitAuthor }</span></div>
+				}
+			</div>
+			<div class="actions">
+				if v.View.Scan.Status == "completed" {
+					<a class="btn" href={ templ.SafeURL(p.OrgURL("/scans/" + v.View.Scan.ID.String() + "/report/html")) } target="_blank" rel="noopener">{ p.T("scan.report_html") } ↗</a>
+					<details class="dropdown right">
+						<summary>{ p.T("scan.download") }</summary>
+						<div class="menu">
+							for _, f := range []string{"json", "sarif", "sbom", "html"} {
+								<a href={ templ.SafeURL(p.OrgURL("/scans/" + v.View.Scan.ID.String() + "/report/" + f + "?download=1")) } hx-boost="false">{ p.T("report." + f) }</a>
+							}
+						</div>
+					</details>
+				}
+				if v.View.Active() && p.Can("scan.trigger") {
+					<form method="post" action={ templ.SafeURL(p.OrgURL("/scans/" + v.View.Scan.ID.String() + "/cancel")) } hx-confirm={ p.T("scan.cancel_confirm") }>
+						@csrf(p)
+						<button class="btn danger" type="submit">{ p.T("scan.cancel") }</button>
+					</form>
+				}
+			</div>
+		</div>
+		@scanLive(p, v)
+	}
+}
+
+templ scanLive(p *Page, v *ScanPage) {
+	<div id="scan-live"
+		if v.View.Active() {
+			hx-get={ p.OrgURL("/scans/" + v.View.Scan.ID.String()) }
+			hx-trigger="every 3s"
+			hx-select="#scan-live"
+			hx-swap="outerHTML"
+		}
+	>
+		if v.View.Scan.Status != "failed" && v.View.Scan.Status != "canceled" {
+			<ol class="stepper">
+				for _, st := range ScanSteps {
+					<li class={ StepState(v.View.Scan.Status, st) }>{ p.T("scan.status." + st) }</li>
+				}
+			</ol>
+		}
+		if v.View.Active() {
+			<div class="alert"><span class="spinner"></span> { p.T("scan.running", Duration(v.View.Scan.StartedAt, nil)) }</div>
+		}
+		if v.View.Scan.Status == "failed" {
+			<div class="alert err">
+				<strong>{ p.T("scan.failed") }</strong>
+				if v.Summary.FailureCode != "" {
+					<p>{ p.T("fail." + v.Summary.FailureCode) }</p>
+				}
+				<details><summary>{ p.T("fail.details") }</summary><pre class="snippet">{ v.View.Scan.StatusReason }</pre></details>
+			</div>
+		}
+		if v.View.Scan.Status == "canceled" {
+			<div class="alert warn">{ p.T("scan.canceled") }</div>
+		}
+		if v.View.Scan.Status == "completed" {
+			if v.View.Scan.Partial {
+				<div class="alert warn">{ p.T("scan.partial") }</div>
+			}
+			for _, w := range v.Summary.Warnings {
+				<div class="alert warn">{ w }</div>
+			}
+			<div class="grid cols-4">
+				<div class={ "card", "stat", "gate-card", "gate-" + Gate(v.View.Scan.GateResult) }>
+					<div class="n">{ p.T("gate." + Gate(v.View.Scan.GateResult)) }</div>
+					<div class="l">{ p.T("scan.gate") } · { v.Summary.Gate.Policy }</div>
+				</div>
+				<div class="card stat accent"><div class="n">{ ScoreText(v.View.Scan.Score) }<span class="faint">/100</span></div><div class="l">{ p.T("field.score") }</div></div>
+				<div class="card stat"><div class="n"><span class="delta up">+{ Itoa32(v.View.Scan.NewIssues) }</span> <span class="delta down">−{ Itoa32(v.View.Scan.FixedIssues) }</span></div><div class="l">{ p.T("scans.new_fixed") }</div></div>
+				<div class="card stat"><div class="n">{ Duration(v.View.Scan.StartedAt, v.View.Scan.FinishedAt) }</div><div class="l">{ p.T("scan.duration") }</div></div>
+			</div>
+			<div class="sevbar">
+				<span class="sev critical">{ p.T("sev.critical") } { strconv.Itoa(v.Summary.Counts.Critical) }</span>
+				<span class="sev high">{ p.T("sev.high") } { strconv.Itoa(v.Summary.Counts.High) }</span>
+				<span class="sev medium">{ p.T("sev.medium") } { strconv.Itoa(v.Summary.Counts.Medium) }</span>
+				<span class="sev low">{ p.T("sev.low") } { strconv.Itoa(v.Summary.Counts.Low) }</span>
+				<span class="sev info">{ p.T("sev.info") } { strconv.Itoa(v.Summary.Counts.Info) }</span>
+			</div>
+			<div class="card">
+				<h2>{ p.T("issues.title") } <span class="faint">({ strconv.Itoa(len(v.View.Issues)) })</span></h2>
+				if len(v.View.Issues) == 0 {
+					<div class="empty"><img class="mark" src="/static/img/scanx-mark.svg" alt=""/><p>{ p.T("issues.none") }</p></div>
+				} else {
+					<div class="tablewrap">
+						<table>
+							<thead><tr><th>{ p.T("field.severity") }</th><th>{ p.T("field.title") }</th><th>{ p.T("field.location") }</th><th>{ p.T("field.tools") }</th><th>{ p.T("field.status") }</th></tr></thead>
+							<tbody>
+								for _, is := range v.View.Issues {
+									<tr>
+										<td>@sevBadge(p, is.Severity)</td>
+										<td>
+											<a href={ templ.SafeURL(p.OrgURL("/issues/" + is.ID.String())) }>{ is.Title }</a>
+											if is.IsNew {
+												<span class="badge new">{ p.T("issues.new") }</span>
+											}
+											<div class="faint">{ p.T("cat." + is.Category) }</div>
+										</td>
+										<td class="mono">{ Loc(is.File, is.StartLine) }</td>
+										<td class="faint">{ strings.Join(is.Sources, ", ") }</td>
+										<td><span class={ "badge", "is-" + is.Status }>{ p.T("issue.status." + is.Status) }</span></td>
+									</tr>
+								}
+							</tbody>
+						</table>
+					</div>
+				}
+			</div>
+			<div class="card">
+				<h2>{ p.T("scan.tools") }</h2>
+				<div class="tablewrap">
+					<table>
+						<thead><tr><th>{ p.T("field.tool") }</th><th>{ p.T("field.version") }</th><th>{ p.T("field.status") }</th><th>{ p.T("scan.findings") }</th><th>{ p.T("scan.duration") }</th></tr></thead>
+						<tbody>
+							for _, t := range v.View.Tools {
+								<tr>
+									<td>{ t.Name }</td>
+									<td class="mono faint">{ t.ToolVersion }</td>
+									<td>
+										if t.Status == "ok" {
+											<span class="badge ok">OK</span>
+										} else {
+											<span class="badge st-failed" title={ t.Error }>{ t.Status }</span>
+											<div class="faint">{ t.Error }</div>
+										}
+									</td>
+									<td>{ Itoa32(t.FindingsCount) }</td>
+									<td>{ Ms(t.DurationMs) }</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			</div>
+		}
+	</div>
+}
+
+templ ProjectIssues(p *Page, pr *db.Project, issues []db.Issue, status string) {
+	@AppShell(p) {
+		<div class="page-head">
+			<div>
+				<div class="crumbs">
+					<a href={ templ.SafeURL(p.OrgURL("/projects")) }>{ p.T("nav.projects") }</a> /
+					<a href={ templ.SafeURL(p.OrgURL("/projects/" + pr.Slug)) }>{ pr.Name }</a>
+				</div>
+				<h1>{ p.T("issues.title") } <span class="faint">({ strconv.Itoa(len(issues)) })</span></h1>
+			</div>
+		</div>
+		<div class="tabs">
+			for _, st := range []string{"open", "fixed", "false_positive", "accepted_risk", "wont_fix", ""} {
+				<a class={ templ.KV("active", st == status) } href={ templ.SafeURL(p.OrgURL("/projects/" + pr.Slug + "/issues?status=" + st)) }>
+					if st == "" {
+						{ p.T("issues.all") }
+					} else {
+						{ p.T("issue.status." + st) }
+					}
+				</a>
+			}
+		</div>
+		if len(issues) == 0 {
+			<div class="card empty"><p>{ p.T("issues.none") }</p></div>
+		} else {
+			<div class="tablewrap">
+				<table>
+					<thead><tr><th>{ p.T("field.severity") }</th><th>{ p.T("field.title") }</th><th>{ p.T("field.location") }</th><th>{ p.T("field.tools") }</th><th>{ p.T("field.status") }</th><th>{ p.T("issues.last_seen") }</th></tr></thead>
+					<tbody>
+						for _, is := range issues {
+							<tr>
+								<td>@sevBadge(p, is.Severity)</td>
+								<td><a href={ templ.SafeURL(p.OrgURL("/issues/" + is.ID.String())) }>{ is.Title }</a><div class="faint">{ p.T("cat." + is.Category) }</div></td>
+								<td class="mono">{ Loc(is.File, is.StartLine) }</td>
+								<td class="faint">{ strings.Join(is.Sources, ", ") }</td>
+								<td><span class={ "badge", "is-" + is.Status }>{ p.T("issue.status." + is.Status) }</span></td>
+								<td class="faint">{ Date(is.UpdatedAt) }</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		}
+	}
+}
+
+templ IssueDetail(p *Page, f *Form, v *IssuePage) {
+	@AppShell(p) {
+		<div class="page-head">
+			<div>
+				<div class="crumbs">
+					<a href={ templ.SafeURL(p.OrgURL("/projects/" + v.View.Project.Slug)) }>{ v.View.Project.Name }</a> /
+					<a href={ templ.SafeURL(p.OrgURL("/projects/" + v.View.Project.Slug + "/issues")) }>{ p.T("issues.title") }</a>
+				</div>
+				<h1>{ v.View.Issue.Title }</h1>
+				<div class="row inline">
+					@sevBadge(p, v.View.Issue.Severity)
+					<span class="badge">{ p.T("cat." + v.View.Issue.Category) }</span>
+					<span class={ "badge", "is-" + v.View.Issue.Status }>{ p.T("issue.status." + v.View.Issue.Status) }</span>
+				</div>
+			</div>
+		</div>
+		<div class="grid cols-2">
+			<div class="card">
+				<div class="tablewrap">
+					<table>
+						<tr><th>{ p.T("field.location") }</th><td class="mono">{ Loc(v.View.Issue.File, v.View.Issue.StartLine) }</td></tr>
+						if v.View.Issue.RuleID != "" {
+							<tr><th>{ p.T("field.rule") }</th><td class="mono">{ v.View.Issue.RuleID }</td></tr>
+						}
+						if len(v.View.Issue.Cwe) > 0 {
+							<tr><th>CWE</th><td>{ strings.Join(v.View.Issue.Cwe, ", ") }</td></tr>
+						}
+						if len(v.View.Issue.Cve) > 0 {
+							<tr><th>CVE</th><td class="mono">{ strings.Join(v.View.Issue.Cve, ", ") }</td></tr>
+						}
+						if v.Detail.Package != nil {
+							<tr><th>{ p.T("field.package") }</th><td class="mono">{ v.Detail.Package.Name } { v.Detail.Package.Version }
+								if v.Detail.Package.FixedVersion != "" {
+									→ <strong>{ v.Detail.Package.FixedVersion }</strong>
+								}
+							</td></tr>
+						}
+						<tr><th>{ p.T("field.tools") }</th><td>{ strings.Join(v.View.Issue.Sources, ", ") }</td></tr>
+						<tr><th>{ p.T("issues.first_seen") }</th><td>{ Date(v.View.Issue.CreatedAt) }</td></tr>
+						if v.View.Issue.StatusReason != "" {
+							<tr><th>{ p.T("field.reason") }</th><td>{ v.View.Issue.StatusReason }</td></tr>
+						}
+					</table>
+				</div>
+			</div>
+			<div class="card">
+				<h2>{ p.T("issues.triage") }</h2>
+				if p.Can("issue.update") {
+					@formErr(p, f)
+					<form method="post" action={ templ.SafeURL(p.OrgURL("/issues/" + v.View.Issue.ID.String() + "/status")) } class="stack">
+						@csrf(p)
+						<div class="field">
+							<label for="status">{ p.T("field.status") }</label>
+							<select id="status" name="status">
+								for _, st := range []string{"open", "false_positive", "accepted_risk", "wont_fix"} {
+									<option value={ st } selected?={ st == v.View.Issue.Status }>{ p.T("issue.status." + st) }</option>
+								}
+							</select>
+						</div>
+						<div class="field">
+							<label for="reason">{ p.T("field.reason") }</label>
+							<textarea id="reason" name="reason" rows="3" maxlength="1000">{ f.V("reason") }</textarea>
+							@fieldErr(p, f, "reason")
+							<span class="hint">{ p.T("issues.reason_hint") }</span>
+						</div>
+						<div><button class="btn primary" type="submit">{ p.T("action.save") }</button></div>
+					</form>
+				} else {
+					<p class="muted">{ p.T("err.forbidden_action") }</p>
+				}
+			</div>
+		</div>
+		for _, fd := range v.Detail.Findings {
+			<div class="card finding">
+				<h2>{ fd.Tool } <span class="mono faint">{ fd.RuleID }</span></h2>
+				if fd.Description != "" {
+					<p class="prewrap">{ fd.Description }</p>
+				}
+				if fd.Snippet != "" {
+					<pre class="snippet">{ fd.Snippet }</pre>
+				}
+				if fd.Remediation != "" {
+					<p><strong>{ p.T("issues.remediation") }:</strong> { fd.Remediation }</p>
+				}
+				if len(fd.References) > 0 {
+					<ul class="refs">
+						for _, ref := range fd.References {
+							if SafeRef(ref) {
+								<li><a href={ templ.URL(ref) } target="_blank" rel="noopener noreferrer nofollow">{ ref }</a></li>
+							}
+						}
+					</ul>
+				}
+			</div>
+		}
+		if len(v.View.Events) > 0 {
+			<div class="card">
+				<h2>{ p.T("issues.history") }</h2>
+				<ul class="timeline">
+					for _, e := range v.View.Events {
+						<li>
+							<span class="faint">{ Date(e.CreatedAt) }</span>
+							<strong>{ e.UserEmail }</strong>:
+							{ p.T("issue.status." + e.FromValue) } → { p.T("issue.status." + e.ToValue) }
+							if e.Comment != "" {
+								<div class="muted">{ e.Comment }</div>
+							}
+						</li>
+					}
+				</ul>
+			</div>
+		}
+	}
+}
+
+templ Notifications(p *Page, f *Form, v *NotificationsView) {
+	@AppShell(p) {
+		<div class="page-head">
+			<div>
+				<div class="crumbs">{ p.Org.Org.Name }</div>
+				<h1>{ p.T("nav.notifications") }</h1>
+			</div>
+		</div>
+		if v.TestError != "" {
+			<div class="alert err">{ p.T("notify.test_failed") }: { v.TestError }</div>
+		}
+		<div class="card">
+			if len(v.Channels) == 0 {
+				<p class="muted">{ p.T("notify.empty") }</p>
+			} else {
+				<div class="tablewrap">
+					<table>
+						<thead><tr><th>{ p.T("field.name") }</th><th>{ p.T("notify.kind") }</th><th>{ p.T("notify.target") }</th><th>{ p.T("notify.events") }</th><th></th></tr></thead>
+						<tbody>
+							for _, c := range v.Channels {
+								<tr>
+									<td>{ c.Name }</td>
+									<td>{ p.T("notify.kind." + c.Kind) }</td>
+									<td class="mono faint">{ c.Target }</td>
+									<td>
+										for _, e := range c.Events {
+											<span class="badge">{ p.T("event." + e) }</span>
+										}
+									</td>
+									<td>
+										if p.Can("org.update") {
+											<div class="row inline">
+												<form method="post" action={ templ.SafeURL(p.OrgURL("/notifications/" + c.ID.String() + "/test")) }>
+													@csrf(p)
+													<button class="btn small" type="submit">{ p.T("notify.test") }</button>
+												</form>
+												<form method="post" action={ templ.SafeURL(p.OrgURL("/notifications/" + c.ID.String() + "/delete")) } hx-confirm={ p.T("notify.delete_confirm") }>
+													@csrf(p)
+													<button class="btn small danger" type="submit">{ p.T("action.delete") }</button>
+												</form>
+											</div>
+										}
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+		</div>
+		if p.Can("org.update") {
+			<div class="card">
+				<h2>{ p.T("notify.add") }</h2>
+				@formErr(p, f)
+				<form method="post" action={ templ.SafeURL(p.OrgURL("/notifications")) } class="stack">
+					@csrf(p)
+					<div class="grid cols-2">
+						<div class="field">
+							<label for="kind">{ p.T("notify.kind") }</label>
+							<select id="kind" name="kind">
+								for _, k := range []string{notify.KindSlack, notify.KindTeams, notify.KindWebhook, notify.KindEmail} {
+									<option value={ k } selected?={ f.V("kind") == k }>{ p.T("notify.kind." + k) }</option>
+								}
+							</select>
+						</div>
+						<div class="field">
+							<label for="name">{ p.T("field.name") }</label>
+							<input id="name" name="name" value={ f.V("name") } maxlength="100" required/>
+							@fieldErr(p, f, "name")
+						</div>
+					</div>
+					<div class="field">
+						<label for="target">{ p.T("notify.target") }</label>
+						<input id="target" name="target" value={ f.V("target") } maxlength="2000" required autocomplete="off"/>
+						@fieldErr(p, f, "target")
+						<span class="hint">{ p.T("notify.target_hint") }</span>
+						if !v.SMTPConfigured {
+							<span class="hint">{ p.T("notify.smtp_missing") }</span>
+						}
+					</div>
+					<fieldset class="field">
+						<legend>{ p.T("notify.events") }</legend>
+						for _, e := range notify.AllEvents {
+							<label class="check"><input type="checkbox" name="events" value={ e } checked?={ e != notify.EventScanCompleted || f.V("kind") == "" }/> { p.T("event." + e) }</label>
+						}
+						@fieldErr(p, f, "events")
+					</fieldset>
+					<div><button class="btn primary" type="submit">{ p.T("action.create") }</button></div>
+				</form>
+			</div>
+		}
+	}
+}

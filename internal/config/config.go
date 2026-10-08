@@ -53,6 +53,22 @@ type Config struct {
 	RetentionDays        int           `env:"RETENTION_DAYS" envDefault:"365"`
 	AllowSignup          bool          `env:"ALLOW_SIGNUP" envDefault:"false"`
 
+	// Worker / sandbox (Faz 3).
+	ScannerImage   string `env:"SCANNER_IMAGE" envDefault:"ghcr.io/ininia/scanx-scanner-all:dev"`
+	DockerHost     string `env:"DOCKER_HOST" envDefault:"unix:///var/run/docker.sock"`
+	EgressNetwork  string `env:"EGRESS_NETWORK" envDefault:"scanx-egress"`
+	SSHKnownHosts  string `env:"SSH_KNOWN_HOSTS"` // extra known_hosts lines for self-hosted Git servers
+	CloneDepth     int    `env:"CLONE_DEPTH" envDefault:"0"`
+	ScannerProfile string `env:"SCANNER_PROFILE" envDefault:"default"`
+
+	// Notifications (Faz 4).
+	SMTPHost     string        `env:"SMTP_HOST"`
+	SMTPPort     int           `env:"SMTP_PORT" envDefault:"587"`
+	SMTPUsername string        `env:"SMTP_USERNAME"`
+	SMTPPassword secret.Secret `env:"SMTP_PASSWORD"`
+	SMTPFrom     string        `env:"SMTP_FROM"`
+	SMTPTLS      string        `env:"SMTP_TLS" envDefault:"starttls"`
+
 	LogLevel  string `env:"LOG_LEVEL" envDefault:"info"`
 	LogFormat string `env:"LOG_FORMAT" envDefault:"json"`
 }
@@ -133,6 +149,19 @@ func (c *Config) Validate(req Requirement) error {
 	}
 	if c.MaxRepoMB < 1 {
 		add("SCANX_MAX_REPO_MB must be positive")
+	}
+	switch c.SMTPTLS {
+	case "starttls", "tls", "none":
+	default:
+		add("SCANX_SMTP_TLS must be starttls, tls or none")
+	}
+	switch c.ScannerProfile {
+	case "fast", "default", "full":
+	default:
+		add("SCANX_SCANNER_PROFILE must be fast, default or full")
+	}
+	if c.CloneDepth < 0 {
+		add("SCANX_CLONE_DEPTH must be 0 (full history) or positive")
 	}
 	if c.RetentionDays < 1 {
 		add("SCANX_RETENTION_DAYS must be positive")

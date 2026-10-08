@@ -137,3 +137,21 @@ Format ve yaşam döngüsü: şartname §20.2–20.4. Ürün adı/karar kayıtla
 ## Borçlar
 - **T-0213** SMTP + davet/bildirim e-postaları (Faz 4).
 - **T-0214** Sihirbaza SSH anahtarı ve tarayıcı politikası adımları (Faz 3–4).
+
+---
+
+# FAZ 3–4 — Sunucu tarafı tarama, webhook, bildirimler
+
+## T-0301..T-0312 — DONE
+- Migration 00003: ssh_keys, jobs, scans, scan_tools, issues, scan_issues, issue_events, reports, webhook_deliveries, notification_channels (hepsi FORCE RLS) + `scanx_lookup_webhook_project` (ADR-008).
+- `internal/sshkeys` (Ed25519 deploy key, sabitlenmiş host anahtarları — parmak izi testi), `internal/gitfetch` (`scanx git-fetch`), `internal/sandbox` (minimal Docker API, sertleştirme testi), `internal/worker`, `internal/notify` (Slack/Teams/webhook/SMTP, SSRF koruması).
+- Webhook: GitHub/GitLab/Gitea/Bitbucket/generic imza doğrulama, branch glob filtresi, teslimat tekilleştirme, commit başına tek aktif tarama.
+- UI: proje sayfası (deploy key, bağlantı testi, webhook, tarama ayarları, tarama geçmişi), canlı tarama sayfası, bulgu listesi/detay/triage, bildirimler, genel bakış sayıları; TR/EN.
+- Testler: birim (imza, push ayrıştırma, git-fetch argümanları, demux, sertleştirme, SSRF, rapor çıkarma) + entegrasyon (deploy key şifreleme, webhook akışı, manuel tarama + kiracı izolasyonu, bildirim kanalları, bulgu yaşam döngüsü yeni/düzelen/yeniden açılan) + API izolasyon matrisi 29 uç nokta.
+- **Gerçek uçtan uca (yerel compose):** `https://github.com/ininia/scanx` → klon (commit 5a17ff3) → 6 tarayıcı OK → 78 bulgu, kapı "Kaldı"; imzalı webhook → queued (202), yanlış imza 401, filtrelenen branch, tekrar teslim "duplicate"; ikinci taramada 0 yeni; SSH projesinde host key doğrulandı + deploy key eklenmediği için "auth" hatası; tarama sonrası sıfır artık konteyner/volume.
+
+## Borçlar
+- **T-0313** Zamanlanmış taramalar (cron) — Faz 5.
+- **T-0314** Bildirim teslimatı için yeniden deneme kuyruğu (şu an tek deneme + log).
+- **T-0315** HTML raporun sandbox iframe'i ile uygulama içinde gösterimi (şu an yeni sekme).
+- **T-0316** Kuyruk ilerledikçe proje başına eşzamanlı tarama sınırı ve kota (SaaS modu).

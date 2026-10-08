@@ -1,5 +1,5 @@
-# scanX — Faz 0 stack: nginx (TLS) → server → postgres.
-# Worker, docker-socket-proxy and certbot are added in later phases (spec §14.1).
+# scanX stack: nginx (TLS) → server → postgres, plus the scan worker which
+# starts sandbox containers through a restricted Docker API proxy (ADR-008).
 #   cp deploy/.env.example deploy/.env && docker run --rm ghcr.io/ininia/scanx gen-secrets >> deploy/.env
 #   docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d --build
 name: scanx
@@ -74,6 +74,74 @@ services:
     <<: *hardening
     networks: [edge, internal]
 
+  # Runs queued scans: clones repositories and scans them in throw-away,
+  # hardened containers (spec §5.2). Never talks to the Docker socket
+  # directly — only through docker-proxy.
+  worker:
+    image: ghcr.io/ininia/scanx:${SCANX_VERSION:-dev}
+    command: ["worker"]
+    environment:
+      SCANX_BASE_URL: ${SCANX_BASE_URL:-https://localhost}
+      SCANX_DATABASE_URL: postgres://scanx_app:${SCANX_APP_DB_PASSWORD:?set in .env}@postgres:5432/scanx?sslmode=disable
+      SCANX_MASTER_KEY: ${SCANX_MASTER_KEY:?set in .env}
+      SCANX_SESSION_KEY: ${SCANX_SESSION_KEY:?set in .env}
+      SCANX_DOCKER_HOST: tcp://docker-proxy:2375
+      SCANX_SCANNER_IMAGE: ${SCANX_SCANNER_IMAGE:-ghcr.io/ininia/scanx-scanner-all:dev}
+      SCANX_WORKER_CONCURRENCY: ${SCANX_WORKER_CONCURRENCY:-1}
+      SCANX_SCAN_TIMEOUT: ${SCANX_SCAN_TIMEOUT:-30m}
+      SCANX_SCANNER_MEMORY: ${SCANX_SCANNER_MEMORY:-3g}
+      SCANX_SCANNER_CPUS: ${SCANX_SCANNER_CPUS:-2}
+      SCANX_SCANNER_PARALLELISM: ${SCANX_SCANNER_PARALLELISM:-2}
+      SCANX_SCANNER_PROFILE: ${SCANX_SCANNER_PROFILE:-default}
+      SCANX_MAX_REPO_MB: ${SCANX_MAX_REPO_MB:-2048}
+      SCANX_CLONE_DEPTH: ${SCANX_CLONE_DEPTH:-0}
+      SCANX_ALLOW_PRIVATE_GIT_HOSTS: ${SCANX_ALLOW_PRIVATE_GIT_HOSTS:-false}
+      SCANX_SSH_KNOWN_HOSTS: ${SCANX_SSH_KNOWN_HOSTS:-}
+      SCANX_SANDBOX_RUNTIME: ${SCANX_SANDBOX_RUNTIME:-runc}
+      SCANX_SMTP_HOST: ${SCANX_SMTP_HOST:-}
+      SCANX_SMTP_PORT: ${SCANX_SMTP_PORT:-587}
+      SCANX_SMTP_USERNAME: ${SCANX_SMTP_USERNAME:-}
+      SCANX_SMTP_PASSWORD: ${SCANX_SMTP_PASSWORD:-}
+      SCANX_SMTP_FROM: ${SCANX_SMTP_FROM:-}
+      SCANX_SMTP_TLS: ${SCANX_SMTP_TLS:-starttls}
+      SCANX_LOG_LEVEL: ${SCANX_LOG_LEVEL:-info}
+      SCANX_LOG_FORMAT: ${SCANX_LOG_FORMAT:-json}
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      docker-proxy: { condition: service_started }
+    healthcheck: { disable: true } # no HTTP listener; liveness = job heartbeats
+    tmpfs: ["/tmp:size=64m"]
+    <<: *hardening
+    # internal: database · dockerapi: the proxy · outbound: DNS checks of Git
+    # hosts and notifications (Slack/Teams/SMTP).
+    networks: [internal, dockerapi, outbound]
+
+  # Docker API filter: only containers/images/volumes/networks endpoints;
+  # exec, build, swarm, secrets, system… are refused. Reachable only from the
+  # worker (dockerapi is an internal network).
+  docker-proxy:
+    image: tecnativa/docker-socket-proxy:0.3.0@sha256:9e4b9e7517a6b660f2cc903a19b257b1852d5b3344794e3ea334ff00ae677ac2
+    environment:
+      CONTAINERS: 1
+      IMAGES: 1
+      VOLUMES: 1
+      NETWORKS: 1
+      POST: 1
+      PING: 1
+      VERSION: 1
+      EVENTS: 0
+      INFO: 0
+      EXEC: 0
+      BUILD: 0
+      SWARM: 0
+      SECRETS: 0
+      SYSTEM: 0
+      LOG_LEVEL: warning
+    volumes: ["/var/run/docker.sock:/var/run/docker.sock:ro"]
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+    networks: [dockerapi]
+
   postgres:
     image: postgres:16-alpine # TODO(T-0007b): pin by digest before release
     environment:
@@ -100,3 +168,5 @@ volumes:
 networks:
   edge: {}
   internal: { internal: true }
+  dockerapi: { internal: true }
+  outbound: {}

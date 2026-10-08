@@ -3,6 +3,20 @@
 Format: [Keep a Changelog](https://keepachangelog.com/). Versioning: SemVer.
 
 ## [Unreleased]
+### Added — Phases 3–4 (server-side scanning, webhooks, notifications)
+- Per-project Ed25519 **deploy keys** (encrypted at rest, rotation) and pinned SSH host keys for GitHub, GitLab, Bitbucket and Codeberg (`SCANX_SSH_KNOWN_HOSTS` for others).
+- `scanx worker`: Postgres job queue; each scan clones in a `git-fetch` container (egress-only network) and scans in a network-less, read-only, capability-free container; source code is deleted after every scan.
+- Docker access only through a filtered docker-socket-proxy; leftover sandbox resources are reaped.
+- "Scan now", connection test, live scan page, issue list with new/fixed tracking, issue triage (false positive / accepted risk / won't fix) with history, HTML/JSON/SARIF/SBOM report downloads.
+- Push **webhooks** for GitHub, GitLab, Gitea/Forgejo, Bitbucket and a generic HMAC format, with branch filters (globs), delivery de-duplication and one active scan per commit.
+- Notifications to Slack, Microsoft Teams, JSON webhooks and e-mail (SMTP) on completed scans, failed quality gates and failed scans.
+- REST API: deploy key, scans, scan issues, reports, project issues, issue triage; OpenAPI updated.
+- Quality gate and history scanning per project; dashboard shows open critical/high issues and recent scans.
+
+### Security
+- Outbound notification and Git connections refuse private/loopback/link-local addresses (SSRF), checked on the resolved IP.
+- Webhook URLs/secrets and deploy keys are stored encrypted and never shown in error messages.
+
 ### Added — Phase 2 (server, accounts, multi-tenancy, web UI)
 - First-run setup wizard (setup token → admin → mandatory 2FA → instance settings → first organization).
 - Accounts with Argon2id passwords, TOTP 2FA, server-side sessions, account lockout and rate limiting.

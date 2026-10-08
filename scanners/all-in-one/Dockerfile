@@ -77,9 +77,10 @@ RUN set -eu; echo "db snapshot ${DB_DATE}"; \
 
 # ---------- final image ----------
 FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates git \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates git openssh-client \
  && rm -rf /var/lib/apt/lists/* \
- && groupadd -g 65532 scanx && useradd -u 65532 -g 65532 -M -d /nonexistent -s /usr/sbin/nologin scanx
+ && groupadd -g 65532 scanx && useradd -u 65532 -g 65532 -M -d /nonexistent -s /usr/sbin/nologin scanx \
+ && mkdir -p /work && chown 65532:65532 /work
 COPY --from=fetch /out/bin/ /usr/local/bin/
 COPY --from=scanx /out/scanx /usr/local/bin/scanx
 COPY --from=rules /out/rules /opt/scanx/rules
@@ -100,6 +101,8 @@ LABEL org.opencontainers.image.title="scanX scanner (all-in-one)" \
       org.opencontainers.image.source="https://github.com/ininia/scanx" \
       org.opencontainers.image.licenses="BUSL-1.1"
 USER 65532:65532
+# /work is owned by the scanner user so an empty named volume mounted there by
+# the worker (git-fetch → scan) is writable without root.
 # Batch job: no long-running process to probe.
 HEALTHCHECK NONE
 WORKDIR /tmp

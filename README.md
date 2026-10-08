@@ -13,9 +13,11 @@
 
 ---
 
-> **Project status: Phase 2 of 8.** Working today: the **scan engine** (scan any folder locally with
-> Docker) and the **server** with setup wizard, accounts + 2FA, organizations, roles, API tokens,
-> projects and audit log (Turkish / English UI). Server-side scans and GitHub connection come next.
+> **Project status: Phase 4 of 8.** Working today: connect a GitHub/GitLab/Gitea/Bitbucket repository
+> with a read-only **deploy key**, press **Scan now** or let **push webhooks** start scans; the server
+> clones and scans in throw-away sandboxed containers and shows results, new/fixed issues, triage and
+> HTML/JSON/SARIF/SBOM reports, with Slack/Teams/e-mail notifications. Plus setup wizard, accounts +
+> 2FA, organizations, roles, API tokens and audit log (Turkish / English UI).
 > Follow progress in [`TASKS.md`](TASKS.md) and the roadmap below.
 
 ## Scan a repository now (only Docker needed)
@@ -50,8 +52,8 @@ Findings from different tools are merged into one issue.
 
 ## Install the server (for DevOps — no programming needed)
 
-You need a Linux server with **Docker** and **Docker Compose v2** (4 vCPU / 8 GB RAM / 50 GB disk
-recommended) and `git`.
+You need a Linux server with **Docker** and **Docker Compose v2** (at least 4 GB RAM for scanning;
+4 vCPU / 8 GB RAM / 100 GB disk recommended) and `git`.
 
 ```bash
 git clone https://github.com/ininia/scanx.git
@@ -63,6 +65,7 @@ The script builds scanX, generates all passwords and keys, creates a TLS certifi
 everything. When it finishes it prints the address and a one-time setup token: open the address,
 enter the token and the **setup wizard** walks you through the administrator account (with
 mandatory 2FA), instance settings and your first organization.
+Then add a project, add the shown deploy key and webhook in GitHub — the guide walks through it.
 **Back up `deploy/.env` immediately** — see the [installation guide](docs/user/install.md) for
 firewall, real TLS certificates, updates, backups and troubleshooting.
 
@@ -73,9 +76,9 @@ firewall, real TLS certificates, updates, backups and troubleshooting.
 | 0 | Foundation: server, DB, TLS proxy, installer skeleton, CI | ✅ done |
 | 1 | Scan engine + `scanx scan` CLI (Gitleaks, Opengrep, Trivy, OSV, Syft) | ✅ done |
 | 2 | Accounts, organizations, 2FA, web UI, setup wizard | ✅ done |
-| 3 | Isolated sandbox, Git + deploy keys, manual scans, report pages | ⏳ next |
-| 4 | Webhooks (GitHub/GitLab/Gitea/Bitbucket), schedules, notifications | |
-| 5 | GitHub Action, GitLab CI template, SARIF upload | |
+| 3 | Isolated sandbox, Git + deploy keys, manual scans, report pages | ✅ done |
+| 4 | Webhooks (GitHub/GitLab/Gitea/Bitbucket), notifications (schedules: next) | ✅ done |
+| 5 | GitHub Action, GitLab CI template, SARIF upload, scheduled scans | ⏳ next |
 | 6 | One-line `install.sh`, Let's Encrypt, backup/restore/update | |
 | 7 | More scanners, PDF reports, trends, SonarQube, ZAP | |
 | 8 | Hardening, docs, v1.0.0 | |

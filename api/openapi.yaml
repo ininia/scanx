@@ -349,6 +349,189 @@ paths:
         "204": { description: Deleted }
         "403": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
+  /orgs/{org}/projects/{project}/deploy-key:
+    parameters:
+      - { $ref: "#/components/parameters/org" }
+      - { $ref: "#/components/parameters/project" }
+    get:
+      tags: [scans]
+      summary: Public half of the read-only deploy key of the project
+      responses:
+        "200":
+          description: Deploy key
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [public_key, fingerprint]
+                properties:
+                  public_key: { type: string }
+                  fingerprint: { type: string }
+        "404": { $ref: "#/components/responses/Error" }
+  /orgs/{org}/projects/{project}/scans:
+    parameters:
+      - { $ref: "#/components/parameters/org" }
+      - { $ref: "#/components/parameters/project" }
+    get:
+      tags: [scans]
+      responses:
+        "200":
+          description: Recent scans (newest first)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/Scan" } }
+        "404": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [scans]
+      summary: Queue a scan (default branch when omitted)
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                branch: { type: string }
+      responses:
+        "202":
+          description: Queued (or the already queued scan of this branch)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Scan" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /orgs/{org}/projects/{project}/issues:
+    parameters:
+      - { $ref: "#/components/parameters/org" }
+      - { $ref: "#/components/parameters/project" }
+      - { name: status, in: query, required: false, schema: { type: string, enum: ["", open, fixed, false_positive, accepted_risk, wont_fix] } }
+    get:
+      tags: [issues]
+      responses:
+        "200":
+          description: Issues (max 500)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/Issue" } }
+        "404": { $ref: "#/components/responses/Error" }
+  /orgs/{org}/scans/{scan}:
+    parameters:
+      - { $ref: "#/components/parameters/org" }
+      - { $ref: "#/components/parameters/scan" }
+    get:
+      tags: [scans]
+      responses:
+        "200":
+          description: Scan with tool runs
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [scan, project, tools]
+                properties:
+                  scan: { $ref: "#/components/schemas/Scan" }
+                  project: { type: string }
+                  tools: { type: array, items: { type: object } }
+        "404": { $ref: "#/components/responses/Error" }
+  /orgs/{org}/scans/{scan}/issues:
+    parameters:
+      - { $ref: "#/components/parameters/org" }
+      - { $ref: "#/components/parameters/scan" }
+    get:
+      tags: [scans]
+      responses:
+        "200":
+          description: Issues found by this scan
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/Issue" } }
+        "404": { $ref: "#/components/responses/Error" }
+  /orgs/{org}/scans/{scan}/cancel:
+    parameters:
+      - { $ref: "#/components/parameters/org" }
+      - { $ref: "#/components/parameters/scan" }
+    post:
+      tags: [scans]
+      responses:
+        "204": { description: Canceled }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /orgs/{org}/scans/{scan}/reports/{format}:
+    parameters:
+      - { $ref: "#/components/parameters/org" }
+      - { $ref: "#/components/parameters/scan" }
+      - { name: format, in: path, required: true, schema: { type: string, enum: [html, json, sarif, sbom] } }
+    get:
+      tags: [scans]
+      summary: Download a report (served gzip-encoded when accepted)
+      responses:
+        "200": { description: Report file }
+        "404": { $ref: "#/components/responses/Error" }
+  /orgs/{org}/issues/{issue}:
+    parameters:
+      - { $ref: "#/components/parameters/org" }
+      - { name: issue, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      tags: [issues]
+      summary: Triage an issue (a reason is required except for open)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [status]
+              properties:
+                status: { type: string, enum: [open, false_positive, accepted_risk, wont_fix] }
+                reason: { type: string, maxLength: 1000 }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Issue" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /hooks/{provider}/{project}:
+    parameters:
+      - { name: provider, in: path, required: true, schema: { type: string, enum: [github, gitlab, gitea, bitbucket, generic] } }
+      - { name: project, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [webhooks]
+      summary: Git provider push webhook (authenticated by the per-project HMAC secret)
+      security: []
+      responses:
+        "200":
+          description: Ping, duplicate delivery or already queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WebhookResult" }
+        "202":
+          description: Queued or ignored (branch/event filter)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WebhookResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
 components:
   securitySchemes:
     bearer: { type: http, scheme: bearer }
@@ -358,6 +541,8 @@ components:
     id: { name: id, in: path, required: true, schema: { type: string, format: uuid } }
     page: { name: page, in: query, required: false, schema: { type: integer, minimum: 1 } }
     per_page: { name: per_page, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 200 } }
+    project: { name: project, in: path, required: true, schema: { type: string } }
+    scan: { name: scan, in: path, required: true, schema: { type: string, format: uuid } }
   requestBodies:
     EmailRole:
       required: true
@@ -515,3 +700,47 @@ components:
       allOf:
         - $ref: "#/components/schemas/PageMeta"
         - properties: { items: { type: array, items: { $ref: "#/components/schemas/Project" } } }
+    Scan:
+      type: object
+      required: [id, project_id, trigger, branch, commit_sha, status, partial, new_issues, fixed_issues, summary, queued_at]
+      properties:
+        id: { type: string, format: uuid }
+        project_id: { type: string, format: uuid }
+        trigger: { type: string, enum: [webhook, schedule, manual, api, ci_upload] }
+        branch: { type: string }
+        commit_sha: { type: string }
+        commit_message: { type: string }
+        status: { type: string, enum: [queued, cloning, scanning, reporting, completed, failed, canceled] }
+        status_reason: { type: string }
+        partial: { type: boolean }
+        gate_result: { type: [string, "null"], enum: [pass, fail, warn, null] }
+        score: { type: [integer, "null"] }
+        new_issues: { type: integer }
+        fixed_issues: { type: integer }
+        summary: { type: object }
+        queued_at: { type: string, format: date-time }
+        started_at: { type: [string, "null"], format: date-time }
+        finished_at: { type: [string, "null"], format: date-time }
+    Issue:
+      type: object
+      required: [id, fingerprint, category, severity, title, status]
+      properties:
+        id: { type: string, format: uuid }
+        fingerprint: { type: string }
+        category: { type: string }
+        severity: { type: string, enum: [critical, high, medium, low, info] }
+        title: { type: string }
+        rule_id: { type: string }
+        file: { type: string }
+        start_line: { type: integer }
+        cwe: { type: array, items: { type: string } }
+        cve: { type: array, items: { type: string } }
+        sources: { type: array, items: { type: string } }
+        status: { type: string, enum: [open, fixed, false_positive, accepted_risk, wont_fix] }
+        is_new: { type: boolean }
+    WebhookResult:
+      type: object
+      required: [result]
+      properties:
+        result: { type: string, enum: [queued, pong, ignored_event, ignored_branch, ignored_ref, duplicate, already_queued] }
+        scan_id: { type: string, format: uuid }

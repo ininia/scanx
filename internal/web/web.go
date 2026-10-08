@@ -32,6 +32,10 @@ type Handler struct {
 	Cookies    server.Cookies
 	SessionKey []byte // binds the setup proof cookie
 	Require2FA bool
+	// KnownHostsExtra is SCANX_SSH_KNOWN_HOSTS (to warn about untrusted hosts).
+	KnownHostsExtra string
+	// SMTPConfigured enables e-mail notification hints.
+	SMTPConfigured bool
 
 	setupDone atomic.Bool
 }
@@ -93,6 +97,7 @@ func (h *Handler) Mount(r chi.Router) {
 				r.Post("/tokens", h.tokenCreate)
 				r.Post("/tokens/{id}/revoke", h.tokenRevoke)
 				r.Get("/audit", h.audit)
+				h.mountScans(r)
 			})
 		})
 	})

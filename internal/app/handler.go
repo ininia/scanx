@@ -33,12 +33,16 @@ func BuildHandler(cfg *config.Config, pool *pgxpool.Pool, log *slog.Logger) (htt
 	scfg.SetupToken = cfg.SetupToken.Reveal()
 	scfg.AllowOrgCreation = cfg.AllowSignup
 	svc := service.New(&store.DB{Pool: pool}, box, scfg, log)
+	svc.SetNotifier(NewNotifier(cfg))
 
 	secure := strings.HasPrefix(cfg.BaseURL, "https://")
 	cookies := server.NewCookies(secure)
 	sessionKey := []byte(cfg.SessionKey.Reveal())
 	apiH := &api.Handler{Svc: svc, Cookies: cookies}
-	webH := &web.Handler{Svc: svc, Cookies: cookies, SessionKey: sessionKey, Require2FA: scfg.RequireAdmin2FA}
+	webH := &web.Handler{
+		Svc: svc, Cookies: cookies, SessionKey: sessionKey, Require2FA: scfg.RequireAdmin2FA,
+		KnownHostsExtra: cfg.SSHKnownHosts, SMTPConfigured: cfg.SMTPHost != "" && cfg.SMTPFrom != "",
+	}
 	return server.New(server.Options{
 		HSTS: secure,
 		ReadyChecks: []server.Check{

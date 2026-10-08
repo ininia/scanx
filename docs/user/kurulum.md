@@ -3,9 +3,9 @@
 Bu kılavuz yazılım bilgisi gerektirmez. Linux sunucuda komut çalıştırabiliyor ve Docker
 kullanabiliyorsanız yeterli.
 
-> **Durum (Faz 2):** Tarama motoru (Bölüm 0) ve web arayüzü çalışıyor: kurulum sihirbazı, kullanıcılar,
-> 2FA, organizasyonlar, roller, API token'ları ve projeler. Sunucu tarafında otomatik tarama ve GitHub
-> bağlantısı bir sonraki sürümde. Bu kılavuz her fazda güncellenir.
+> **Durum (Faz 4):** Sunucu repoyu deploy key ile kendisi çeker ve izole konteynerde tarar; "Şimdi
+> tara" butonu, push'ta otomatik tarama (webhook), sonuç/bulgu sayfaları, HTML/JSON/SARIF/SBOM
+> raporları ve Slack/Teams/e-posta bildirimleri çalışıyor. GitHub bağlantısı için **Bölüm 8**.
 
 ## 0. Hemen dene: bir repoyu tara (sadece Docker)
 
@@ -29,9 +29,13 @@ git clone https://github.com/ininia/scanx.git
 | Kaynak | En az | Önerilen |
 |---|---|---|
 | İşletim sistemi | Ubuntu 22.04/24.04, Debian 12, RHEL/Rocky/Alma 9, Amazon Linux 2023 | Ubuntu 24.04 |
-| CPU / RAM / Disk | 4 vCPU / 8 GB / 50 GB | 8 vCPU / 16 GB / 200 GB |
+| CPU / RAM / Disk | 2 vCPU / **4 GB** / 40 GB | 4 vCPU / 8 GB / 100 GB |
 | Yazılım | Docker Engine 24+, Docker Compose v2, git, curl | |
-| Ağ | 80 ve 443 portları açık (sunucuya erişecek kişiler için) | |
+| Ağ | 80 ve 443 portları açık; GitHub webhook'u için sunucu internetten erişilebilir olmalı | |
+
+> **1 GB RAM'li sunucuda** arayüz çalışır ama tarama yapılamaz (tarayıcılar ~3 GB kullanır).
+> DigitalOcean'da *Resize* ile en az 4 GB'a çıkarın. Az RAM'de `deploy/.env` içinde
+> `SCANX_SCANNER_MEMORY=2g` deneyebilirsiniz.
 
 ### Docker kurulu değilse (Ubuntu/Debian)
 ```bash
@@ -51,6 +55,9 @@ cd scanx
 - `--domain`: Kullanıcıların tarayıcıya yazacağı adres. Alan adınız yoksa sunucu IP'sini yazın
   veya parametreyi hiç vermeyin (`localhost` olur).
 - 80/443 başka bir uygulama tarafından kullanılıyorsa: `--http-port 8080 --https-port 8443`.
+
+İlk kurulumda tarayıcı imajı da hazırlanır (güvenlik araçları + zafiyet veritabanları, ~1.5 GB,
+10–20 dk). Sonraki çalıştırmalar önbellekten hızlıdır.
 
 Komut bittiğinde şuna benzer bir çıktı görürsünüz:
 ```
@@ -84,7 +91,7 @@ curl -k https://localhost/health/ready
 # {"status":"ok","version":"dev","checks":{"database":"ok","migrations":"ok"}}
 
 docker compose -p scanx -f deploy/docker-compose.yml --env-file deploy/.env ps
-# server ve postgres "healthy", nginx "Up" olmalı
+# server ve postgres "healthy"; nginx, worker ve docker-proxy "Up" olmalı
 ```
 
 ## 4. Güvenlik duvarı
@@ -135,17 +142,64 @@ Hata bildirirken `logs` çıktısını ekleyin, **`.env` içeriğini asla payla�
 
 ---
 
-## Yakında: GitHub'a bağlama (Faz 3–4)
+## 8. GitHub'a bağlama ve otomatik tarama
 
-Bu adımlar özellik tamamlandığında böyle çalışacak:
+### 8.1 Projeyi ekleyin
+**Projeler → Proje ekle** → repo adresini yapıştırın:
+- Özel (private) repo: **SSH adresi** `git@github.com:firma/uygulama.git`
+- Herkese açık repo: HTTPS adresi de olur `https://github.com/firma/uygulama.git` (anahtar gerekmez)
 
-1. scanX arayüzünde **Proje ekle** → repo adresini yapıştırın (`git@github.com:firma/uygulama.git`).
-2. scanX size bir **deploy key** (açık SSH anahtarı) gösterir → GitHub'da repo
-   **Settings → Deploy keys → Add deploy key**, yapıştırın, "Allow write access" **işaretlemeyin**.
-3. **Bağlantıyı test et** butonu ile doğrulayın.
-4. Taranacak branch'leri seçin (ör. yalnızca `main`).
-5. scanX bir **webhook adresi ve gizli anahtar** verir → GitHub'da **Settings → Webhooks → Add
-   webhook**, Content type `application/json`, olay olarak "Just the push event".
-6. Artık seçtiğiniz branch'e her push'ta tarama otomatik başlar, rapor scanX'te görünür.
+"Taranacak branch'ler"e örn. `main` yazın (`release/*` gibi desenler de olur).
 
-GitHub Actions içinden tarama (sunucuya kod göndermeden) için hazır bir Action da Faz 5'te gelecek.
+### 8.2 Deploy key'i GitHub'a ekleyin (yalnızca SSH adresinde)
+Proje sayfasındaki **1. Deploy key** kartında `ssh-ed25519 …` ile başlayan satırı ⧉ ile kopyalayın.
+GitHub'da repo → **Settings → Deploy keys → Add deploy key**:
+- Title: `scanX`
+- Key: kopyaladığınız satır
+- **Allow write access: İŞARETLEMEYİN** (scanX yalnızca okur)
+
+Sonra scanX'te **Bağlantıyı test et** → "Bağlantı başarılı ✓" ve branch listesi görünmeli.
+
+### 8.3 İlk tarama
+Sağ üstte branch'i seçip **Şimdi tara**. Tarama sayfası kendiliğinden güncellenir:
+Sırada → Kod çekiliyor → Taranıyor → Rapor hazırlanıyor → Tamamlandı. Orta boy bir repo
+birkaç dakika sürer. Sonuçta skor, kalite kapısı (Geçti/Kaldı), bulgular ve indirilebilir
+raporlar (HTML, JSON, SARIF, SBOM) vardır. Kaynak kod tarama bitince sunucudan silinir.
+
+### 8.4 Push'ta otomatik tarama (webhook)
+Proje sayfasındaki **2. Webhook** kartından adresi ve "Gizli anahtarı göster" ile sırrı kopyalayın.
+GitHub'da repo → **Settings → Webhooks → Add webhook**:
+- Payload URL: scanX'teki webhook adresi (`https://SUNUCU/api/v1/hooks/github/…`)
+- Content type: `application/json`
+- Secret: scanX'teki gizli anahtar
+- SSL verification: kendinden imzalı sertifika kullanıyorsanız **Disable** (gerçek sertifikada Enable)
+- "Just the push event" → **Add webhook**
+
+GitHub hemen bir *ping* gönderir; Webhooks → Recent Deliveries'de yeşil tik görmelisiniz.
+Artık seçili branch'lere her push'ta tarama kendiliğinden başlar.
+
+> Sunucu adresi (`SCANX_BASE_URL`) GitHub'ın erişebileceği bir adres olmalı (IP veya alan adı).
+> Webhook adresi, kurulum sihirbazında girdiğiniz "erişim adresi"nden üretilir.
+
+GitLab / Gitea / Bitbucket için adımlar proje sayfasında sağlayıcıya göre yazılıdır.
+
+### 8.5 Bildirimler
+**Bildirimler → Kanal ekle**: Slack veya Teams "Incoming webhook" adresi, kendi sisteminiz için
+JSON webhook ya da e-posta. "Test gönder" ile deneyin. E-posta için `deploy/.env`'e
+`SCANX_SMTP_HOST`, `SCANX_SMTP_PORT`, `SCANX_SMTP_USERNAME`, `SCANX_SMTP_PASSWORD`, `SCANX_SMTP_FROM`
+ekleyip `./deploy/quickstart.sh` çalıştırın.
+
+### 8.6 Kendi Git sunucunuz (GitLab/Gitea şirket içi)
+- İç ağdaysa `deploy/.env`: `SCANX_ALLOW_PRIVATE_GIT_HOSTS=true`
+- SSH host anahtarı: `ssh-keyscan git.sirket.local` çıktısını `SCANX_SSH_KNOWN_HOSTS=` satırına
+  (birden çok satırı `
+` ile birleştirerek) ekleyin, sonra `./deploy/quickstart.sh`.
+
+### 8.7 Sorun giderme (tarama)
+| Belirti | Çözüm |
+|---|---|
+| "Git sunucusu erişimi reddetti" | Deploy key repoya eklenmemiş veya yanlış repoya eklenmiş |
+| "Tarayıcıların belleği yetmedi" | Sunucu RAM'ini artırın / `SCANX_SCANNER_MEMORY` |
+| Tarama "Sırada"da kalıyor | `docker compose … logs worker` — worker çalışıyor mu? |
+| Webhook 401 | Secret yanlış kopyalanmış; scanX'te yenileyip GitHub'da güncelleyin |
+| Webhook hiç gelmiyor | Sunucu internetten erişilebilir mi, 443 açık mı? GitHub → Recent Deliveries |

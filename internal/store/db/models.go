@@ -56,10 +56,74 @@ type Invitation struct {
 	CreatedAt  time.Time
 }
 
+type Issue struct {
+	ID              uuid.UUID
+	OrgID           uuid.UUID
+	ProjectID       uuid.UUID
+	Fingerprint     string
+	Category        string
+	Severity        string
+	Title           string
+	RuleID          string
+	File            string
+	StartLine       int32
+	Cwe             []string
+	Cve             []string
+	Sources         []string
+	Status          string
+	StatusReason    string
+	Detail          json.RawMessage
+	FirstSeenScanID *uuid.UUID
+	LastSeenScanID  *uuid.UUID
+	FixedInScanID   *uuid.UUID
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}
+
+type IssueEvent struct {
+	ID        uuid.UUID
+	OrgID     uuid.UUID
+	IssueID   uuid.UUID
+	UserID    *uuid.UUID
+	Kind      string
+	FromValue string
+	ToValue   string
+	Comment   string
+	CreatedAt time.Time
+}
+
+type Job struct {
+	ID          uuid.UUID
+	OrgID       uuid.UUID
+	Kind        string
+	ProjectID   uuid.UUID
+	ScanID      *uuid.UUID
+	Status      string
+	Result      json.RawMessage
+	Error       string
+	Attempts    int32
+	LockedBy    string
+	LockedUntil *time.Time
+	CreatedAt   time.Time
+	StartedAt   *time.Time
+	FinishedAt  *time.Time
+}
+
 type Membership struct {
 	OrgID     uuid.UUID
 	UserID    uuid.UUID
 	Role      string
+	CreatedAt time.Time
+}
+
+type NotificationChannel struct {
+	ID        uuid.UUID
+	OrgID     uuid.UUID
+	Kind      string
+	Name      string
+	TargetEnc []byte
+	Nonce     []byte
+	Events    []string
 	CreatedAt time.Time
 }
 
@@ -72,19 +136,76 @@ type Organization struct {
 }
 
 type Project struct {
-	ID           uuid.UUID
-	OrgID        uuid.UUID
-	Name         string
-	Slug         string
-	RepoUrl      string
-	Provider     string
-	AuthMode     string
-	Branches     []string
-	Settings     json.RawMessage
-	ScheduleCron *string
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
-	ArchivedAt   *time.Time
+	ID                 uuid.UUID
+	OrgID              uuid.UUID
+	Name               string
+	Slug               string
+	RepoUrl            string
+	Provider           string
+	AuthMode           string
+	Branches           []string
+	Settings           json.RawMessage
+	ScheduleCron       *string
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
+	ArchivedAt         *time.Time
+	WebhookSecretEnc   []byte
+	WebhookSecretNonce []byte
+	FailOn             string
+	ScanHistory        bool
+}
+
+type Report struct {
+	ID        uuid.UUID
+	OrgID     uuid.UUID
+	ScanID    uuid.UUID
+	Format    string
+	ContentGz []byte
+	CreatedAt time.Time
+}
+
+type Scan struct {
+	ID            uuid.UUID
+	OrgID         uuid.UUID
+	ProjectID     uuid.UUID
+	Trigger       string
+	TriggeredBy   *uuid.UUID
+	Branch        string
+	CommitSha     string
+	CommitMessage string
+	CommitAuthor  string
+	Status        string
+	StatusReason  string
+	Partial       bool
+	Summary       json.RawMessage
+	GateResult    *string
+	Score         *int32
+	NewIssues     int32
+	FixedIssues   int32
+	QueuedAt      time.Time
+	StartedAt     *time.Time
+	FinishedAt    *time.Time
+	CleanedAt     *time.Time
+}
+
+type ScanIssue struct {
+	ScanID  uuid.UUID
+	IssueID uuid.UUID
+	OrgID   uuid.UUID
+	IsNew   bool
+}
+
+type ScanTool struct {
+	ID            uuid.UUID
+	OrgID         uuid.UUID
+	ScanID        uuid.UUID
+	ToolID        string
+	Name          string
+	ToolVersion   string
+	Status        string
+	DurationMs    int64
+	FindingsCount int32
+	Error         string
 }
 
 type Session struct {
@@ -98,6 +219,19 @@ type Session struct {
 	CreatedAt   time.Time
 	LastSeenAt  time.Time
 	ExpiresAt   time.Time
+}
+
+type SshKey struct {
+	ID            uuid.UUID
+	OrgID         uuid.UUID
+	ProjectID     uuid.UUID
+	PublicKey     string
+	Fingerprint   string
+	PrivateKeyEnc []byte
+	Nonce         []byte
+	Status        string
+	CreatedAt     time.Time
+	RetiredAt     *time.Time
 }
 
 type User struct {
@@ -114,4 +248,15 @@ type User struct {
 	CreatedAt     time.Time
 	LastLoginAt   *time.Time
 	Locale        string
+}
+
+type WebhookDelivery struct {
+	ID         uuid.UUID
+	OrgID      uuid.UUID
+	ProjectID  uuid.UUID
+	Provider   string
+	DeliveryID string
+	Event      string
+	Result     string
+	ReceivedAt time.Time
 }

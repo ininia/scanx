@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ininia/scanx/internal/service"
 	"github.com/ininia/scanx/internal/store/db"
 )
 
@@ -25,6 +26,7 @@ type DashboardView struct {
 	Projects int64
 	Members  int
 	Recent   []db.Project
+	Stats    *service.OrgStats
 }
 
 templ Dashboard(p *Page, v *DashboardView) {
@@ -43,8 +45,16 @@ templ Dashboard(p *Page, v *DashboardView) {
 		<div class="grid cols-4">
 			<div class="card stat accent"><div class="n">{ strconv.FormatInt(v.Projects, 10) }</div><div class="l">{ p.T("nav.projects") }</div></div>
 			<div class="card stat"><div class="n">{ strconv.Itoa(v.Members) }</div><div class="l">{ p.T("nav.members") }</div></div>
-			<div class="card stat crit"><div class="n">—</div><div class="l">{ p.T("sev.critical") }</div></div>
-			<div class="card stat high"><div class="n">—</div><div class="l">{ p.T("sev.high") }</div></div>
+			<div class="card stat crit"><div class="n">{ SevCount(v.Stats.Open, "critical") }</div><div class="l">{ p.T("dashboard.open_critical") }</div></div>
+			<div class="card stat high"><div class="n">{ SevCount(v.Stats.Open, "high") }</div><div class="l">{ p.T("dashboard.open_high") }</div></div>
+		</div>
+		<div class="card">
+			<h2>{ p.T("scans.recent") }</h2>
+			if len(v.Stats.RecentScans) == 0 {
+				<p class="muted">{ p.T("scans.none_yet") }</p>
+			} else {
+				@orgScanTable(p, v.Stats.RecentScans)
+			}
 		</div>
 		<div class="card">
 			<h2>{ p.T("dashboard.recent_projects") }</h2>
@@ -56,7 +66,6 @@ templ Dashboard(p *Page, v *DashboardView) {
 			} else {
 				@projectTable(p, v.Recent)
 			}
-			<p class="faint">{ p.T("dashboard.scans_soon") }</p>
 		</div>
 	}
 }
@@ -141,43 +150,6 @@ templ ProjectNew(p *Page, f *Form) {
 				</div>
 			</form>
 		</div>
-	}
-}
-
-templ ProjectDetail(p *Page, pr *db.Project) {
-	@AppShell(p) {
-		<div class="page-head">
-			<div>
-				<div class="crumbs"><a href={ templ.SafeURL(p.OrgURL("/projects")) }>{ p.T("nav.projects") }</a></div>
-				<h1>{ pr.Name }</h1>
-			</div>
-		</div>
-		<div class="grid cols-2">
-			<div class="card">
-				<h2>{ p.T("projects.repository") }</h2>
-				<div class="tablewrap">
-					<table>
-						<tr><th>{ p.T("field.repo_url") }</th><td class="mono">{ pr.RepoUrl }</td></tr>
-						<tr><th>{ p.T("field.provider") }</th><td>{ pr.Provider }</td></tr>
-						<tr><th>{ p.T("field.branches") }</th><td>{ strings.Join(pr.Branches, ", ") }</td></tr>
-						<tr><th>{ p.T("field.created") }</th><td>{ Date(pr.CreatedAt) }</td></tr>
-					</table>
-				</div>
-			</div>
-			<div class="card">
-				<h2>{ p.T("projects.next_steps") }</h2>
-				<p class="muted">{ p.T("projects.next_steps_body") }</p>
-			</div>
-		</div>
-		if p.Can("project.delete") {
-			<div class="card">
-				<h2>{ p.T("projects.danger") }</h2>
-				<form method="post" action={ templ.SafeURL(p.OrgURL("/projects/" + pr.Slug + "/delete")) } hx-confirm={ p.T("projects.delete_confirm") }>
-					@csrf(p)
-					<button class="btn danger" type="submit">{ p.T("projects.delete") }</button>
-				</form>
-			</div>
-		}
 	}
 }
 

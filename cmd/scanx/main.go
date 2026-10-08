@@ -17,6 +17,7 @@ import (
 
 	"github.com/ininia/scanx/internal/app"
 	"github.com/ininia/scanx/internal/config"
+	"github.com/ininia/scanx/internal/gitfetch"
 	"github.com/ininia/scanx/internal/logging"
 	"github.com/ininia/scanx/internal/rules"
 	"github.com/ininia/scanx/internal/store"
@@ -39,6 +40,8 @@ Usage:
 Commands:
   scan          Scan a source tree locally (code never leaves the machine)
   server        Run the web/API server
+  worker        Run the scan worker (clones and scans repositories in sandboxes)
+  git-fetch     Clone a repository for a scan (runs inside the scanner image)
   migrate       Apply DB migrations and exit
   healthcheck   Probe the local server (container HEALTHCHECK)
   gen-secrets   Print freshly generated secrets in .env format
@@ -66,6 +69,13 @@ func run(args []string, stdout, stderr io.Writer) int {
 			func(ctx context.Context, cfg *config.Config, log *slog.Logger) error {
 				return app.RunServer(ctx, cfg, log)
 			})
+	case "worker":
+		return withConfig(ctx, stderr, config.NeedDatabase|config.NeedKeys,
+			func(ctx context.Context, cfg *config.Config, log *slog.Logger) error {
+				return app.RunWorker(ctx, cfg, log)
+			})
+	case "git-fetch":
+		return gitfetch.Main(ctx, stdout, stderr)
 	case "scan":
 		return runScan(ctx, rest, stdout, stderr)
 	case "migrate":

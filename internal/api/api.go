@@ -31,6 +31,7 @@ type Handler struct {
 func (h *Handler) Mount(r chi.Router) {
 	r.Post("/auth/login", h.login)
 	r.Post("/auth/mfa", h.mfa)
+	r.Post("/hooks/{provider}/{project}", h.webhook)
 	r.Group(func(r chi.Router) {
 		r.Use(requireAuth)
 		r.Post("/auth/logout", h.logout)
@@ -57,6 +58,15 @@ func (h *Handler) Mount(r chi.Router) {
 			r.Get("/projects/{project}", h.getProject)
 			r.Patch("/projects/{project}", h.updateProject)
 			r.Delete("/projects/{project}", h.deleteProject)
+			r.Get("/projects/{project}/deploy-key", h.deployKey)
+			r.Get("/projects/{project}/scans", h.listScans)
+			r.Post("/projects/{project}/scans", h.createScan)
+			r.Get("/projects/{project}/issues", h.projectIssues)
+			r.Get("/scans/{scan}", h.getScan)
+			r.Get("/scans/{scan}/issues", h.scanIssues)
+			r.Post("/scans/{scan}/cancel", h.cancelScan)
+			r.Get("/scans/{scan}/reports/{format}", h.scanReport)
+			r.Patch("/issues/{issue}", h.updateIssue)
 		})
 	})
 }

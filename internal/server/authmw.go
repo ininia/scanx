@@ -114,6 +114,12 @@ func CSRF(key []byte, cookies Cookies) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		}))
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if strings.HasPrefix(r.URL.Path, "/api/v1/hooks/") {
+				// Git provider webhooks: authenticated by their HMAC
+				// signature / token, never by cookies.
+				next.ServeHTTP(w, r)
+				return
+			}
 			seed := ""
 			if c, err := r.Cookie(cookies.CSRF); err == nil {
 				seed = c.Value

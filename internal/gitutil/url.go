@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -20,6 +21,7 @@ type RepoURL struct {
 	Raw      string
 	Scheme   string // ssh | https
 	Host     string
+	Port     string // non-default port of an ssh:// or https:// URL
 	Path     string // owner/repo (without .git)
 	Provider string // github | gitlab | gitea | bitbucket | generic
 }
@@ -52,7 +54,12 @@ func ParseRepoURL(raw string) (*RepoURL, error) {
 		if _, hasPw := u.User.Password(); hasPw || (u.Scheme == "https" && u.User != nil) {
 			return nil, ErrInvalid // never store credentials in URLs
 		}
-		r.Scheme, r.Host, r.Path = u.Scheme, u.Hostname(), strings.TrimPrefix(u.Path, "/")
+		r.Scheme, r.Host, r.Port, r.Path = u.Scheme, u.Hostname(), u.Port(), strings.TrimPrefix(u.Path, "/")
+		if r.Port != "" {
+			if p, err := strconv.Atoi(r.Port); err != nil || p < 1 || p > 65535 {
+				return nil, ErrInvalid
+			}
+		}
 	default:
 		return nil, ErrScheme
 	}
@@ -89,4 +96,13 @@ func (r *RepoURL) Name() string {
 		return r.Path[i+1:]
 	}
 	return r.Path
+}
+
+// KnownHostsName is the host name as it appears in known_hosts
+// ("host" or "[host]:port" for non-default SSH ports).
+func (r *RepoURL) KnownHostsName() string {
+	if r.Port != "" && r.Port != "22" {
+		return "[" + r.Host + "]:" + r.Port
+	}
+	return r.Host
 }

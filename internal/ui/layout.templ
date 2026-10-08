@@ -16,6 +16,7 @@ templ head(p *Page) {
 	<link rel="stylesheet" href={ Asset("css/tokens.css") }/>
 	<link rel="stylesheet" href={ Asset("css/app.css") }/>
 	<script src={ Asset("js/htmx.min.js") } defer></script>
+	<script src={ Asset("js/app.js") } defer></script>
 }
 
 templ brand() {
@@ -92,6 +93,7 @@ templ AppShell(p *Page) {
 						if p.Org != nil {
 							@navLink(p, "dashboard", p.OrgURL(""), p.T("nav.dashboard"))
 							@navLink(p, "projects", p.OrgURL("/projects"), p.T("nav.projects"))
+							@navLink(p, "notifications", p.OrgURL("/notifications"), p.T("nav.notifications"))
 							<span class="sep">{ p.T("nav.organization") }</span>
 							@navLink(p, "members", p.OrgURL("/members"), p.T("nav.members"))
 							@navLink(p, "tokens", p.OrgURL("/tokens"), p.T("nav.tokens"))

@@ -20,6 +20,7 @@ import (
 
 	"github.com/ininia/scanx/internal/auth"
 	"github.com/ininia/scanx/internal/crypto"
+	"github.com/ininia/scanx/internal/notify"
 	"github.com/ininia/scanx/internal/store"
 	"github.com/ininia/scanx/internal/store/db"
 )
@@ -86,6 +87,8 @@ type Service struct {
 	loginIP *auth.Limiter
 	loginID *auth.Limiter
 	mfaTry  *auth.Limiter
+
+	notifier *notify.Sender
 }
 
 // New creates a Service.

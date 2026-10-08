@@ -3,12 +3,14 @@
 No programming knowledge needed — just a Linux server and Docker. The Turkish version is
 [kurulum.md](kurulum.md).
 
-> **Status (Phase 0):** this release installs and runs the server, database and HTTPS layer.
-> Scanning, the web UI and GitHub connection arrive in later phases; this guide is updated each phase.
+> **Status (Phase 4):** the server clones repositories with a read-only deploy key and scans them in
+> isolated containers — "Scan now", scan-on-push webhooks, result pages, HTML/JSON/SARIF/SBOM reports
+> and Slack/Teams/e-mail notifications work. See section 6 to connect GitHub.
 
 ## 1. Requirements
 - Ubuntu 22.04/24.04, Debian 12, RHEL/Rocky/Alma 9 or Amazon Linux 2023
-- 4 vCPU / 8 GB RAM / 50 GB disk minimum (8 / 16 / 200 recommended)
+- 2 vCPU / **4 GB RAM** / 40 GB disk minimum (4 / 8 / 100 recommended). With 1 GB RAM the UI
+  works but scans cannot run (the scanners need ~3 GB, `SCANX_SCANNER_MEMORY`).
 - Docker Engine 24+, Docker Compose v2, git, curl; ports 80 and 443 reachable
 
 No Docker yet? `curl -fsSL https://get.docker.com | sudo sh && sudo usermod -aG docker $USER`, then log out and in.
@@ -47,7 +49,21 @@ A self-signed certificate is created automatically. To use your own, copy `cert.
 the `scanx_certs` volume and restart nginx (see the Turkish guide §5 for the exact command).
 Let's Encrypt automation comes in Phase 6.
 
-## Coming soon: connecting GitHub (Phases 3–4)
-Add project → paste repo URL → add the shown **read-only deploy key** in GitHub
-(Settings → Deploy keys) → test connection → pick branches → add the shown **webhook** in GitHub
-(Settings → Webhooks, push events). Every push to the selected branches then triggers a scan.
+## 6. Connect GitHub and scan automatically
+1. **Projects → Add project**, paste the repository URL. Private repos: SSH URL
+   (`git@github.com:company/app.git`); public repos may use the https URL (no key needed).
+2. SSH only: copy the `ssh-ed25519 …` line from the **Deploy key** card. GitHub → repo
+   **Settings → Deploy keys → Add deploy key**, title `scanX`, **do not** allow write access.
+   Back in scanX press **Test connection** → "Connection works ✓".
+3. Pick a branch and press **Scan now**. The scan page updates itself (queued → cloning → scanning
+   → reporting → completed). The source code is deleted from the server after each scan.
+4. Webhook: copy the URL and the secret from the **Webhook** card. GitHub → **Settings → Webhooks →
+   Add webhook**: Payload URL, Content type `application/json`, Secret, "Just the push event"
+   (disable SSL verification only while you use the self-signed certificate). Every push to the
+   selected branches now starts a scan.
+5. **Notifications → Add channel**: Slack/Teams incoming-webhook URL, JSON webhook or e-mail
+   (`SCANX_SMTP_*` in `deploy/.env`).
+
+Self-hosted GitLab/Gitea on an internal network: set `SCANX_ALLOW_PRIVATE_GIT_HOSTS=true` and put
+the output of `ssh-keyscan git.example.local` into `SCANX_SSH_KNOWN_HOSTS` (lines joined with `
+`).
