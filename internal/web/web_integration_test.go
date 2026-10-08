@@ -25,7 +25,7 @@ import (
 	"github.com/ininia/scanx/internal/testdb"
 )
 
-const adminPassword = "correct-horse-battery-staple-9"
+const adminPassword = "FAKE-correct-horse-battery-staple-9"
 
 type browser struct {
 	t    *testing.T

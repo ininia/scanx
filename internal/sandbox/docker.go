@@ -282,6 +282,8 @@ func (c *Client) Inspect(ctx context.Context, id string) (State, error) {
 // Wait polls until the container stops. Polling (instead of the blocking
 // /wait endpoint) survives proxies with request timeouts shorter than a scan.
 func (c *Client) Wait(ctx context.Context, id string, every time.Duration) (State, error) {
+	t := time.NewTicker(every)
+	defer t.Stop()
 	for {
 		st, err := c.Inspect(ctx, id)
 		if err != nil {
@@ -293,7 +295,7 @@ func (c *Client) Wait(ctx context.Context, id string, every time.Duration) (Stat
 		select {
 		case <-ctx.Done():
 			return st, ctx.Err()
-		case <-time.After(every):
+		case <-t.C:
 		}
 	}
 }

@@ -30,7 +30,7 @@ func uniq(prefix string) string {
 	return fmt.Sprintf("%s-%d-%d", prefix, time.Now().UnixNano()%1_000_000, seq.Add(1))
 }
 
-const goodPassword = "correct-horse-battery-staple-9"
+const goodPassword = "FAKE-correct-horse-battery-staple-9"
 
 func newService(t *testing.T) (*Service, *store.DB) {
 	t.Helper()

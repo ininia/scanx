@@ -121,6 +121,8 @@ func (w *Worker) Run(ctx context.Context) error {
 }
 
 func (w *Worker) waitForDocker(ctx context.Context) error {
+	t := time.NewTicker(2 * time.Second)
+	defer t.Stop()
 	for i := 0; ; i++ {
 		err := w.docker.Ping(ctx)
 		if err == nil {
@@ -132,12 +134,14 @@ func (w *Worker) waitForDocker(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-time.After(2 * time.Second):
+		case <-t.C:
 		}
 	}
 }
 
 func (w *Worker) loop(ctx context.Context) {
+	idle := time.NewTicker(w.cfg.PollInterval)
+	defer idle.Stop()
 	for {
 		job, err := w.claim(ctx)
 		if err != nil && ctx.Err() == nil {
@@ -147,7 +151,7 @@ func (w *Worker) loop(ctx context.Context) {
 			select {
 			case <-ctx.Done():
 				return
-			case <-time.After(w.cfg.PollInterval):
+			case <-idle.C:
 				continue
 			}
 		}

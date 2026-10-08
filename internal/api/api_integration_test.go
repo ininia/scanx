@@ -33,7 +33,7 @@ import (
 	"github.com/ininia/scanx/internal/testdb"
 )
 
-const password = "correct-horse-battery-staple-9"
+const password = "FAKE-correct-horse-battery-staple-9"
 
 var csrfKey = []byte("FAKE-csrf-key-for-tests-0123456789")
 
