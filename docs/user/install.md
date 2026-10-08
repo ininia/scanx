@@ -65,5 +65,4 @@ Let's Encrypt automation comes in Phase 6.
    (`SCANX_SMTP_*` in `deploy/.env`).
 
 Self-hosted GitLab/Gitea on an internal network: set `SCANX_ALLOW_PRIVATE_GIT_HOSTS=true` and put
-the output of `ssh-keyscan git.example.local` into `SCANX_SSH_KNOWN_HOSTS` (lines joined with `
-`).
+the output of `ssh-keyscan git.example.local` into `SCANX_SSH_KNOWN_HOSTS` (lines joined with `\n`).

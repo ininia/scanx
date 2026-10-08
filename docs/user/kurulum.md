@@ -192,8 +192,7 @@ ekleyip `./deploy/quickstart.sh` çalıştırın.
 ### 8.6 Kendi Git sunucunuz (GitLab/Gitea şirket içi)
 - İç ağdaysa `deploy/.env`: `SCANX_ALLOW_PRIVATE_GIT_HOSTS=true`
 - SSH host anahtarı: `ssh-keyscan git.sirket.local` çıktısını `SCANX_SSH_KNOWN_HOSTS=` satırına
-  (birden çok satırı `
-` ile birleştirerek) ekleyin, sonra `./deploy/quickstart.sh`.
+  (birden çok satırı `\n` ile birleştirerek) ekleyin, sonra `./deploy/quickstart.sh`.
 
 ### 8.7 Sorun giderme (tarama)
 | Belirti | Çözüm |
