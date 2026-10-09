@@ -98,8 +98,9 @@ func configDirs(rulesDir, profile string) []string {
 func (Scanner) Command(env scanner.Env, s scanner.Settings) scanner.Cmd {
 	var args []string
 	args = append(args, "scan")
-	for _, d := range configDirs(env.RulesDir, s.Profile) {
-		args = append(args, "--config", d)
+	configs, _, _ := selectRuleFiles(configDirs(env.RulesDir, s.Profile), s.Languages)
+	for _, c := range configs {
+		args = append(args, "--config", c)
 	}
 	args = append(args,
 		"--json-output="+filepath.Join(env.OutDir, outFile),
@@ -107,8 +108,12 @@ func (Scanner) Command(env scanner.Env, s scanner.Settings) scanner.Cmd {
 		"--taint-intrafile",
 		// A .semgrepignore inside the repository must not hide files.
 		"--x-ignore-semgrepignore-files",
-		"--timeout", "30",
-		"--max-target-bytes", "5000000",
+		// Per file: at most 10 s per rule, and a file is given up after 3
+		// rule timeouts, so one huge file cannot eat the whole time budget
+		// (measured: single 300 KB JS files took ~2 minutes).
+		"--timeout", "10",
+		"--timeout-threshold", "3",
+		"--max-target-bytes", "1000000",
 	)
 	excludes := append(append(append([]string{}, scanner.DefaultExcludes...), scanner.SASTExcludes...), s.Exclude...)
 	for _, ex := range excludes {

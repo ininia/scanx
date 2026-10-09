@@ -32,6 +32,9 @@ type Settings struct {
 	Enabled  map[string]bool // scanner IDs switched on explicitly (opt-in tools)
 	// SASTTimeout limits the SAST step (opengrep); 0 = DefaultSASTTimeout.
 	SASTTimeout time.Duration
+	// Languages present in the repository (detect names, plus IaC kinds);
+	// SAST loads only the rules for these. Empty = all rules.
+	Languages []string
 }
 
 // DefaultSASTTimeout is the SAST time limit when a project sets none.
@@ -139,6 +142,8 @@ var SASTExcludes = []string{
 	// vendored / package-manager directories
 	"bower_components", "jspm_packages", "wwwroot/lib", "wwwroot/libs", "lib/bower",
 	"third_party", "third-party", "thirdparty",
+	// output of other analysis tools and IDEs
+	".sonarqube", ".scannerwork", ".vs", ".idea", ".vscode", "TestResults",
 	"Pods", "Carthage", ".yarn", ".pnpm-store",
 	// build output and caches
 	"bin", "obj", "dist", "build", "out", "target", ".next", ".nuxt", "coverage", "__pycache__", ".venv", "venv",

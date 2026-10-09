@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -169,6 +170,11 @@ func runExecScan(ctx context.Context, o ScanOptions, policy report.Policy, stdou
 		fmt.Fprintln(stderr, "detect:", err)
 		return ExitScanError
 	}
+	for l := range d.Languages {
+		settings.Languages = append(settings.Languages, l)
+	}
+	settings.Languages = append(settings.Languages, d.IaC...)
+	sort.Strings(settings.Languages)
 	selected := scanner.Select(d, settings)
 	par := o.Parallelism
 	if par < 1 {

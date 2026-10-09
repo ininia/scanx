@@ -17,7 +17,7 @@ paths = [
   '''(?i)\.designer\.cs$''',
   '''(?i)modelsnapshot\.cs$''',
   '''(?i)\.g(\.i)?\.cs$''',
-  '''(^|/)(node_modules|vendor|bower_components|jspm_packages|wwwroot/libs?|bin|obj|dist|\.next|coverage)/''',
+  '''(^|/)(node_modules|vendor|bower_components|jspm_packages|wwwroot/libs?|bin|obj|dist|\.next|coverage|\.sonarqube|\.scannerwork|\.vs|\.idea)/''',
   '''(?i)\.(min\.js|min\.css|map|svg|png|jpe?g|gif|ico|webp|woff2?|ttf|eot|otf|pdf)$''',
   '''(^|/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|packages\.lock\.json)$''',
 ]
