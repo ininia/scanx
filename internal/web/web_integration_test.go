@@ -111,7 +111,7 @@ func TestSetupWizardLoginAndProjects(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	h, err := app.BuildHandler(cfg, pool, log)
+	h, err := app.BuildHandler(context.Background(), cfg, pool, log)
 	if err != nil {
 		t.Fatal(err)
 	}

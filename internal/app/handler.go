@@ -20,7 +20,7 @@ import (
 )
 
 // BuildHandler assembles the full HTTP handler (API + UI + middleware).
-func BuildHandler(cfg *config.Config, pool *pgxpool.Pool, log *slog.Logger) (http.Handler, error) {
+func BuildHandler(ctx context.Context, cfg *config.Config, pool *pgxpool.Pool, log *slog.Logger) (http.Handler, error) {
 	key, err := cfg.MasterKeyBytes()
 	if err != nil {
 		return nil, err
@@ -34,10 +34,10 @@ func BuildHandler(cfg *config.Config, pool *pgxpool.Pool, log *slog.Logger) (htt
 	scfg.AllowOrgCreation = cfg.AllowSignup
 	svc := service.New(&store.DB{Pool: pool}, box, scfg, log)
 	svc.SetNotifier(NewNotifier(cfg))
-	if n, err := svc.EnsureProjectCredentials(context.Background()); err != nil {
-		log.Error("backfill project credentials", "err", err)
+	if n, err := svc.EnsureProjectCredentials(ctx); err != nil {
+		log.ErrorContext(ctx, "backfill project credentials", "err", err)
 	} else if n > 0 {
-		log.Info("created missing deploy keys / webhook secrets", "projects", n)
+		log.InfoContext(ctx, "created missing deploy keys / webhook secrets", "projects", n)
 	}
 
 	secure := strings.HasPrefix(cfg.BaseURL, "https://")

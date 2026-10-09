@@ -33,7 +33,7 @@ func RunServer(ctx context.Context, cfg *config.Config, log *slog.Logger) error 
 		return fmt.Errorf("%w (run `scanx migrate` first)", err)
 	}
 
-	handler, err := BuildHandler(cfg, pool, log)
+	handler, err := BuildHandler(ctx, cfg, pool, log)
 	if err != nil {
 		return err
 	}
