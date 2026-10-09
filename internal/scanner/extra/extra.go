@@ -250,11 +250,11 @@ func (Checkov) Command(env scanner.Env, s scanner.Settings) scanner.Cmd {
 	// Checkov's parallel runner deadlocks when a worker's result is large
 	// (child blocks writing it while the parent waits for the child), so
 	// it runs in one process.
-	return scanner.Cmd{Path: "checkov", Args: args, OKExitCodes: []int{0, 1},
-		Env: append([]string{
-			"BC_SKIP_MAPPING=TRUE", "CHECKOV_ALLOW_KUSTOMIZE_FILE_EDITS=False", "LOG_LEVEL=ERROR",
-			"CHECKOV_PARALLELIZATION_TYPE=none",
-		}, pythonEnv...)}
+	env2 := append([]string{
+		"BC_SKIP_MAPPING=TRUE", "CHECKOV_ALLOW_KUSTOMIZE_FILE_EDITS=False", "LOG_LEVEL=ERROR",
+		"CHECKOV_PARALLELIZATION_TYPE=none",
+	}, pythonEnv...)
+	return scanner.Cmd{Path: "checkov", Args: args, OKExitCodes: []int{0, 1}, Env: env2}
 }
 
 // checkovSkipPath turns an exclude pattern into a --skip-path regex.
