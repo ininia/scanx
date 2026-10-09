@@ -67,7 +67,7 @@ func (ShellCheck) Command(env scanner.Env, s scanner.Settings) scanner.Cmd {
 
 // Parse implements scanner.Scanner.
 func (ShellCheck) Parse(env scanner.Env) ([]finding.Finding, error) {
-	data, err := os.ReadFile(filepath.Join(env.OutDir, "shellcheck.json")) //nolint:gosec // our output dir
+	data, err := os.ReadFile(filepath.Join(env.OutDir, "shellcheck.json"))
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +157,7 @@ func (Lizard) Command(env scanner.Env, s scanner.Settings) scanner.Cmd {
 // Parse implements scanner.Scanner. CSV columns: NLOC, CCN, tokens, params,
 // length, location, file, function, long_name, start, end.
 func (Lizard) Parse(env scanner.Env) ([]finding.Finding, error) {
-	f, err := os.Open(filepath.Join(env.OutDir, "lizard.csv")) //nolint:gosec // our output dir
+	f, err := os.Open(filepath.Join(env.OutDir, "lizard.csv"))
 	if err != nil {
 		return nil, err
 	}

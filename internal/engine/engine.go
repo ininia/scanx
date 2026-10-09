@@ -299,7 +299,7 @@ func (e ExecRunner) Run(ctx context.Context, c scanner.Cmd, dir string) (int, []
 	buf.max = 256 << 10
 	cmd.Stdout, cmd.Stderr = &buf, &buf
 	if c.StdoutFile != "" {
-		f, err := os.Create(c.StdoutFile) //nolint:gosec // path inside the scan output dir
+		f, err := os.Create(c.StdoutFile)
 		if err != nil {
 			return -1, nil, err
 		}

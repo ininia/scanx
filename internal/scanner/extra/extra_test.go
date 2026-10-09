@@ -45,8 +45,12 @@ func TestShellCheckParse(t *testing.T) {
 func TestCommandsSkipWhenNothingToCheck(t *testing.T) {
 	src, out := t.TempDir(), t.TempDir()
 	env := scanner.Env{SourceDir: src, OutDir: out}
-	for _, c := range []scanner.Cmd{Zizmor{}.Command(env, scanner.Settings{}), Hadolint{}.Command(env, scanner.Settings{}),
-		ShellCheck{}.Command(env, scanner.Settings{})} {
+	cmds := []scanner.Cmd{
+		Zizmor{}.Command(env, scanner.Settings{}),
+		Hadolint{}.Command(env, scanner.Settings{}),
+		ShellCheck{}.Command(env, scanner.Settings{}),
+	}
+	for _, c := range cmds {
 		if c.Path != "true" || c.StdoutFile == "" {
 			t.Fatalf("%+v", c)
 		}

@@ -40,8 +40,10 @@ func readSARIF(env scanner.Env, file string, opt sarif.Options) ([]finding.Findi
 }
 
 // codeLanguages are languages DevSkim and Lizard analyse.
-var codeLanguages = []string{"csharp", "javascript", "typescript", "java", "python", "go", "php", "ruby", "c", "cpp",
-	"kotlin", "swift", "scala", "rust", "objectivec", "powershell"}
+var codeLanguages = []string{
+	"csharp", "javascript", "typescript", "java", "python", "go", "php", "ruby", "c", "cpp",
+	"kotlin", "swift", "scala", "rust", "objectivec", "powershell",
+}
 
 func hasAny(d *detect.Result, langs ...string) bool {
 	if d == nil {
