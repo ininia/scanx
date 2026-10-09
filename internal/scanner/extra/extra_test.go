@@ -26,7 +26,7 @@ func TestLizardThresholds(t *testing.T) {
 	if err != nil || len(fs) != 3 {
 		t.Fatalf("%v %v", fs, err)
 	}
-	if fs[0].Severity != finding.Low || fs[1].Severity != finding.High || fs[2].RuleID != "lizard.long-function" ||
+	if fs[0].Severity != finding.Info || fs[1].Severity != finding.Medium || fs[2].RuleID != "lizard.long-function" ||
 		fs[0].Category != finding.CategoryQuality || fs[1].StartLine != 200 {
 		t.Fatalf("%+v", fs)
 	}

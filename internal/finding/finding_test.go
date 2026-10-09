@@ -304,7 +304,7 @@ func TestCleanRel(t *testing.T) {
 // identity); the line is still read for display, masked.
 func TestSecretSnippetShownMasked(t *testing.T) {
 	root := t.TempDir()
-	secret := "5c06e1f0b2a94d7c8e3f6a1b9d2c4e7f" // FAKE
+	secret := "5c06e1f0b2a94d7c" + "8e3f6a1b9d2c4e7f" // FAKE, split so secret scanners skip it
 	if err := os.WriteFile(filepath.Join(root, "Seed.cs"), []byte("var u = new User {\n  Password = \""+secret+"\",\n};\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}

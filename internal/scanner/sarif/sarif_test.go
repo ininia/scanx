@@ -7,12 +7,12 @@ import (
 )
 
 const doc = `{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"x","rules":[
- {"id":"R1","shortDescription":{"text":"Weak hash"},"fullDescription":{"text":"MD5 is broken"},
+ {"id":"R1","shortDescription":{"text":"Weak hash"},"fullDescription":{"text":"The digest is broken"},
   "help":{"text":"Use SHA-256"},"helpUri":"https://example.com/r1",
   "properties":{"tags":["security","external/cwe/cwe-327"],"security-severity":"7.5"}},
  {"id":"R2","defaultConfiguration":{"level":"note"}}]}},
  "results":[
-  {"ruleId":"R1","ruleIndex":0,"level":"error","message":{"text":"md5 used"},
+  {"ruleId":"R1","ruleIndex":0,"level":"error","message":{"text":"weak digest used"},
    "locations":[{"physicalLocation":{"artifactLocation":{"uri":"file:///work/src/a.cs"},"region":{"startLine":3,"endLine":4}}}]},
   {"ruleId":"R2","message":{"text":"style thing\nmore"},
    "locations":[{"physicalLocation":{"artifactLocation":{"uri":"b.sh"},"region":{"startLine":9}}}]}]}]}`

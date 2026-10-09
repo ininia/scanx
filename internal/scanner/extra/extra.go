@@ -7,6 +7,8 @@
 package extra
 
 import (
+	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -287,13 +289,13 @@ func checkovSeverity(r sarif.Result, rule *sarif.Rule) finding.Severity {
 
 // Parse implements scanner.Scanner.
 func (Checkov) Parse(env scanner.Env) ([]finding.Finding, error) {
-	fs, err := readSARIF(env, filepath.Join("checkov", "results_sarif.sarif"), sarif.Options{
+	found, err := readSARIF(env, filepath.Join("checkov", "results_sarif.sarif"), sarif.Options{
 		Tool: "checkov", Category: finding.CategoryIaC, Severity: checkovSeverity,
 	})
-	if os.IsNotExist(err) {
+	if errors.Is(err, fs.ErrNotExist) {
 		return nil, nil // nothing to check
 	}
-	return fs, err
+	return found, err
 }
 
 // ---------- Hadolint ----------

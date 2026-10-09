@@ -188,14 +188,16 @@ func (Lizard) Parse(env scanner.Env) ([]finding.Finding, error) {
 		var sev finding.Severity
 		var rule, title string
 		switch {
+		// Quality findings stay below "high": complexity must never break
+		// the security quality gate (fail on high/critical).
 		case ccn >= ccnHigh:
-			sev, rule = finding.High, "complexity"
-		case ccn >= ccnMedium:
 			sev, rule = finding.Medium, "complexity"
-		case ccn >= ccnLow:
+		case ccn >= ccnMedium:
 			sev, rule = finding.Low, "complexity"
+		case ccn >= ccnLow:
+			sev, rule = finding.Info, "complexity"
 		case nloc >= nlocLong:
-			sev, rule = finding.Low, "long-function"
+			sev, rule = finding.Info, "long-function"
 		default:
 			continue
 		}

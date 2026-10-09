@@ -3,7 +3,7 @@ package auth
 import (
 	"crypto/hmac"
 	"crypto/rand"
-	"crypto/sha1" //nolint:gosec // RFC 6238 TOTP with HMAC-SHA1 is what authenticator apps implement
+	"crypto/sha1" //nolint:gosec // RFC 6238 TOTP with HMAC-SHA1 is what authenticator apps implement. DevSkim: ignore DS126858
 	"crypto/subtle"
 	"encoding/base32"
 	"encoding/binary"
@@ -41,7 +41,7 @@ func TOTPURI(issuer, account string, secret []byte) string {
 	q := url.Values{}
 	q.Set("secret", EncodeTOTPSecret(secret))
 	q.Set("issuer", issuer)
-	q.Set("algorithm", "SHA1")
+	q.Set("algorithm", "SHA1") // DevSkim: ignore DS126858 -- see import
 	q.Set("digits", "6")
 	q.Set("period", "30")
 	return "otpauth://totp/" + label + "?" + q.Encode()
@@ -51,7 +51,7 @@ func TOTPURI(issuer, account string, secret []byte) string {
 func TOTPCode(secret []byte, step int64) string {
 	var msg [8]byte
 	binary.BigEndian.PutUint64(msg[:], uint64(step)) //nolint:gosec // steps are positive Unix-time counters
-	mac := hmac.New(sha1.New, secret)
+	mac := hmac.New(sha1.New, secret) // DevSkim: ignore DS126858 -- HMAC-SHA1 per RFC 4226/6238
 	mac.Write(msg[:])
 	sum := mac.Sum(nil)
 	off := sum[len(sum)-1] & 0x0f

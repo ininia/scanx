@@ -93,10 +93,10 @@ func TestRLSIsolatesOrganizations(t *testing.T) {
 
 	var orgA, orgB, userA, userB string
 	seed := `
-WITH a AS (INSERT INTO organizations (name, slug) VALUES ('Org A', 'rls-a-' || substr(md5(random()::text), 1, 8)) RETURNING id),
-     b AS (INSERT INTO organizations (name, slug) VALUES ('Org B', 'rls-b-' || substr(md5(random()::text), 1, 8)) RETURNING id),
-     ua AS (INSERT INTO users (email, password_hash) VALUES ('a-' || md5(random()::text) || '@example.test', 'x') RETURNING id),
-     ub AS (INSERT INTO users (email, password_hash) VALUES ('b-' || md5(random()::text) || '@example.test', 'x') RETURNING id)
+WITH a AS (INSERT INTO organizations (name, slug) VALUES ('Org A', 'rls-a-' || substr(gen_random_uuid()::text, 1, 8)) RETURNING id),
+     b AS (INSERT INTO organizations (name, slug) VALUES ('Org B', 'rls-b-' || substr(gen_random_uuid()::text, 1, 8)) RETURNING id),
+     ua AS (INSERT INTO users (email, password_hash) VALUES ('a-' || gen_random_uuid()::text || '@example.test', 'x') RETURNING id),
+     ub AS (INSERT INTO users (email, password_hash) VALUES ('b-' || gen_random_uuid()::text || '@example.test', 'x') RETURNING id)
 SELECT a.id, b.id, ua.id, ub.id FROM a, b, ua, ub`
 	if err := admin.QueryRow(ctx, seed).Scan(&orgA, &orgB, &userA, &userB); err != nil {
 		t.Fatal(err)

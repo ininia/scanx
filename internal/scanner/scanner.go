@@ -153,6 +153,7 @@ var SASTExcludes = []string{
 	// bundled / minified / generated files
 	"*.min.css", "*.bundle.js", "*.chunk.js", "*.map", "*.Designer.cs", "*.designer.cs", "*.g.cs", "*.g.i.cs",
 	"*.generated.cs", "*ModelSnapshot.cs", "*.pb.go", "*_pb2.py", "*.pb.cs", "package-lock.json", "yarn.lock",
+	"*_templ.go", "*.sql.go", "*_gen.go", "*.gen.go", "*_generated.go", "zz_generated.*", "*.g.dart", "*.freezed.dart",
 	// assets
 	"*.svg", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.ico", "*.webp", "*.bmp", "*.woff", "*.woff2", "*.ttf",
 	"*.eot", "*.otf", "*.mp4", "*.mp3", "*.pdf", "*.zip",
