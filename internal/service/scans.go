@@ -174,8 +174,15 @@ func (s *Service) RotateWebhookSecret(ctx context.Context, o *OrgCtx, slug strin
 // FailOnLevels are the accepted quality gate thresholds.
 var FailOnLevels = []string{"critical", "high", "medium", "low", "info", "none"}
 
-// UpdateScanSettings changes the quality gate and history scanning.
-func (s *Service) UpdateScanSettings(ctx context.Context, o *OrgCtx, slug, failOn string, history bool, m Meta) error {
+// SAST time limit bounds (minutes).
+const (
+	MinSASTMinutes = 5
+	MaxSASTMinutes = 240
+)
+
+// UpdateScanSettings changes the quality gate, history scanning and the
+// code-analysis time limit.
+func (s *Service) UpdateScanSettings(ctx context.Context, o *OrgCtx, slug, failOn string, history bool, sastMinutes int, m Meta) error {
 	p, err := s.GetProject(ctx, o, slug)
 	if err != nil {
 		return err
@@ -190,12 +197,17 @@ func (s *Service) UpdateScanSettings(ctx context.Context, o *OrgCtx, slug, failO
 	if !ok {
 		return invalid("fail_on", "invalid")
 	}
+	if sastMinutes < MinSASTMinutes || sastMinutes > MaxSASTMinutes {
+		return invalid("sast_timeout", "invalid")
+	}
 	return wrap("scan settings", s.db.Tx(ctx, o.Scope(), func(q *db.Queries) error {
-		if err := q.UpdateProjectScanSettings(ctx, db.UpdateProjectScanSettingsParams{OrgID: o.Org.ID, ID: p.ID, FailOn: failOn, ScanHistory: history}); err != nil {
+		if err := q.UpdateProjectScanSettings(ctx, db.UpdateProjectScanSettingsParams{
+			OrgID: o.Org.ID, ID: p.ID, FailOn: failOn, ScanHistory: history, SastTimeoutMinutes: int32(sastMinutes), //nolint:gosec // validated range
+		}); err != nil {
 			return err
 		}
 		return audit(ctx, q, &o.Org.ID, &o.P.UserID, "project.scan_settings_updated", "project", p.ID.String(), m,
-			map[string]any{"fail_on": failOn, "history": history})
+			map[string]any{"fail_on": failOn, "history": history, "sast_timeout_minutes": sastMinutes})
 	}))
 }
 

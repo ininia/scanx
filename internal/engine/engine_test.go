@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"strings"
@@ -207,5 +208,17 @@ func TestExcluded(t *testing.T) {
 	}
 	if got := FilterExcluded(fs, nil); len(got) != 2 {
 		t.Fatal("no patterns must keep everything")
+	}
+}
+
+func TestRunWritesProgress(t *testing.T) {
+	var buf bytes.Buffer
+	Run(context.Background(), &fakeRunner{}, scanner.Env{TmpDir: t.TempDir()}, scanner.Settings{}, &detect.Result{},
+		[]scanner.Scanner{fakeScanner{id: "a"}}, Options{Progress: &buf})
+	out := buf.String()
+	for _, want := range []string{"1 scanners selected", "started", "ok in"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("progress missing %q:\n%s", want, out)
+		}
 	}
 }

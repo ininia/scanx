@@ -44,7 +44,12 @@ func (Scanner) Category() finding.Category { return finding.CategorySAST }
 func (Scanner) Applies(*detect.Result, scanner.Settings) bool { return true }
 
 // Timeout implements scanner.Scanner.
-func (Scanner) Timeout(scanner.Settings) time.Duration { return 20 * time.Minute }
+func (Scanner) Timeout(s scanner.Settings) time.Duration {
+	if s.SASTTimeout > 0 {
+		return s.SASTTimeout
+	}
+	return scanner.DefaultSASTTimeout
+}
 
 // VersionCmd implements scanner.VersionReporter.
 func (Scanner) VersionCmd() scanner.Cmd {
@@ -105,7 +110,8 @@ func (Scanner) Command(env scanner.Env, s scanner.Settings) scanner.Cmd {
 		"--timeout", "30",
 		"--max-target-bytes", "5000000",
 	)
-	for _, ex := range append(append([]string{}, scanner.DefaultExcludes...), s.Exclude...) {
+	excludes := append(append(append([]string{}, scanner.DefaultExcludes...), scanner.SASTExcludes...), s.Exclude...)
+	for _, ex := range excludes {
 		args = append(args, "--exclude", ex)
 	}
 	args = append(args, env.SourceDir)

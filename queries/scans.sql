@@ -21,7 +21,8 @@ UPDATE projects SET webhook_secret_enc = $3, webhook_secret_nonce = $4, updated_
 WHERE org_id = $1 AND id = $2;
 
 -- name: UpdateProjectScanSettings :exec
-UPDATE projects SET fail_on = $3, scan_history = $4, updated_at = now() WHERE org_id = $1 AND id = $2;
+UPDATE projects SET fail_on = $3, scan_history = $4, sast_timeout_minutes = $5, updated_at = now()
+WHERE org_id = $1 AND id = $2;
 
 -- name: LookupWebhookProject :one
 SELECT l.id::uuid AS id, l.org_id::uuid AS org_id, l.provider::text AS provider, l.branches::text[] AS branches,
@@ -103,6 +104,9 @@ WHERE s.org_id = $1 ORDER BY s.queued_at DESC LIMIT $2;
 UPDATE scans SET status = $2, status_reason = $3,
     started_at = CASE WHEN $2 = 'cloning' THEN coalesce(started_at, now()) ELSE started_at END
 WHERE id = $1;
+
+-- name: SetScanLog :exec
+UPDATE scans SET log = $2 WHERE id = $1;
 
 -- name: SetScanCommit :exec
 UPDATE scans SET commit_sha = $2, commit_message = $3, commit_author = $4 WHERE id = $1;

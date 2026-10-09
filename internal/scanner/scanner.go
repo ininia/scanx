@@ -30,7 +30,12 @@ type Settings struct {
 	Exclude  []string        // extra path globs to exclude
 	Disabled map[string]bool // scanner IDs switched off
 	Enabled  map[string]bool // scanner IDs switched on explicitly (opt-in tools)
+	// SASTTimeout limits the SAST step (opengrep); 0 = DefaultSASTTimeout.
+	SASTTimeout time.Duration
 }
+
+// DefaultSASTTimeout is the SAST time limit when a project sets none.
+const DefaultSASTTimeout = 20 * time.Minute
 
 // Cmd is a process invocation. No shell is ever involved.
 type Cmd struct {
@@ -122,5 +127,25 @@ func Select(d *detect.Result, s Settings) []Scanner {
 	return out
 }
 
-// DefaultExcludes are third-party/vendored paths skipped by SAST tools.
+// DefaultExcludes are third-party/vendored paths skipped by every tool.
 var DefaultExcludes = []string{"node_modules", "vendor", ".git", "*.min.js"}
+
+// SASTExcludes are additionally skipped by source-code analysis (opengrep):
+// third-party libraries copied into the repository, build output, generated
+// code and non-code assets. Analysing their source finds nothing actionable
+// and costs most of the scan time; their *versions* are still checked for
+// known vulnerabilities by the SCA tools (Trivy, OSV-Scanner) and the SBOM.
+var SASTExcludes = []string{
+	// vendored / package-manager directories
+	"bower_components", "jspm_packages", "wwwroot/lib", "wwwroot/libs", "lib/bower",
+	"third_party", "third-party", "thirdparty",
+	"Pods", "Carthage", ".yarn", ".pnpm-store",
+	// build output and caches
+	"bin", "obj", "dist", "build", "out", "target", ".next", ".nuxt", "coverage", "__pycache__", ".venv", "venv",
+	// bundled / minified / generated files
+	"*.min.css", "*.bundle.js", "*.chunk.js", "*.map", "*.Designer.cs", "*.designer.cs", "*.g.cs", "*.g.i.cs",
+	"*.generated.cs", "*ModelSnapshot.cs", "*.pb.go", "*_pb2.py", "*.pb.cs", "package-lock.json", "yarn.lock",
+	// assets
+	"*.svg", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.ico", "*.webp", "*.bmp", "*.woff", "*.woff2", "*.ttf",
+	"*.eot", "*.otf", "*.mp4", "*.mp3", "*.pdf", "*.zip",
+}

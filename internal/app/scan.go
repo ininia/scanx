@@ -54,6 +54,7 @@ type ScanOptions struct {
 	Exclude     []string
 	NoSnippets  bool
 	Parallelism int
+	SASTTimeout time.Duration
 	Branch      string
 	Commit      string
 	Repo        string
@@ -162,7 +163,7 @@ func runExecScan(ctx context.Context, o ScanOptions, policy report.Policy, stdou
 		ToolHome:  envOr("SCANX_TOOL_HOME", tmp), // read-only caches baked into the image
 		TmpDir:    tmp,                           // writable; also HOME for tools
 	}
-	settings := scanner.Settings{Profile: o.Profile, History: o.History, Exclude: o.Exclude}
+	settings := scanner.Settings{Profile: o.Profile, History: o.History, Exclude: o.Exclude, SASTTimeout: o.SASTTimeout}
 	d, err := detect.Scan(o.Path)
 	if err != nil {
 		fmt.Fprintln(stderr, "detect:", err)
@@ -176,7 +177,8 @@ func runExecScan(ctx context.Context, o ScanOptions, policy report.Policy, stdou
 	log := slog.New(slog.NewTextHandler(stderr, &slog.HandlerOptions{Level: slog.LevelWarn}))
 	fmt.Fprintf(stderr, "scanX %s: scanning %s with %d scanners…\n", version.Version, firstNonEmpty(o.DisplayPath, o.Path), len(selected))
 	res := engine.Run(ctx, engine.ExecRunner{BaseEnv: engine.DefaultBaseEnv(env)}, env, settings, d, selected,
-		engine.Options{Parallelism: par, StoreSnippets: !o.NoSnippets, Logger: log})
+		engine.Options{Parallelism: par, StoreSnippets: !o.NoSnippets, Logger: log, Progress: stderr})
+	fmt.Fprintf(stderr, "[%s] merging findings and writing reports\n", time.Now().Format("15:04:05"))
 
 	target := report.Target{Path: firstNonEmpty(o.DisplayPath, o.Path), Repo: o.Repo, Branch: o.Branch, Commit: o.Commit}
 	rep := report.Build(res, target, started, time.Now(), policy)
@@ -346,6 +348,9 @@ func dockerArgs(o ScanOptions, image string) []string {
 	args = append(args, image, "scan", "--engine", "exec", "--path", "/work/src", "--out", "/work/out",
 		"--format", strings.Join(o.Formats, ","), "--fail-on", o.FailOn, "--profile", o.Profile,
 		"--history="+strconv.FormatBool(o.History), "--parallelism", strconv.Itoa(max(o.Parallelism, 1)))
+	if o.SASTTimeout > 0 {
+		args = append(args, "--sast-timeout", o.SASTTimeout.String())
+	}
 	if o.NoSnippets {
 		args = append(args, "--no-snippets")
 	}

@@ -209,6 +209,11 @@ templ ProjectDetail(p *Page, v *ProjectView) {
 							<span class="hint">{ p.T("settings.fail_on_hint") }</span>
 						</div>
 						<label class="check"><input type="checkbox" name="history" value="1" checked?={ v.Project.ScanHistory }/> { p.T("settings.history") }</label>
+						<div class="field">
+							<label for="sast_timeout">{ p.T("settings.sast_timeout") }</label>
+							<input id="sast_timeout" name="sast_timeout" type="number" min="5" max="240" step="5" value={ strconv.Itoa(int(v.Project.SastTimeoutMinutes)) } required/>
+							<span class="hint">{ p.T("settings.sast_timeout_hint") }</span>
+						</div>
 						<div><button class="btn" type="submit">{ p.T("action.save") }</button></div>
 					</form>
 				} else {
@@ -319,6 +324,19 @@ templ scanLive(p *Page, v *ScanPage) {
 		}
 		if v.View.Active() {
 			<div class="alert"><span class="spinner"></span> { p.T("scan.running", Duration(v.View.Scan.StartedAt, nil)) }</div>
+		}
+		if v.View.Scan.Log != "" {
+			if v.View.Active() {
+				<div class="card">
+					<h2>{ p.T("scan.log") }</h2>
+					<div class="scanlog"><pre>{ v.View.Scan.Log }</pre></div>
+				</div>
+			} else {
+				<details class="card">
+					<summary><strong>{ p.T("scan.log") }</strong></summary>
+					<div class="scanlog"><pre>{ v.View.Scan.Log }</pre></div>
+				</details>
+			}
 		}
 		if v.View.Scan.Status == "failed" {
 			<div class="alert err">

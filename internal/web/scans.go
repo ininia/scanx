@@ -141,7 +141,7 @@ func (h *Handler) rotateWebhookSecret(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) projectSettings(w http.ResponseWriter, r *http.Request) {
 	err := h.Svc.UpdateScanSettings(r.Context(), orgFrom(r), chi.URLParam(r, "project"),
-		r.PostFormValue("fail_on"), r.PostFormValue("history") == "1", server.MetaFrom(r))
+		r.PostFormValue("fail_on"), r.PostFormValue("history") == "1", atoi(r.PostFormValue("sast_timeout"), 0), server.MetaFrom(r))
 	var ve *service.ValidationError
 	if errors.As(err, &ve) {
 		h.errorPage(w, r, http.StatusUnprocessableEntity)

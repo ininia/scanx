@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/ininia/scanx/internal/app"
 	"github.com/ininia/scanx/internal/config"
@@ -193,6 +194,7 @@ func runScan(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	fs.StringVar(&o.Profile, "profile", "default", "fast | default | full")
 	fs.BoolVar(&o.NoSnippets, "no-snippets", false, "do not store code snippets in reports")
 	fs.IntVar(&o.Parallelism, "parallelism", 3, "scanners run in parallel")
+	fs.DurationVar(&o.SASTTimeout, "sast-timeout", 20*time.Minute, "time limit for source-code analysis (opengrep)")
 	fs.StringVar(&o.Branch, "branch", envFirst("SCANX_BRANCH", "GITHUB_REF_NAME", "CI_COMMIT_REF_NAME"), "branch name for the report")
 	fs.StringVar(&o.Commit, "commit", envFirst("SCANX_COMMIT", "GITHUB_SHA", "CI_COMMIT_SHA"), "commit SHA for the report")
 	fs.StringVar(&o.Repo, "repo", envFirst("SCANX_REPO", "GITHUB_REPOSITORY", "CI_PROJECT_PATH"), "repository name for the report")

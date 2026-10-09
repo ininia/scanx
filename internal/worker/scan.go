@@ -23,6 +23,7 @@ import (
 	"github.com/ininia/scanx/internal/notify"
 	"github.com/ininia/scanx/internal/report"
 	"github.com/ininia/scanx/internal/sandbox"
+	"github.com/ininia/scanx/internal/scanner"
 	"github.com/ininia/scanx/internal/service"
 	"github.com/ininia/scanx/internal/store"
 	"github.com/ininia/scanx/internal/store/db"
@@ -78,7 +79,9 @@ func (w *Worker) runScan(ctx context.Context, job *db.Job, log *slog.Logger) err
 	defer tcancel()
 	go w.watchCancel(tctx, sc.ID, cancel)
 
-	rep, files, meta, err := w.execute(tctx, job, &sc, p)
+	lg := newScanLog(w, sc.ID)
+	lg.add(ctx, "Scan picked up by worker %s (attempt %d)", w.id, job.Attempts)
+	rep, files, meta, err := w.execute(tctx, job, &sc, p, lg)
 	if ctx.Err() != nil {
 		return ctx.Err() // shutdown: retried later
 	}
@@ -95,6 +98,7 @@ func (w *Worker) runScan(ctx context.Context, job *db.Job, log *slog.Logger) err
 		case errors.As(err, &fe):
 			code = fe.code
 		}
+		lg.add(ctx, "✖ Scan failed (%s): %s", code, trunc(reason, 500))
 		w.failScan(ctx, &sc, p, code, reason)
 		log.Warn("scan failed", "reason", reason)
 		return nil
@@ -103,6 +107,7 @@ func (w *Worker) runScan(ctx context.Context, job *db.Job, log *slog.Logger) err
 		w.failScan(ctx, &sc, p, "internal", "Saving results failed: "+err.Error())
 		return err
 	}
+	lg.add(ctx, "✔ Completed: %d issues, score %d/100, quality gate %s", len(rep.Issues), rep.Score, rep.Gate.Result)
 	log.Info("scan completed", "gate", rep.Gate.Result, "issues", len(rep.Issues), "score", rep.Score)
 	return nil
 }
@@ -135,8 +140,9 @@ type fetchMeta struct {
 }
 
 // execute runs fetch + scan and returns the parsed report and raw files.
-func (w *Worker) execute(ctx context.Context, job *db.Job, sc *db.Scan, p *db.Project) (*report.Report, map[string][]byte, *fetchMeta, error) {
+func (w *Worker) execute(ctx context.Context, job *db.Job, sc *db.Scan, p *db.Project, lg *scanLog) (*report.Report, map[string][]byte, *fetchMeta, error) {
 	w.setStatus(ctx, sc.ID, "cloning", "")
+	lg.add(ctx, "Cloning %s (branch %s)…", p.RepoUrl, sc.Branch)
 	env, err := w.fetchEnv(ctx, p, gitfetch.ModeClone)
 	if err != nil {
 		return nil, nil, nil, err
@@ -159,7 +165,7 @@ func (w *Worker) execute(ctx context.Context, job *db.Job, sc *db.Scan, p *db.Pr
 	}()
 
 	fctx, fcancel := context.WithTimeoutCause(ctx, w.cfg.FetchTimeout, &scanFailure{code: "timeout", reason: "Cloning took too long and was stopped."})
-	_, stdout, stderr, err := w.runContainer(fctx, w.fetchSpec(job, env, volume), nil)
+	_, stdout, stderr, err := w.runContainer(fctx, w.fetchSpec(job, env, volume), nil, nil)
 	fcancel()
 	if err != nil {
 		return nil, nil, nil, err
@@ -172,6 +178,7 @@ func (w *Worker) execute(ctx context.Context, job *db.Job, sc *db.Scan, p *db.Pr
 		return nil, nil, nil, &scanFailure{code: fr.Code, reason: fr.Error}
 	}
 	meta := &fetchMeta{commit: fr.Commit, message: fr.Message, author: fr.Author, sizeMB: fr.SizeMB}
+	lg.add(ctx, "✔ Cloned commit %s (%d MB)", ShortCommit(fr.Commit), fr.SizeMB)
 	_ = w.db.Tx(ctx, superadmin, func(q *db.Queries) error {
 		msg, author := sc.CommitMessage, sc.CommitAuthor
 		if msg == "" {
@@ -185,6 +192,11 @@ func (w *Worker) execute(ctx context.Context, job *db.Job, sc *db.Scan, p *db.Pr
 	sc.CommitSha = fr.Commit
 
 	w.setStatus(ctx, sc.ID, "scanning", "")
+	sast := time.Duration(p.SastTimeoutMinutes) * time.Minute
+	if sast <= 0 {
+		sast = scanner.DefaultSASTTimeout
+	}
+	lg.add(ctx, "Starting the scanners in an isolated container without network (code analysis limit %s)…", sast)
 	repoName := p.Name
 	if r, err := gitutil.ParseRepoURL(p.RepoUrl); err == nil {
 		repoName = r.Host + "/" + r.Path
@@ -194,6 +206,7 @@ func (w *Worker) execute(ctx context.Context, job *db.Job, sc *db.Scan, p *db.Pr
 		"--format", "json,sarif,html", "--fail-on", p.FailOn, "--profile", w.cfg.Profile,
 		"--history=" + strconv.FormatBool(p.ScanHistory), "--parallelism", strconv.Itoa(max(w.cfg.Parallelism, 1)),
 		"--branch", sc.Branch, "--commit", fr.Commit, "--repo", repoName, "--display-path", repoName,
+		"--sast-timeout", sast.String(),
 	}
 	files := map[string][]byte{}
 	spec := sandbox.ContainerSpec{
@@ -203,12 +216,23 @@ func (w *Worker) execute(ctx context.Context, job *db.Job, sc *db.Scan, p *db.Pr
 		Network:     "none",
 		MemoryBytes: w.cfg.MemoryBytes, NanoCPUs: w.cfg.NanoCPUs, PidsLimit: 1024, Runtime: w.cfg.Runtime,
 	}
-	sctx, scancel := context.WithTimeoutCause(ctx, w.cfg.ScanTimeout,
+	// The whole scan step gets at least the SAST limit plus time for the
+	// other tools and the reports.
+	scanLimit := max(w.cfg.ScanTimeout, sast+15*time.Minute)
+	sctx, scancel := context.WithTimeoutCause(ctx, scanLimit,
 		&scanFailure{code: "scan_timeout", reason: "The scan exceeded the time limit (SCANX_SCAN_TIMEOUT)."})
 	defer scancel()
+	poll := func(id string) {
+		lctx, cancel := context.WithTimeout(sctx, 10*time.Second)
+		defer cancel()
+		if _, se, err := w.docker.Logs(lctx, id, 1<<20); err == nil {
+			lg.setTool(ctx, se)
+		}
+	}
 	code, _, stderr, err := w.runContainer(sctx, spec, func(id string) error {
 		return w.collect(sctx, id, files)
-	})
+	}, poll)
+	lg.setTool(ctx, stderr)
 	switch {
 	case errors.Is(err, errOOM):
 		return nil, nil, nil, &scanFailure{code: "oom", reason: "The scanners ran out of memory (SCANX_SCANNER_MEMORY)."}
@@ -220,6 +244,7 @@ func (w *Worker) execute(ctx context.Context, job *db.Job, sc *db.Scan, p *db.Pr
 		return nil, nil, nil, &scanFailure{code: "no_report", reason: fmt.Sprintf("The scanner exited with code %d without a report: %s", code, tail(stderr, 800))}
 	}
 	w.setStatus(ctx, sc.ID, "reporting", "")
+	lg.add(ctx, "Saving issues and reports…")
 	var rep report.Report
 	if err := json.Unmarshal(raw, &rep); err != nil {
 		return nil, nil, nil, fmt.Errorf("parse report: %w", err)
@@ -459,4 +484,12 @@ func (w *Worker) notify(ctx context.Context, orgID uuid.UUID, m notify.Message, 
 		}
 		cancel()
 	}
+}
+
+// ShortCommit abbreviates a commit SHA for log lines.
+func ShortCommit(c string) string {
+	if len(c) > 10 {
+		return c[:10]
+	}
+	return c
 }

@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -61,6 +62,26 @@ type Options struct {
 	Parallelism   int
 	StoreSnippets bool
 	Logger        *slog.Logger
+	// Progress receives one human-readable line per event (tool started /
+	// finished / still running). The worker shows it live on the scan page.
+	Progress io.Writer
+	// Heartbeat is how often "still running" lines are written (default 1m).
+	Heartbeat time.Duration
+}
+
+// progress writes timestamped progress lines; safe for concurrent use.
+type progress struct {
+	mu sync.Mutex
+	w  io.Writer
+}
+
+func (p *progress) printf(format string, a ...any) {
+	if p == nil || p.w == nil {
+		return
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	fmt.Fprintf(p.w, "[%s] "+format+"\n", append([]any{time.Now().Format("15:04:05")}, a...)...)
 }
 
 // Run executes scanners and returns the combined, normalized findings.
@@ -77,6 +98,15 @@ func Run(ctx context.Context, r Runner, env scanner.Env, s scanner.Settings, d *
 	res := &Result{Detection: d, Tools: make([]ToolRun, len(scanners))}
 	perTool := make([][]finding.Finding, len(scanners))
 
+	pr := &progress{w: opt.Progress}
+	if opt.Heartbeat <= 0 {
+		opt.Heartbeat = time.Minute
+	}
+	names := make([]string, 0, len(scanners))
+	for _, sc := range scanners {
+		names = append(names, sc.Name())
+	}
+	pr.printf("%d scanners selected: %s", len(scanners), strings.Join(names, ", "))
 	sem := make(chan struct{}, opt.Parallelism)
 	var wg sync.WaitGroup
 	for i, sc := range scanners {
@@ -85,7 +115,31 @@ func Run(ctx context.Context, r Runner, env scanner.Env, s scanner.Settings, d *
 			defer wg.Done()
 			sem <- struct{}{}
 			defer func() { <-sem }()
+			pr.printf("▶ %s started (limit %s)", sc.Name(), sc.Timeout(s))
+			stop := make(chan struct{})
+			go func(start time.Time) {
+				t := time.NewTicker(opt.Heartbeat)
+				defer t.Stop()
+				for {
+					select {
+					case <-stop:
+						return
+					case <-t.C:
+						pr.printf("… %s still running (%s)", sc.Name(), time.Since(start).Round(time.Second))
+					}
+				}
+			}(time.Now())
 			run, fs := runOne(ctx, r, env, s, sc)
+			close(stop)
+			mark := "✔"
+			if run.Status != StatusOK {
+				mark = "✖"
+			}
+			detail := fmt.Sprintf("%d findings", run.Findings)
+			if run.Error != "" {
+				detail = run.Error
+			}
+			pr.printf("%s %s %s in %s: %s", mark, sc.Name(), run.Status, (time.Duration(run.DurationMS) * time.Millisecond).Round(time.Second), detail)
 			res.Tools[i] = run
 			perTool[i] = fs
 			log.InfoContext(ctx, "scanner finished", "scanner", run.ID, "status", run.Status,

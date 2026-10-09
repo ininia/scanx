@@ -196,3 +196,6 @@ pre.snippet{background:var(--bg);border:1px solid var(--border);border-left:3px 
 fieldset.field{border:0;padding:0;margin:0}
 fieldset.field legend{font-weight:600;margin-bottom:6px}
 @media (max-width:720px){.stepper{flex-wrap:wrap}.stepper li{flex:1 1 45%}}
+.scanlog{display:flex;flex-direction:column-reverse;max-height:360px;overflow:auto;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);margin-top:10px}
+.scanlog pre{margin:0;padding:12px;font:12px/1.6 var(--font-mono);white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text-muted)}
+details.card>summary{cursor:pointer}

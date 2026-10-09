@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ininia/scanx/internal/finding"
 	"github.com/ininia/scanx/internal/scanner"
@@ -113,5 +114,21 @@ func TestCommandUsesLocalRulesAndProfiles(t *testing.T) {
 	c := Scanner{}.Command(env, scanner.Settings{})
 	if len(c.Env) != 1 || c.Env[0] != "XDG_CACHE_HOME="+filepath.Join("/opt/home", ".cache") {
 		t.Errorf("cache env %v", c.Env)
+	}
+}
+
+func TestTimeoutAndExcludes(t *testing.T) {
+	var sc Scanner
+	if sc.Timeout(scanner.Settings{}) != scanner.DefaultSASTTimeout {
+		t.Fatal("default timeout")
+	}
+	if sc.Timeout(scanner.Settings{SASTTimeout: 45 * time.Minute}) != 45*time.Minute {
+		t.Fatal("project timeout ignored")
+	}
+	args := strings.Join(sc.Command(scanner.Env{SourceDir: "/src", RulesDir: t.TempDir()}, scanner.Settings{Exclude: []string{"docs"}}).Args, " ")
+	for _, want := range []string{"--exclude *.svg", "--exclude wwwroot/lib", "--exclude bin", "--exclude docs", "--exclude node_modules"} {
+		if !strings.Contains(args, want) {
+			t.Errorf("missing %q in %s", want, args)
+		}
 	}
 }

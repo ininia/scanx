@@ -375,7 +375,7 @@ func labels(job *db.Job, step string) map[string]string {
 // runContainer creates, starts and waits for a sandbox container. The
 // container is removed before returning; its output is returned through
 // collect (called while it still exists).
-func (w *Worker) runContainer(ctx context.Context, spec sandbox.ContainerSpec, collect func(id string) error) (int, []byte, []byte, error) {
+func (w *Worker) runContainer(ctx context.Context, spec sandbox.ContainerSpec, collect func(id string) error, poll func(id string)) (int, []byte, []byte, error) {
 	id, err := w.docker.CreateContainer(ctx, spec)
 	if err != nil {
 		return -1, nil, nil, err
@@ -387,6 +387,22 @@ func (w *Worker) runContainer(ctx context.Context, spec sandbox.ContainerSpec, c
 	}()
 	if err := w.docker.StartContainer(ctx, id); err != nil {
 		return -1, nil, nil, err
+	}
+	if poll != nil {
+		pctx, stopPoll := context.WithCancel(ctx)
+		defer stopPoll()
+		go func() {
+			t := time.NewTicker(logPollPeriod)
+			defer t.Stop()
+			for {
+				select {
+				case <-pctx.Done():
+					return
+				case <-t.C:
+					poll(id)
+				}
+			}
+		}()
 	}
 	st, err := w.docker.Wait(ctx, id, 2*time.Second)
 	if err != nil {
@@ -444,7 +460,7 @@ func (w *Worker) testConnection(ctx context.Context, job *db.Job) (*service.Conn
 	}
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
-	_, stdout, stderr, err := w.runContainer(ctx, w.fetchSpec(job, env, ""), nil)
+	_, stdout, stderr, err := w.runContainer(ctx, w.fetchSpec(job, env, ""), nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("connection test container: %w", err)
 	}

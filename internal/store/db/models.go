@@ -153,6 +153,7 @@ type Project struct {
 	WebhookSecretNonce []byte
 	FailOn             string
 	ScanHistory        bool
+	SastTimeoutMinutes int32
 }
 
 type Report struct {
@@ -186,6 +187,7 @@ type Scan struct {
 	StartedAt     *time.Time
 	FinishedAt    *time.Time
 	CleanedAt     *time.Time
+	Log           string
 }
 
 type ScanIssue struct {
