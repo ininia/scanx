@@ -51,7 +51,7 @@ func TOTPURI(issuer, account string, secret []byte) string {
 func TOTPCode(secret []byte, step int64) string {
 	var msg [8]byte
 	binary.BigEndian.PutUint64(msg[:], uint64(step)) //nolint:gosec // steps are positive Unix-time counters
-	mac := hmac.New(sha1.New, secret) // DevSkim: ignore DS126858 -- HMAC-SHA1 per RFC 4226/6238
+	mac := hmac.New(sha1.New, secret)                // DevSkim: ignore DS126858 -- HMAC-SHA1 per RFC 4226/6238
 	mac.Write(msg[:])
 	sum := mac.Sum(nil)
 	off := sum[len(sum)-1] & 0x0f
