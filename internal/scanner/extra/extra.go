@@ -237,8 +237,10 @@ var checkovFrameworks = "terraform,cloudformation,kubernetes,helm,kustomize,dock
 
 // Command implements scanner.Scanner.
 func (Checkov) Command(env scanner.Env, s scanner.Settings) scanner.Cmd {
-	args := []string{"--directory", env.SourceDir, "--framework", checkovFrameworks, "--skip-download",
-		"--quiet", "--compact", "--output", "sarif", "--output-file-path", filepath.Join(env.OutDir, "checkov")}
+	args := []string{
+		"--directory", env.SourceDir, "--framework", checkovFrameworks, "--skip-download",
+		"--quiet", "--compact", "--output", "sarif", "--output-file-path", filepath.Join(env.OutDir, "checkov"),
+	}
 	for _, ex := range scanner.AllExcludes(s) {
 		args = append(args, "--skip-path", ex)
 	}
