@@ -3,6 +3,7 @@ package extra
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -65,5 +66,26 @@ func TestCommandsSkipWhenNothingToCheck(t *testing.T) {
 	c := Hadolint{}.Command(env, scanner.Settings{})
 	if c.Path != "hadolint" || len(c.Args) != 4 || !strings.HasSuffix(c.Args[3], filepath.Join("web", "Dockerfile")) {
 		t.Fatalf("hadolint files: %+v", c.Args)
+	}
+}
+
+func TestGlobToRegex(t *testing.T) {
+	cases := map[string][2][]string{
+		"*.svg":       {{"a/logo.svg", "logo.svg"}, {"a/logo.svgx", "svg/a.png"}},
+		"wwwroot/lib": {{"src/Web/wwwroot/lib/x.js", "wwwroot/lib"}, {"src/wwwroot/library/x.js"}},
+		"bin":         {{"bin/x", "a/bin/y.dll"}, {"binary/x", "a/robin"}},
+	}
+	for glob, c := range cases {
+		re := regexp.MustCompile(globToRegex(glob))
+		for _, p := range c[0] {
+			if !re.MatchString(p) {
+				t.Errorf("%s should match %s", glob, p)
+			}
+		}
+		for _, p := range c[1] {
+			if re.MatchString(p) {
+				t.Errorf("%s must not match %s", glob, p)
+			}
+		}
 	}
 }

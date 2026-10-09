@@ -9,6 +9,7 @@ package extra
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -242,7 +243,7 @@ func (Checkov) Command(env scanner.Env, s scanner.Settings) scanner.Cmd {
 		"--quiet", "--compact", "--output", "sarif", "--output-file-path", filepath.Join(env.OutDir, "checkov"),
 	}
 	for _, ex := range scanner.AllExcludes(s) {
-		args = append(args, "--skip-path", ex)
+		args = append(args, "--skip-path", globToRegex(ex))
 	}
 	// Checkov's parallel runner deadlocks when a worker's result is large
 	// (child blocks writing it while the parent waits for the child), so
@@ -252,6 +253,25 @@ func (Checkov) Command(env scanner.Env, s scanner.Settings) scanner.Cmd {
 			"BC_SKIP_MAPPING=TRUE", "CHECKOV_ALLOW_KUSTOMIZE_FILE_EDITS=False", "LOG_LEVEL=ERROR",
 			"CHECKOV_PARALLELIZATION_TYPE=none",
 		}, pythonEnv...)}
+}
+
+// globToRegex turns an exclude pattern into the regular expression Checkov
+// expects for --skip-path ("*.svg" is not a valid regex and made Checkov
+// crash): "*" matches within a path segment, a pattern without "/" matches
+// a whole segment anywhere.
+func globToRegex(glob string) string {
+	var b strings.Builder
+	for _, r := range glob {
+		switch r {
+		case '*':
+			b.WriteString("[^/]*")
+		case '?':
+			b.WriteString("[^/]")
+		default:
+			b.WriteString(regexp.QuoteMeta(string(r)))
+		}
+	}
+	return "(^|/)" + b.String() + "(/|$)"
 }
 
 // checkovSeverity: open-source Checkov leaves severities empty; failed
