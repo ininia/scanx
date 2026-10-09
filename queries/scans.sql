@@ -211,3 +211,9 @@ SELECT * FROM notification_channels WHERE org_id = $1 AND id = $2;
 
 -- name: DeleteNotificationChannel :execrows
 DELETE FROM notification_channels WHERE org_id = $1 AND id = $2;
+
+-- name: ProjectsMissingCredentials :many
+-- Projects created before deploy keys / webhook secrets existed.
+SELECT p.* FROM projects p
+WHERE p.webhook_secret_enc IS NULL
+   OR NOT EXISTS (SELECT 1 FROM ssh_keys k WHERE k.project_id = p.id AND k.status = 'active');

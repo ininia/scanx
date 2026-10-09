@@ -1311,6 +1311,51 @@ func (q *Queries) MarkMissingIssuesFixed(ctx context.Context, arg MarkMissingIss
 	return result.RowsAffected(), nil
 }
 
+const projectsMissingCredentials = `-- name: ProjectsMissingCredentials :many
+SELECT p.id, p.org_id, p.name, p.slug, p.repo_url, p.provider, p.auth_mode, p.branches, p.settings, p.schedule_cron, p.created_at, p.updated_at, p.archived_at, p.webhook_secret_enc, p.webhook_secret_nonce, p.fail_on, p.scan_history FROM projects p
+WHERE p.webhook_secret_enc IS NULL
+   OR NOT EXISTS (SELECT 1 FROM ssh_keys k WHERE k.project_id = p.id AND k.status = 'active')
+`
+
+// Projects created before deploy keys / webhook secrets existed.
+func (q *Queries) ProjectsMissingCredentials(ctx context.Context) ([]Project, error) {
+	rows, err := q.db.Query(ctx, projectsMissingCredentials)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Project{}
+	for rows.Next() {
+		var i Project
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrgID,
+			&i.Name,
+			&i.Slug,
+			&i.RepoUrl,
+			&i.Provider,
+			&i.AuthMode,
+			&i.Branches,
+			&i.Settings,
+			&i.ScheduleCron,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.ArchivedAt,
+			&i.WebhookSecretEnc,
+			&i.WebhookSecretNonce,
+			&i.FailOn,
+			&i.ScanHistory,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const retireSSHKeys = `-- name: RetireSSHKeys :exec
 UPDATE ssh_keys SET status = 'retiring', retired_at = now()
 WHERE org_id = $1 AND project_id = $2 AND status = 'active'

@@ -224,3 +224,43 @@ func TestNotificationChannels(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestEnsureProjectCredentialsBackfill(t *testing.T) {
+	s, d := newService(t)
+	ctx := context.Background()
+	alice, _ := newUser(t, s, d, false)
+	o := newOrg(t, s, alice)
+	// A project as created before Faz 3: no deploy key, no webhook secret.
+	var p db.Project
+	err := d.Tx(ctx, o.Scope(), func(q *db.Queries) error {
+		var err error
+		p, err = q.CreateProject(ctx, db.CreateProjectParams{
+			ID: newID(), OrgID: o.Org.ID, Name: "old", Slug: uniq("old"),
+			RepoUrl: "git@github.com:acme/old.git", Provider: "github", AuthMode: "deploy_key", Branches: []string{"master"},
+		})
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	n, err := s.EnsureProjectCredentials(ctx)
+	if err != nil || n < 1 {
+		t.Fatalf("backfill: %d %v", n, err)
+	}
+	err = d.Tx(ctx, o.Scope(), func(q *db.Queries) error {
+		if _, err := q.GetActiveSSHKey(ctx, db.GetActiveSSHKeyParams{OrgID: o.Org.ID, ProjectID: p.ID}); err != nil {
+			return err
+		}
+		got, err := q.GetProjectByID(ctx, p.ID)
+		if err == nil && len(got.WebhookSecretEnc) == 0 {
+			t.Fatal("webhook secret missing")
+		}
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n, _ := s.EnsureProjectCredentials(ctx); n != 0 {
+		t.Fatalf("second run touched %d projects", n)
+	}
+}

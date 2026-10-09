@@ -34,6 +34,11 @@ func BuildHandler(cfg *config.Config, pool *pgxpool.Pool, log *slog.Logger) (htt
 	scfg.AllowOrgCreation = cfg.AllowSignup
 	svc := service.New(&store.DB{Pool: pool}, box, scfg, log)
 	svc.SetNotifier(NewNotifier(cfg))
+	if n, err := svc.EnsureProjectCredentials(context.Background()); err != nil {
+		log.Error("backfill project credentials", "err", err)
+	} else if n > 0 {
+		log.Info("created missing deploy keys / webhook secrets", "projects", n)
+	}
 
 	secure := strings.HasPrefix(cfg.BaseURL, "https://")
 	cookies := server.NewCookies(secure)

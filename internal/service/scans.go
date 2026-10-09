@@ -592,3 +592,33 @@ func (s *Service) Stats(ctx context.Context, o *OrgCtx) (*OrgStats, error) {
 	})
 	return st, wrap("stats", err)
 }
+
+// EnsureProjectCredentials creates missing deploy keys and webhook secrets
+// (projects created before Faz 3). Run once at server startup.
+func (s *Service) EnsureProjectCredentials(ctx context.Context) (int, error) {
+	n := 0
+	err := s.db.Tx(ctx, store.Scope{Superadmin: true}, func(q *db.Queries) error {
+		ps, err := q.ProjectsMissingCredentials(ctx)
+		if err != nil {
+			return err
+		}
+		for i := range ps {
+			p := &ps[i]
+			if _, err := q.GetActiveSSHKey(ctx, db.GetActiveSSHKeyParams{OrgID: p.OrgID, ProjectID: p.ID}); errors.Is(err, pgx.ErrNoRows) {
+				if _, err := s.createDeployKey(ctx, q, p); err != nil {
+					return err
+				}
+			} else if err != nil {
+				return err
+			}
+			if len(p.WebhookSecretEnc) == 0 {
+				if _, err := s.createWebhookSecret(ctx, q, p); err != nil {
+					return err
+				}
+			}
+			n++
+		}
+		return nil
+	})
+	return n, wrap("ensure project credentials", err)
+}
