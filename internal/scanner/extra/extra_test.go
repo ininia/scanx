@@ -69,23 +69,19 @@ func TestCommandsSkipWhenNothingToCheck(t *testing.T) {
 	}
 }
 
-func TestGlobToRegex(t *testing.T) {
-	cases := map[string][2][]string{
-		"*.svg":       {{"a/logo.svg", "logo.svg"}, {"a/logo.svgx", "svg/a.png"}},
-		"wwwroot/lib": {{"src/Web/wwwroot/lib/x.js", "wwwroot/lib"}, {"src/wwwroot/library/x.js"}},
-		"bin":         {{"bin/x", "a/bin/y.dll"}, {"binary/x", "a/robin"}},
+func TestCheckovSkipPath(t *testing.T) {
+	if _, ok := checkovSkipPath("*.svg"); ok {
+		t.Fatal("wildcards must not reach checkov")
 	}
-	for glob, c := range cases {
-		re := regexp.MustCompile(globToRegex(glob))
-		for _, p := range c[0] {
-			if !re.MatchString(p) {
-				t.Errorf("%s should match %s", glob, p)
-			}
-		}
-		for _, p := range c[1] {
-			if re.MatchString(p) {
-				t.Errorf("%s must not match %s", glob, p)
-			}
-		}
+	re, ok := checkovSkipPath("wwwroot/lib")
+	if !ok || strings.ContainsAny(re, "*?+") {
+		t.Fatalf("%q", re)
+	}
+	m := regexp.MustCompile(re)
+	if !m.MatchString("src/Web/wwwroot/lib/x.js") || m.MatchString("src/wwwroot/library/x.js") {
+		t.Fatal("segment matching")
+	}
+	if b, _ := checkovSkipPath("bin"); !regexp.MustCompile(b).MatchString("a/bin/y") || regexp.MustCompile(b).MatchString("a/robin") {
+		t.Fatal("bin")
 	}
 }

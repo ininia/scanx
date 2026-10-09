@@ -243,7 +243,9 @@ func (Checkov) Command(env scanner.Env, s scanner.Settings) scanner.Cmd {
 		"--quiet", "--compact", "--output", "sarif", "--output-file-path", filepath.Join(env.OutDir, "checkov"),
 	}
 	for _, ex := range scanner.AllExcludes(s) {
-		args = append(args, "--skip-path", globToRegex(ex))
+		if re, ok := checkovSkipPath(ex); ok {
+			args = append(args, "--skip-path", re)
+		}
 	}
 	// Checkov's parallel runner deadlocks when a worker's result is large
 	// (child blocks writing it while the parent waits for the child), so
@@ -255,23 +257,16 @@ func (Checkov) Command(env scanner.Env, s scanner.Settings) scanner.Cmd {
 		}, pythonEnv...)}
 }
 
-// globToRegex turns an exclude pattern into the regular expression Checkov
-// expects for --skip-path ("*.svg" is not a valid regex and made Checkov
-// crash): "*" matches within a path segment, a pattern without "/" matches
-// a whole segment anywhere.
-func globToRegex(glob string) string {
-	var b strings.Builder
-	for _, r := range glob {
-		switch r {
-		case '*':
-			b.WriteString("[^/]*")
-		case '?':
-			b.WriteString("[^/]")
-		default:
-			b.WriteString(regexp.QuoteMeta(string(r)))
-		}
+// checkovSkipPath turns an exclude pattern into a --skip-path regex.
+// Checkov compiles --skip-path as regex, and its Terraform module finder
+// joins the list character by character ('|'.join(f"({paths})")), so any
+// quantifier (*, ?, +) makes it crash. Only literal directory/file names are
+// passed; wildcard patterns (*.svg, *.min.js…) never match IaC files anyway.
+func checkovSkipPath(pattern string) (string, bool) {
+	if strings.ContainsAny(pattern, "*?+[]{}") {
+		return "", false
 	}
-	return "(^|/)" + b.String() + "(/|$)"
+	return "(^|/)" + regexp.QuoteMeta(pattern) + "(/|$)", true
 }
 
 // checkovSeverity: open-source Checkov leaves severities empty; failed
