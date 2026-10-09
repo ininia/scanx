@@ -1,0 +1,107 @@
+package ui
+
+import "strconv"
+
+templ issueBrowser(p *Page, b *IssueBrowser) {
+	<div class="card">
+		<div class="ib-head">
+			<h2>{ p.T("issues.title") } <span class="faint">({ strconv.Itoa(b.Shown) }/{ strconv.Itoa(b.Total) })</span></h2>
+			<form method="get" action={ templ.SafeURL(b.Filter.Base) } class="ib-search">
+				for _, kv := range b.Filter.Hidden() {
+					<input type="hidden" name={ kv.K } value={ kv.V }/>
+				}
+				<input type="search" name="q" value={ b.Filter.Q } placeholder={ p.T("issues.search") } aria-label={ p.T("issues.search") }/>
+			</form>
+			<div class="ib-group">
+				<span class="faint">{ p.T("issues.group_by") }</span>
+				for _, m := range GroupModes {
+					<a class={ "chip", templ.KV("active", b.Filter.Group == m) } href={ templ.SafeURL(b.Filter.WithGroup(m)) }>{ p.T("issues.group." + m) }</a>
+				}
+			</div>
+		</div>
+		<div class="facets">
+			for _, dim := range FacetDims {
+				if len(b.Facets[dim]) > 0 {
+					<div class="facet-row">
+						<span class="facet-label">{ p.T("issues.facet." + dim) }</span>
+						for _, fc := range b.Facets[dim] {
+							<a class={ "chip", "f-" + dim + "-" + fc.Value, templ.KV("active", fc.Active) } href={ templ.SafeURL(fc.URL) }>
+								{ p.FacetLabel(dim, fc.Value) } <span class="n">{ strconv.Itoa(fc.Count) }</span>
+							</a>
+						}
+					</div>
+				}
+			}
+			if b.Filter.Any() {
+				<a class="linkbtn" href={ templ.SafeURL(b.Filter.Clear()) }>{ p.T("issues.clear_filters") }</a>
+			}
+		</div>
+		if len(b.Groups) == 0 {
+			<div class="empty"><img class="mark" src="/static/img/scanx-mark.svg" alt=""/><p>{ p.T("issues.none") }</p></div>
+		} else {
+			<div class="tablewrap">
+				<table class="issues">
+					<thead><tr><th>{ p.T("field.severity") }</th><th>{ p.T("field.title") }</th><th>{ p.T("field.location") }</th><th>{ p.T("field.tools") }</th><th>{ p.T("field.status") }</th></tr></thead>
+					<tbody>
+						for _, g := range b.Groups {
+							<tr>
+								<td>@sevBadge(p, g.Severity)</td>
+								<td>
+									if len(g.Items) == 1 {
+										<a href={ templ.SafeURL(p.OrgURL("/issues/" + g.Items[0].ID.String())) }>{ g.Title }</a>
+									} else {
+										<details class="occ">
+											<summary>{ g.Title } <span class="badge count">×{ strconv.Itoa(len(g.Items)) }</span></summary>
+											<ul>
+												for _, it := range g.Items {
+													<li><a href={ templ.SafeURL(p.OrgURL("/issues/" + it.ID.String())) } class="mono">{ Loc(it.File, it.Line) }</a>
+														if it.IsNew {
+															<span class="badge new">{ p.T("issues.new") }</span>
+														}
+													</li>
+												}
+											</ul>
+										</details>
+									}
+									if g.NewCount > 0 {
+										<span class="badge new">{ p.T("issues.new") }
+											if len(g.Items) > 1 {
+												{ strconv.Itoa(g.NewCount) }
+											}
+										</span>
+									}
+									<div class="faint">{ p.T("cat." + g.Category) }
+										if g.RuleID != "" && g.RuleID != g.Title {
+											· <span class="mono">{ g.RuleID }</span>
+										}
+									</div>
+								</td>
+								<td class="mono">
+									if g.File != "" {
+										{ g.File }
+										if g.Lines() != "" {
+											<div class="faint">{ p.T("issues.lines") } { g.Lines() }</div>
+										}
+									} else {
+										{ p.T("issues.in_files", g.Files) }
+									}
+								</td>
+								<td class="faint">{ joinSources(g.Sources) }</td>
+								<td>
+									if g.Status != "" {
+										<span class={ "badge", "is-" + g.Status }>{ p.T("issue.status." + g.Status) }</span>
+									} else {
+										<span class="badge">{ p.T("issues.mixed") }</span>
+									}
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+			if b.Limited {
+				<p class="faint">{ p.T("issues.limited") }</p>
+			}
+		}
+	</div>
+}

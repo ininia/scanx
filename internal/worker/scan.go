@@ -310,7 +310,14 @@ func gz(b []byte) ([]byte, error) {
 // persist stores tools, issues (new / existing / fixed), reports and the
 // summary in one transaction, then notifies.
 func (w *Worker) persist(ctx context.Context, sc *db.Scan, p *db.Project, rep *report.Report, files map[string][]byte, meta *fetchMeta) error {
-	sum := service.ScanSummary{Counts: rep.Summary, Gate: rep.Gate, Warnings: rep.Warnings, DurationSec: rep.DurationSec, SizeMB: meta.sizeMB}
+	// Recompute the score card here so every scan uses the current scoring,
+	// whatever scanner image version produced the report.
+	card := report.Score(rep.Issues, rep.Tools)
+	rep.Score = card.Score
+	sum := service.ScanSummary{
+		Counts: rep.Summary, Gate: rep.Gate, Warnings: rep.Warnings, DurationSec: rep.DurationSec,
+		SizeMB: meta.sizeMB, Grade: card.Grade, Categories: card.Categories,
+	}
 	if rep.Detected != nil {
 		sum.Languages = rep.Detected.Languages
 	}

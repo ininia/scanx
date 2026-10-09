@@ -3,6 +3,7 @@ package report
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -39,17 +40,43 @@ func sampleResult() *engine.Result {
 	}
 }
 
+func sev(cat finding.Category, s finding.Severity, rule, file string) finding.Issue {
+	return finding.Issue{Category: cat, Severity: s, Title: rule, File: file, Findings: []finding.Finding{{RuleID: rule}}}
+}
+
 func TestScore(t *testing.T) {
-	cases := []struct {
-		s    Summary
-		want int
-	}{
-		{Summary{}, 100}, {Summary{Critical: 1}, 75}, {Summary{High: 2, Medium: 1, Low: 1}, 77}, {Summary{Critical: 5}, 0}, {Summary{Low: 1}, 100},
+	if c := Score(nil, nil); c.Score != 100 || c.Grade != "A" {
+		t.Fatalf("clean: %+v", c)
 	}
-	for _, c := range cases {
-		if got := Score(c.s); got != c.want {
-			t.Errorf("Score(%+v)=%d want %d", c.s, got, c.want)
-		}
+	one := Score([]finding.Issue{sev(finding.CategorySAST, finding.Critical, "r", "a.go")}, nil)
+	if one.Score != 94 || one.Categories[0].Score != 83 || one.Grade != "A" {
+		t.Fatalf("one critical: %+v", one)
+	}
+	// The same rule in the same file counts once.
+	var many []finding.Issue
+	for i := 0; i < 50; i++ {
+		many = append(many, sev(finding.CategorySAST, finding.High, "r", "a.go"))
+	}
+	if Score(many, nil).Score != Score(many[:1], nil).Score {
+		t.Fatal("duplicates must not lower the score")
+	}
+	// A bad area never zeroes the overall score while the others are clean.
+	var secrets []finding.Issue
+	for i := 0; i < 300; i++ {
+		secrets = append(secrets, sev(finding.CategorySecret, finding.High, "k", fmt.Sprintf("f%d.cs", i)))
+	}
+	c := Score(secrets, nil)
+	if c.Score < 70 || c.Categories[1].Score > 5 {
+		t.Fatalf("secrets only: %+v", c)
+	}
+	// Categories whose scanner did not run are not counted as clean.
+	tools := []engine.ToolRun{{ID: "opengrep", Status: engine.StatusOK}, {ID: "gitleaks-dir", Status: engine.StatusTimeout}}
+	c = Score([]finding.Issue{sev(finding.CategorySAST, finding.Critical, "r", "a.go")}, tools)
+	if c.Score != 83 || c.Categories[1].Analysed {
+		t.Fatalf("partial tools: %+v", c)
+	}
+	if Grade(59) != "D" || Grade(19) != "F" {
+		t.Fatal("grades")
 	}
 }
 
@@ -87,7 +114,7 @@ func TestBuildMergesAndWarns(t *testing.T) {
 	if r.Summary.Total != 4 || r.Summary.Critical != 1 || r.Summary.High != 1 {
 		t.Fatalf("trivy+osv duplicate must merge: %+v", r.Summary)
 	}
-	if r.Gate.Result != "fail" || r.Score != 100-25-10-0 {
+	if r.Gate.Result != "fail" || r.Score >= 100 || r.Score < 50 || r.Grade == "" {
 		t.Fatalf("gate %+v score %d", r.Gate, r.Score)
 	}
 	if !r.Partial || len(r.Warnings) != 2 {
@@ -104,7 +131,7 @@ func TestBuildMergesAndWarns(t *testing.T) {
 	if err := json.Unmarshal(buf.Bytes(), &back); err != nil {
 		t.Fatal(err)
 	}
-	if back["score"].(float64) != 65 {
+	if back["score"].(float64) != float64(r.Score) || back["grade"] != r.Grade {
 		t.Fatalf("json score %v", back["score"])
 	}
 }

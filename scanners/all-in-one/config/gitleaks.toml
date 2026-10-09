@@ -4,3 +4,20 @@ title = "scanX gitleaks config"
 
 [extend]
 useDefault = true
+
+# Generated and third-party files: a value seeded in an EF Core model is
+# repeated in every migration's .Designer.cs and in the model snapshot, so
+# one secret would be reported hundreds of times. It is still found once in
+# the hand-written source (HasData / InsertData in the migration itself).
+# Vendored libraries, build output and minified/map/asset files only produce
+# false positives.
+[[allowlists]]
+description = "scanX: generated, vendored and asset files"
+paths = [
+  '''(?i)\.designer\.cs$''',
+  '''(?i)modelsnapshot\.cs$''',
+  '''(?i)\.g(\.i)?\.cs$''',
+  '''(^|/)(node_modules|vendor|bower_components|jspm_packages|wwwroot/libs?|bin|obj|dist|\.next|coverage)/''',
+  '''(?i)\.(min\.js|min\.css|map|svg|png|jpe?g|gif|ico|webp|woff2?|ttf|eot|otf|pdf)$''',
+  '''(^|/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|packages\.lock\.json)$''',
+]

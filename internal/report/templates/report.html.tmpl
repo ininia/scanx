@@ -29,7 +29,7 @@ h2{font:600 15px/1.2 "Space Grotesk",Inter,sans-serif;text-transform:uppercase;l
 .gate{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;font-size:12px}
 .gate-pass{background:rgba(0,199,116,.15);color:var(--g2);border:1px solid var(--g3)}
 .gate-fail{background:rgba(255,61,104,.12);color:var(--crit);border:1px solid var(--crit)}
-.score{font:700 30px/1 "Space Grotesk",Inter,sans-serif}.score-good{color:var(--g2)}.score-mid{color:var(--med)}.score-bad{color:var(--crit)}
+.score{font:700 30px/1 "Space Grotesk",Inter,sans-serif}.score small{font-size:14px;color:var(--muted,#8f9db8);margin-left:4px}.score-good{color:var(--g2)}.score-mid{color:var(--med)}.score-bad{color:var(--crit)}
 .warn{background:rgba(255,197,61,.1);border:1px solid rgba(255,197,61,.5);color:var(--text);border-radius:8px;padding:10px 14px;margin-top:12px}
 .tablewrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;background:var(--s1);border:1px solid var(--border);border-radius:8px;overflow:hidden}
@@ -70,7 +70,7 @@ footer{color:var(--faint);font-size:12px;margin-top:40px;border-top:1px solid va
 </header>
 
 <div class="cards">
-  <div class="card"><div class="score {{scoreClass .Score}}">{{.Score}}</div><div class="l">Security score</div></div>
+  <div class="card"><div class="score {{scoreClass .Score}}">{{.Score}}<small>/100 · {{.Grade}}</small></div><div class="l">Security score</div></div>
   <div class="card c-crit"><div class="n">{{.Summary.Critical}}</div><div class="l">Critical</div></div>
   <div class="card c-high"><div class="n">{{.Summary.High}}</div><div class="l">High</div></div>
   <div class="card c-med"><div class="n">{{.Summary.Medium}}</div><div class="l">Medium</div></div>

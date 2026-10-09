@@ -8,13 +8,15 @@ import (
 
 // ScanSummary is stored in scans.summary by the worker.
 type ScanSummary struct {
-	Counts      report.Summary `json:"counts"`
-	Gate        report.Gate    `json:"gate"`
-	Warnings    []string       `json:"warnings,omitempty"`
-	DurationSec float64        `json:"duration_seconds"`
-	SizeMB      int            `json:"size_mb,omitempty"`
-	Languages   map[string]int `json:"languages,omitempty"`
-	FailureCode string         `json:"failure_code,omitempty"` // failed scans: fail.<code> in the UI
+	Counts      report.Summary         `json:"counts"`
+	Gate        report.Gate            `json:"gate"`
+	Warnings    []string               `json:"warnings,omitempty"`
+	DurationSec float64                `json:"duration_seconds"`
+	SizeMB      int                    `json:"size_mb,omitempty"`
+	Languages   map[string]int         `json:"languages,omitempty"`
+	FailureCode string                 `json:"failure_code,omitempty"` // failed scans: fail.<code> in the UI
+	Grade       string                 `json:"grade,omitempty"`
+	Categories  []report.CategoryScore `json:"categories,omitempty"`
 }
 
 // ParseSummary decodes scans.summary (zero value if empty or invalid).

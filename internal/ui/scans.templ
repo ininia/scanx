@@ -271,6 +271,21 @@ templ ConnTestResult(p *Page, c *ConnTest) {
 
 templ ScanDetail(p *Page, v *ScanPage) {
 	@AppShell(p) {
+		@scanLive(p, v)
+	}
+}
+
+// scanLive is the whole page body; while the scan runs it re-fetches itself
+// (keeping the current filters) so the header, stepper and log stay current.
+templ scanLive(p *Page, v *ScanPage) {
+	<div id="scan-live"
+		if v.View.Active() {
+			hx-get={ p.Path }
+			hx-trigger="every 3s"
+			hx-select="#scan-live"
+			hx-swap="outerHTML"
+		}
+	>
 		<div class="page-head">
 			<div>
 				<div class="crumbs">
@@ -302,19 +317,6 @@ templ ScanDetail(p *Page, v *ScanPage) {
 				}
 			</div>
 		</div>
-		@scanLive(p, v)
-	}
-}
-
-templ scanLive(p *Page, v *ScanPage) {
-	<div id="scan-live"
-		if v.View.Active() {
-			hx-get={ p.OrgURL("/scans/" + v.View.Scan.ID.String()) }
-			hx-trigger="every 3s"
-			hx-select="#scan-live"
-			hx-swap="outerHTML"
-		}
-	>
 		if v.View.Scan.Status != "failed" && v.View.Scan.Status != "canceled" {
 			<ol class="stepper">
 				for _, st := range ScanSteps {
@@ -362,46 +364,43 @@ templ scanLive(p *Page, v *ScanPage) {
 					<div class="n">{ p.T("gate." + Gate(v.View.Scan.GateResult)) }</div>
 					<div class="l">{ p.T("scan.gate") } · { v.Summary.Gate.Policy }</div>
 				</div>
-				<div class="card stat accent"><div class="n">{ ScoreText(v.View.Scan.Score) }<span class="faint">/100</span></div><div class="l">{ p.T("field.score") }</div></div>
+				<div class={ "card", "stat", "grade-card", "grade-" + v.Summary.Grade }>
+					<div class="n">
+						{ ScoreText(v.View.Scan.Score) }<span class="faint">/100</span>
+						if v.Summary.Grade != "" {
+							<span class="grade">{ v.Summary.Grade }</span>
+						}
+					</div>
+					<div class="l">{ p.T("field.score") }</div>
+				</div>
 				<div class="card stat"><div class="n"><span class="delta up">+{ Itoa32(v.View.Scan.NewIssues) }</span> <span class="delta down">−{ Itoa32(v.View.Scan.FixedIssues) }</span></div><div class="l">{ p.T("scans.new_fixed") }</div></div>
 				<div class="card stat"><div class="n">{ Duration(v.View.Scan.StartedAt, v.View.Scan.FinishedAt) }</div><div class="l">{ p.T("scan.duration") }</div></div>
 			</div>
-			<div class="sevbar">
-				<span class="sev critical">{ p.T("sev.critical") } { strconv.Itoa(v.Summary.Counts.Critical) }</span>
-				<span class="sev high">{ p.T("sev.high") } { strconv.Itoa(v.Summary.Counts.High) }</span>
-				<span class="sev medium">{ p.T("sev.medium") } { strconv.Itoa(v.Summary.Counts.Medium) }</span>
-				<span class="sev low">{ p.T("sev.low") } { strconv.Itoa(v.Summary.Counts.Low) }</span>
-				<span class="sev info">{ p.T("sev.info") } { strconv.Itoa(v.Summary.Counts.Info) }</span>
-			</div>
-			<div class="card">
-				<h2>{ p.T("issues.title") } <span class="faint">({ strconv.Itoa(len(v.View.Issues)) })</span></h2>
-				if len(v.View.Issues) == 0 {
-					<div class="empty"><img class="mark" src="/static/img/scanx-mark.svg" alt=""/><p>{ p.T("issues.none") }</p></div>
-				} else {
-					<div class="tablewrap">
-						<table>
-							<thead><tr><th>{ p.T("field.severity") }</th><th>{ p.T("field.title") }</th><th>{ p.T("field.location") }</th><th>{ p.T("field.tools") }</th><th>{ p.T("field.status") }</th></tr></thead>
-							<tbody>
-								for _, is := range v.View.Issues {
-									<tr>
-										<td>@sevBadge(p, is.Severity)</td>
-										<td>
-											<a href={ templ.SafeURL(p.OrgURL("/issues/" + is.ID.String())) }>{ is.Title }</a>
-											if is.IsNew {
-												<span class="badge new">{ p.T("issues.new") }</span>
-											}
-											<div class="faint">{ p.T("cat." + is.Category) }</div>
-										</td>
-										<td class="mono">{ Loc(is.File, is.StartLine) }</td>
-										<td class="faint">{ strings.Join(is.Sources, ", ") }</td>
-										<td><span class={ "badge", "is-" + is.Status }>{ p.T("issue.status." + is.Status) }</span></td>
-									</tr>
+			if len(v.Summary.Categories) > 0 {
+				<div class="catscores">
+					for _, c := range v.Summary.Categories {
+						<div class={ "catscore", templ.KV("off", !c.Analysed) }>
+							<div class="cs-head"><span>{ p.T("score.cat." + c.Category) }</span>
+								if c.Analysed {
+									<strong>{ strconv.Itoa(c.Score) }</strong>
+								} else {
+									<span class="faint">{ p.T("score.not_analysed") }</span>
 								}
-							</tbody>
-						</table>
-					</div>
+							</div>
+							<div class="bar"><span class={ "fill", ScoreClass(c.Score), BarClass(c.Score, c.Analysed) }></span></div>
+							if c.Analysed {
+								<div class="faint">{ p.T("score.groups", c.Groups) }</div>
+							}
+						</div>
+					}
+				</div>
+			}
+			<div class="sevbar">
+				for _, s := range FacetSeverities {
+					<a class={ "sev", s } href={ templ.SafeURL(v.Browser.Filter.Toggle("sev", s)) }>{ p.T("sev." + s) } { strconv.Itoa(SevSummary(v.Summary, s)) }</a>
 				}
 			</div>
+			@issueBrowser(p, v.Browser)
 			<div class="card">
 				<h2>{ p.T("scan.tools") }</h2>
 				<div class="tablewrap">
@@ -432,7 +431,7 @@ templ scanLive(p *Page, v *ScanPage) {
 	</div>
 }
 
-templ ProjectIssues(p *Page, pr *db.Project, issues []db.Issue, status string) {
+templ ProjectIssues(p *Page, pr *db.Project, b *IssueBrowser) {
 	@AppShell(p) {
 		<div class="page-head">
 			<div>
@@ -440,41 +439,10 @@ templ ProjectIssues(p *Page, pr *db.Project, issues []db.Issue, status string) {
 					<a href={ templ.SafeURL(p.OrgURL("/projects")) }>{ p.T("nav.projects") }</a> /
 					<a href={ templ.SafeURL(p.OrgURL("/projects/" + pr.Slug)) }>{ pr.Name }</a>
 				</div>
-				<h1>{ p.T("issues.title") } <span class="faint">({ strconv.Itoa(len(issues)) })</span></h1>
+				<h1>{ p.T("issues.title") }</h1>
 			</div>
 		</div>
-		<div class="tabs">
-			for _, st := range []string{"open", "fixed", "false_positive", "accepted_risk", "wont_fix", ""} {
-				<a class={ templ.KV("active", st == status) } href={ templ.SafeURL(p.OrgURL("/projects/" + pr.Slug + "/issues?status=" + st)) }>
-					if st == "" {
-						{ p.T("issues.all") }
-					} else {
-						{ p.T("issue.status." + st) }
-					}
-				</a>
-			}
-		</div>
-		if len(issues) == 0 {
-			<div class="card empty"><p>{ p.T("issues.none") }</p></div>
-		} else {
-			<div class="tablewrap">
-				<table>
-					<thead><tr><th>{ p.T("field.severity") }</th><th>{ p.T("field.title") }</th><th>{ p.T("field.location") }</th><th>{ p.T("field.tools") }</th><th>{ p.T("field.status") }</th><th>{ p.T("issues.last_seen") }</th></tr></thead>
-					<tbody>
-						for _, is := range issues {
-							<tr>
-								<td>@sevBadge(p, is.Severity)</td>
-								<td><a href={ templ.SafeURL(p.OrgURL("/issues/" + is.ID.String())) }>{ is.Title }</a><div class="faint">{ p.T("cat." + is.Category) }</div></td>
-								<td class="mono">{ Loc(is.File, is.StartLine) }</td>
-								<td class="faint">{ strings.Join(is.Sources, ", ") }</td>
-								<td><span class={ "badge", "is-" + is.Status }>{ p.T("issue.status." + is.Status) }</span></td>
-								<td class="faint">{ Date(is.UpdatedAt) }</td>
-							</tr>
-						}
-					</tbody>
-				</table>
-			</div>
-		}
+		@issueBrowser(p, b)
 	}
 }
 

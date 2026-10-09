@@ -240,8 +240,8 @@ func writeReports(rep *report.Report, o ScanOptions, rawDir string) error {
 func printSummary(w io.Writer, r *report.Report, o ScanOptions) {
 	s := r.Summary
 	fmt.Fprintf(w, "\nscanX results for %s\n", r.Target.Path)
-	fmt.Fprintf(w, "  critical %d · high %d · medium %d · low %d · info %d   (score %d/100)\n",
-		s.Critical, s.High, s.Medium, s.Low, s.Info, r.Score)
+	fmt.Fprintf(w, "  critical %d · high %d · medium %d · low %d · info %d   (score %d/100, grade %s)\n",
+		s.Critical, s.High, s.Medium, s.Low, s.Info, r.Score, r.Grade)
 	for _, t := range r.Tools {
 		mark := "✔"
 		if t.Status != engine.StatusOK {

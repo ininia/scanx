@@ -161,17 +161,18 @@ func (h *Handler) projectIssues(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, r, err)
 		return
 	}
-	status := r.URL.Query().Get("status")
-	if _, set := r.URL.Query()["status"]; !set {
-		status = "open"
-	}
-	issues, err := h.Svc.ProjectIssues(r.Context(), o, p, status)
+	issues, err := h.Svc.ProjectIssues(r.Context(), o, p, "")
 	if err != nil {
 		h.fail(w, r, err)
 		return
 	}
+	q := r.URL.Query()
+	if len(q) == 0 {
+		q.Set("status", "open") // default view: what still needs fixing
+	}
+	b := ui.BuildIssueBrowser(ui.RowsFromIssues(issues), ui.ParseIssueFilter(r.URL.Path, q))
 	pg := h.page(r, "issues.title", "projects")
-	render(w, r, http.StatusOK, ui.ProjectIssues(pg, p, issues, status))
+	render(w, r, http.StatusOK, ui.ProjectIssues(pg, p, b))
 }
 
 func (h *Handler) scanDetail(w http.ResponseWriter, r *http.Request) {
@@ -182,7 +183,8 @@ func (h *Handler) scanDetail(w http.ResponseWriter, r *http.Request) {
 	}
 	pg := h.page(r, "scan.title", "projects")
 	pg.Title = v.Project.Name + " · " + pg.Title
-	render(w, r, http.StatusOK, ui.ScanDetail(pg, &ui.ScanPage{View: v, Summary: service.ParseSummary(v.Scan.Summary)}))
+	b := ui.BuildIssueBrowser(ui.RowsFromScan(v.Issues), ui.ParseIssueFilter(r.URL.Path, r.URL.Query()))
+	render(w, r, http.StatusOK, ui.ScanDetail(pg, &ui.ScanPage{View: v, Summary: service.ParseSummary(v.Scan.Summary), Browser: b}))
 }
 
 func (h *Handler) scanCancel(w http.ResponseWriter, r *http.Request) {

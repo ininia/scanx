@@ -32,7 +32,7 @@ func issue(fp string, sev finding.Severity) finding.Issue {
 func rep(issues ...finding.Issue) *report.Report {
 	sum := report.Summarize(issues)
 	p, _ := report.ParseFailOn("high")
-	return &report.Report{Issues: issues, Summary: sum, Score: report.Score(sum), Gate: p.Evaluate(sum)}
+	return &report.Report{Issues: issues, Summary: sum, Score: report.Score(issues, nil).Score, Gate: p.Evaluate(sum)}
 }
 
 // persist computes new / existing / fixed issues across scans and keeps

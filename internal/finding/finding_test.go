@@ -299,3 +299,20 @@ func TestCleanRel(t *testing.T) {
 		}
 	}
 }
+
+// Tools such as gitleaks provide their own redacted match (the fingerprint
+// identity); the line is still read for display, masked.
+func TestSecretSnippetShownMasked(t *testing.T) {
+	root := t.TempDir()
+	secret := "5c06e1f0b2a94d7c8e3f6a1b9d2c4e7f" // FAKE
+	if err := os.WriteFile(filepath.Join(root, "Seed.cs"), []byte("var u = new User {\n  Password = \""+secret+"\",\n};\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	f := Finding{Tool: "gitleaks", RuleID: "generic-api-key", Category: CategorySecret, File: "Seed.cs", StartLine: 2, EndLine: 2}
+	f.SetMatchLines("Password = \"REDACTED\"")
+	fs := []Finding{f}
+	Normalize(fs, NormalizeOptions{SourceRoot: root, StoreSnippets: true})
+	if !strings.Contains(fs[0].Snippet, "Password = \"5c0***\"") || strings.Contains(fs[0].Snippet, secret) {
+		t.Fatalf("snippet %q", fs[0].Snippet)
+	}
+}

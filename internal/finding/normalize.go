@@ -24,13 +24,17 @@ func Normalize(findings []Finding, opt NormalizeOptions) {
 		if f.EndLine < f.StartLine {
 			f.EndLine = f.StartLine
 		}
-		if opt.SourceRoot != "" && f.File != "" && f.StartLine > 0 && f.matchLines == "" {
+		if opt.SourceRoot != "" && f.File != "" && f.StartLine > 0 && (f.matchLines == "" || f.Snippet == "") {
 			snip, match, err := Snippet(opt.SourceRoot, f.File, f.StartLine, f.EndLine, SnippetContext)
 			if err == nil {
-				if opt.StoreSnippets {
-					f.Snippet = snip
+				if opt.StoreSnippets && f.Snippet == "" {
+					f.Snippet = snip // masked below
 				}
-				f.matchLines = match
+				// A tool-provided (redacted) match stays the fingerprint
+				// identity; the file is only read for display then.
+				if f.matchLines == "" {
+					f.matchLines = match
+				}
 			}
 		}
 		// Any source line can contain a credential (e.g. a SAST rule matching a

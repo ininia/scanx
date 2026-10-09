@@ -64,6 +64,42 @@ func (v *ProjectView) ProviderSettingsURL(what string) string {
 type ScanPage struct {
 	View    *service.ScanView
 	Summary service.ScanSummary
+	Browser *IssueBrowser
+}
+
+// SevSummary reads a severity count from the scan summary.
+func SevSummary(s service.ScanSummary, sev string) int {
+	switch sev {
+	case "critical":
+		return s.Counts.Critical
+	case "high":
+		return s.Counts.High
+	case "medium":
+		return s.Counts.Medium
+	case "low":
+		return s.Counts.Low
+	}
+	return s.Counts.Info
+}
+
+// ScoreClass colours a score bar.
+func ScoreClass(score int) string {
+	switch {
+	case score >= 75:
+		return "good"
+	case score >= 40:
+		return "mid"
+	}
+	return "bad"
+}
+
+// BarClass sizes a score bar in 5% steps (w0…w100 in app.css; the CSP
+// forbids inline styles).
+func BarClass(score int, analysed bool) string {
+	if !analysed {
+		return "w0"
+	}
+	return "w" + strconv.Itoa((min(max(score, 0), 100)+2)/5*5)
 }
 
 // IssuePage is the issue detail page.

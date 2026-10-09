@@ -34,6 +34,8 @@ type Report struct {
 	Tools         []engine.ToolRun `json:"tools"`
 	Summary       Summary          `json:"summary"`
 	Score         int              `json:"score"`
+	Grade         string           `json:"grade"`
+	Categories    []CategoryScore  `json:"score_categories"`
 	Gate          Gate             `json:"gate"`
 	Warnings      []string         `json:"warnings,omitempty"`
 	Issues        []finding.Issue  `json:"issues"`
@@ -168,12 +170,6 @@ func Summarize(issues []finding.Issue) Summary {
 	return s
 }
 
-// Score implements spec §7.6: 100 - min(100, 25c + 10h + 3m + 0.5l).
-func Score(s Summary) int {
-	penalty := 25*float64(s.Critical) + 10*float64(s.High) + 3*float64(s.Medium) + 0.5*float64(s.Low)
-	return int(math.Round(100 - math.Min(100, penalty)))
-}
-
 // Build assembles a report from an engine result.
 func Build(res *engine.Result, target Target, started, finished time.Time, p Policy) *Report {
 	issues := finding.Group(res.Findings)
@@ -190,10 +186,11 @@ func Build(res *engine.Result, target Target, started, finished time.Time, p Pol
 		Detected:      res.Detection,
 		Tools:         res.Tools,
 		Summary:       sum,
-		Score:         Score(sum),
 		Gate:          p.Evaluate(sum),
 		Issues:        issues,
 	}
+	card := Score(issues, res.Tools)
+	r.Score, r.Grade, r.Categories = card.Score, card.Grade, card.Categories
 	if r.Partial {
 		r.Warnings = append(r.Warnings, "Some scanners failed; results are partial.")
 	}
