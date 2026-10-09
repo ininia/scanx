@@ -399,7 +399,11 @@ templ scanLive(p *Page, v *ScanPage) {
 							</div>
 							<div class="bar"><span class={ "fill", ScoreClass(c.Score), BarClass(c.Score, c.Analysed) }></span></div>
 							if c.Analysed {
-								<div class="faint">{ p.T("score.groups", c.Groups) }</div>
+								<div class="faint">{ p.T("score.groups", c.Groups) }
+									if !c.InGrade {
+										· { p.T("score.not_in_grade") }
+									}
+								</div>
 							}
 						</div>
 					}

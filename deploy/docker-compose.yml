@@ -110,6 +110,7 @@ services:
       migrate: { condition: service_completed_successfully }
       docker-proxy: { condition: service_started }
     healthcheck: { disable: true } # no HTTP listener; liveness = job heartbeats
+    stop_grace_period: 2m # lets a finishing scan save its results
     tmpfs: ["/tmp:size=64m"]
     <<: *hardening
     # internal: database · dockerapi: the proxy · outbound: DNS checks of Git

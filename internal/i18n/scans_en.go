@@ -220,6 +220,8 @@ var enScans = map[string]string{
 	"scope.option.full":          "Full scan on every push",
 	"settings.push_scope":        "Scan scope on push",
 	"settings.push_scope_hint":   "On push only the files changed by that push are scanned. “Scan now” always runs a full scan.",
+	"score.cat.quality":          "Code quality",
+	"score.not_in_grade":         "not part of the grade",
 }
 
 func init() {

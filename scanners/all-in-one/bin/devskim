@@ -1,0 +1,3 @@
+#!/bin/sh
+# DevSkim (.NET tool) on the bundled .NET 8 runtime.
+exec /opt/dotnet/dotnet /opt/scanx/devskim/devskim.dll "$@"

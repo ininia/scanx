@@ -221,6 +221,8 @@ var trScans = map[string]string{
 	"scope.option.full":          "Her push'ta tam tarama",
 	"settings.push_scope":        "Push'ta tarama kapsamı",
 	"settings.push_scope_hint":   "Push geldiğinde yalnızca o push'ta değişen dosyalar taranır. “Şimdi tara” her zaman tam tarama yapar.",
+	"score.cat.quality":          "Kod kalitesi",
+	"score.not_in_grade":         "nota dahil değil",
 }
 
 func init() {

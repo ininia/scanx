@@ -47,6 +47,9 @@ type Cmd struct {
 	Env  []string // extra KEY=VALUE pairs
 	// OKExitCodes lists exit codes that mean "ran successfully" (default {0}).
 	OKExitCodes []int
+	// StdoutFile, when set, receives the tool's stdout (for tools that only
+	// print their report); stderr still goes to the log excerpt.
+	StdoutFile string
 }
 
 // Scanner is one tool adapter.

@@ -194,9 +194,9 @@ func (w *Worker) process(ctx context.Context, job *db.Job) {
 	default:
 		err = fmt.Errorf("unknown job kind %q", job.Kind)
 	}
-	if ctx.Err() != nil {
-		// Shutting down: leave the job locked; it is retried after the lock
-		// expires.
+	if ctx.Err() != nil && err != nil {
+		// Shut down mid-scan: leave the job locked; it is retried after the
+		// lock expires.
 		return
 	}
 	status, msg := "done", ""

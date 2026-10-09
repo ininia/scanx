@@ -48,6 +48,51 @@ RUN set -eu; \
     tar -xzf syft.tgz -C /out/bin syft; \
     chmod 0755 /out/bin/*
 
+# ---------- additional analysers (Faz 4.5) ----------
+# Single binaries verified against the SHA-256 published with each GitHub
+# release; DevSkim (Microsoft, MIT) is a .NET tool from NuGet verified with
+# the SHA-512 of the NuGet catalog, run on the official .NET 8 runtime
+# (SHA-512 from Microsoft's release metadata).
+FROM fetch AS extra
+ARG ZIZMOR_VERSION=1.30.1
+ARG ZIZMOR_SHA256=e65324f4430c2717591937edcec90ccbefaf14c174f8ec9415e03ca875b46e1a
+ARG HADOLINT_VERSION=2.15.1
+ARG HADOLINT_SHA256=c7187db94eeeeca956519a6af171adc31453941a1e777961f6e680f697c8c507
+ARG SHELLCHECK_VERSION=0.11.0
+ARG SHELLCHECK_SHA256=b7af85e41cc99489dcc21d66c6d5f3685138f06d34651e6d34b42ec6d54fe6f6
+ARG DOTNET_VERSION=8.0.31
+ARG DOTNET_SHA512=f336bdec58d54bf50d74a1b38efa82f7290d976bd2ed98b845ebcbac42cf0d8cef504684fc088d4b05f98737b996bf3302e52bd9c23005deae7c60780b2652fb
+ARG DEVSKIM_VERSION=1.0.100
+ARG DEVSKIM_SHA512=592008f11792ad217a05d3356567b6baea52ecfae34abf7fd5cd1ea2bf6408f2fa7baa6df2ddce7c2a3c7eaad6bf396eb6049bee46e8ce0e3014f8efa6a4533c
+RUN apt-get update && apt-get install -y --no-install-recommends unzip xz-utils && rm -rf /var/lib/apt/lists/*
+RUN set -eu; \
+    dl() { curl -fsSL --retry 3 -o "$2" "$1"; echo "$3  $2" | sha256sum -c -; }; \
+    dl512() { curl -fsSL --retry 3 -o "$2" "$1"; echo "$3  $2" | sha512sum -c -; }; \
+    GH=https://github.com; mkdir -p /out/bin /out/dotnet /out/devskim; \
+    dl "$GH/zizmorcore/zizmor/releases/download/v${ZIZMOR_VERSION}/zizmor-x86_64-unknown-linux-gnu.tar.gz" zizmor.tgz "$ZIZMOR_SHA256"; \
+    tar -xzf zizmor.tgz -C /out/bin zizmor; \
+    dl "$GH/hadolint/hadolint/releases/download/v${HADOLINT_VERSION}/hadolint-linux-x86_64" hadolint "$HADOLINT_SHA256"; \
+    install -m 0755 hadolint /out/bin/hadolint; \
+    dl "$GH/koalaman/shellcheck/releases/download/v${SHELLCHECK_VERSION}/shellcheck-v${SHELLCHECK_VERSION}.linux.x86_64.tar.gz" shellcheck.tgz "$SHELLCHECK_SHA256"; \
+    tar -xzf shellcheck.tgz --strip-components=1 -C /out/bin "shellcheck-v${SHELLCHECK_VERSION}/shellcheck"; \
+    dl512 "https://builds.dotnet.microsoft.com/dotnet/Runtime/${DOTNET_VERSION}/dotnet-runtime-${DOTNET_VERSION}-linux-x64.tar.gz" dotnet.tgz "$DOTNET_SHA512"; \
+    tar -xzf dotnet.tgz -C /out/dotnet; \
+    dl512 "https://api.nuget.org/v3-flatcontainer/microsoft.cst.devskim.cli/${DEVSKIM_VERSION}/microsoft.cst.devskim.cli.${DEVSKIM_VERSION}.nupkg" devskim.nupkg "$DEVSKIM_SHA512"; \
+    unzip -q devskim.nupkg 'tools/net8.0/any/*' -d devskim; \
+    cp -r devskim/tools/net8.0/any/. /out/devskim/; \
+    chmod 0755 /out/bin/*
+
+# ---------- Python analysers: Checkov (IaC), Bandit (Python SAST), Lizard
+# (complexity). Every package, including dependencies, is pinned by hash. ----------
+FROM debian:bookworm-slim AS py
+RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-venv ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+COPY scanners/all-in-one/python/requirements.lock /tmp/requirements.lock
+RUN python3 -m venv /opt/scanx/py \
+ && /opt/scanx/py/bin/pip install --no-cache-dir --require-hashes --no-deps --only-binary=:all: -r /tmp/requirements.lock \
+ && find /opt/scanx/py -name "__pycache__" -prune -exec rm -rf {} + \
+ && /opt/scanx/py/bin/python -m compileall -q /opt/scanx/py >/dev/null
+
 # ---------- rule repositories at pinned commits + license gate ----------
 FROM fetch AS rules
 COPY scanners/rules /build/rules
@@ -77,11 +122,16 @@ RUN set -eu; echo "db snapshot ${DB_DATE}"; \
 
 # ---------- final image ----------
 FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates git openssh-client \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates git openssh-client python3 \
  && rm -rf /var/lib/apt/lists/* \
  && groupadd -g 65532 scanx && useradd -u 65532 -g 65532 -M -d /nonexistent -s /usr/sbin/nologin scanx \
  && mkdir -p /work && chown 65532:65532 /work
 COPY --from=fetch /out/bin/ /usr/local/bin/
+COPY --from=extra /out/bin/ /usr/local/bin/
+COPY --from=extra /out/dotnet /opt/dotnet
+COPY --from=extra /out/devskim /opt/scanx/devskim
+COPY --from=py /opt/scanx/py /opt/scanx/py
+COPY scanners/all-in-one/bin/ /usr/local/bin/
 COPY --from=scanx /out/scanx /usr/local/bin/scanx
 COPY --from=rules /out/rules /opt/scanx/rules
 COPY --from=db /out/trivy /opt/scanx/db/trivy
@@ -91,6 +141,8 @@ COPY scanners/all-in-one/config /opt/scanx/config
 # Opengrep unpacks itself into $HOME/.cache on first run; do it at build time so
 # the runtime filesystem can stay read-only.
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8 \
+    DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 \
+    BC_SKIP_MAPPING=TRUE PYTHONDONTWRITEBYTECODE=1 \
     SCANX_TOOL_HOME=/opt/scanx/home \
     SCANX_RULES_DIR=/opt/scanx/rules \
     SCANX_DB_DIR=/opt/scanx/db \

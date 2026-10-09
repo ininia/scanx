@@ -3,6 +3,18 @@
 Format: [Keep a Changelog](https://keepachangelog.com/). Versioning: SemVer.
 
 ## [Unreleased]
+### Added — scan quality and speed
+- New analysers in the scanner image (checksum/hash pinned, offline): DevSkim, Bandit, Checkov, zizmor, Hadolint, ShellCheck, Lizard. Generic SARIF ingestion.
+- Incremental scans on push: only the files changed by the push are scanned; issues are only marked fixed in touched files. Project setting for push scope; "Scan now" is a full scan.
+- Live activity log on the scan page; per-project code-analysis time limit.
+- Issue filters (severity, type, tool, status, new, search) and grouping (file + rule, rule, none).
+- Category-based security score with grade A-F; code quality shown separately.
+
+### Changed
+- Opengrep loads only rules for languages present, limits effort per file, and skips vendored libraries, build output, generated code, assets and tool output (.sonarqube…).
+- Gitleaks ignores EF Core generated files, vendored libraries and assets; secret findings show the masked source line.
+- The worker finishes saving a completed scan when it is stopped.
+
 ### Added — Phases 3–4 (server-side scanning, webhooks, notifications)
 - Per-project Ed25519 **deploy keys** (encrypted at rest, rotation) and pinned SSH host keys for GitHub, GitLab, Bitbucket and Codeberg (`SCANX_SSH_KNOWN_HOSTS` for others).
 - `scanx worker`: Postgres job queue; each scan clones in a `git-fetch` container (egress-only network) and scans in a network-less, read-only, capability-free container; source code is deleted after every scan.

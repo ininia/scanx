@@ -109,8 +109,12 @@ func (w *Worker) runScan(ctx context.Context, job *db.Job, log *slog.Logger) err
 		log.Warn("scan failed", "reason", reason)
 		return nil
 	}
-	if err := w.persist(ctx, &sc, p, rep, files, meta); err != nil {
-		w.failScan(ctx, &sc, p, "internal", "Saving results failed: "+err.Error())
+	// The scan is done: finish saving even if the worker is being stopped
+	// (compose gives it stop_grace_period), so a restart never loses results.
+	pctx, pcancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Minute)
+	defer pcancel()
+	if err := w.persist(pctx, &sc, p, rep, files, meta); err != nil {
+		w.failScan(pctx, &sc, p, "internal", "Saving results failed: "+err.Error())
 		return err
 	}
 	lg.add(ctx, "✔ Completed: %d issues, score %d/100, quality gate %s", len(rep.Issues), rep.Score, rep.Gate.Result)

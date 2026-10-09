@@ -33,10 +33,25 @@ leaves your machine. Reports land in `./scanx-results/` (`scanx.html`, `scanx.js
 high or critical finding), `2` scan error, `3` bad options. See an
 [example report](docs/examples/php-vuln-report.html) of the bundled vulnerable fixture.
 
-Scanners in this release: **Opengrep** (multi-language SAST with 776 open-licensed rules, incl.
-scanX's own PHP taint rules), **Gitleaks** (working tree + git history), **Trivy** (dependencies,
-IaC, secrets, licenses), **OSV-Scanner** (dependencies, second opinion) and **Syft** (SBOM).
-Findings from different tools are merged into one issue.
+Scanners in this release (all open source, all run offline in a network-less container):
+
+| Tool | Looks at |
+|---|---|
+| **Opengrep** | source code (SAST), 776 open-licensed rules incl. scanX's own PHP taint rules; only rules for the repository's languages are loaded |
+| **DevSkim** (Microsoft) | security patterns in many languages incl. C# |
+| **Bandit** | Python security |
+| **Gitleaks** | leaked secrets in the working tree and git history |
+| **Trivy** | vulnerable dependencies, IaC misconfiguration, secrets, licenses |
+| **OSV-Scanner** | vulnerable dependencies (second opinion, Google OSV) |
+| **Checkov** | infrastructure as code: Dockerfile, Kubernetes, Terraform, Helm, Bicep, CI pipelines |
+| **zizmor** | GitHub Actions workflow security (injection, secret exposure, dangerous triggers) |
+| **Hadolint** | Dockerfile best practice and security |
+| **ShellCheck** | shell script bugs |
+| **Lizard** | code complexity (code-quality score, not part of the security grade) |
+| **Syft** | SBOM (CycloneDX) |
+
+Findings from different tools are merged into one issue. Pushes are scanned incrementally (only the
+files the push changed); "Scan now" runs a full scan.
 
 ## What scanX does (target v1.0)
 

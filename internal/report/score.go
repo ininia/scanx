@@ -26,15 +26,18 @@ var severityPoints = map[finding.Severity]float64{
 const scoreHalfAt = 50.0 // penalty points at which a category scores 50
 
 // ScoreCategories in display order with their weight in the overall score.
+// Code quality is shown but does not count towards the security score.
 var ScoreCategories = []struct {
 	ID     string
 	Weight float64
-}{{"sast", 35}, {"secret", 25}, {"sca", 25}, {"iac", 15}}
+}{{"sast", 35}, {"secret", 25}, {"sca", 25}, {"iac", 15}, {"quality", 0}}
 
 // scoreCategory maps finding categories onto the scored ones.
 func scoreCategory(c finding.Category) string {
 	switch c {
-	case finding.CategorySAST, finding.CategoryQuality, finding.CategoryDAST:
+	case finding.CategoryQuality:
+		return "quality"
+	case finding.CategorySAST, finding.CategoryDAST:
 		return "sast"
 	case finding.CategorySecret:
 		return "secret"
@@ -57,6 +60,12 @@ func toolCategories(toolID string) []string {
 		return []string{"sca", "iac", "secret"}
 	case strings.HasPrefix(toolID, "osv"):
 		return []string{"sca"}
+	case toolID == "devskim", toolID == "bandit":
+		return []string{"sast"}
+	case toolID == "checkov", toolID == "hadolint", toolID == "zizmor":
+		return []string{"iac"}
+	case toolID == "lizard", toolID == "shellcheck":
+		return []string{"quality"}
 	}
 	return nil
 }
@@ -67,6 +76,7 @@ type CategoryScore struct {
 	Score    int    `json:"score"`
 	Groups   int    `json:"groups"` // distinct (rule, file) problems
 	Analysed bool   `json:"analysed"`
+	InGrade  bool   `json:"in_grade"` // counts towards the overall score
 }
 
 // ScoreCard is the overall score with its grade and per-category scores.
@@ -132,10 +142,10 @@ func Score(issues []finding.Issue, tools []engine.ToolRun) ScoreCard {
 	card := ScoreCard{}
 	var sum, weights float64
 	for _, c := range ScoreCategories {
-		cs := CategoryScore{Category: c.ID, Groups: groups[c.ID], Analysed: analysed[c.ID]}
+		cs := CategoryScore{Category: c.ID, Groups: groups[c.ID], Analysed: analysed[c.ID], InGrade: c.Weight > 0}
 		v := 100 / (1 + points[c.ID]/scoreHalfAt)
 		cs.Score = int(math.Round(v))
-		if cs.Analysed {
+		if cs.Analysed && c.Weight > 0 {
 			sum += v * c.Weight
 			weights += c.Weight
 		}
