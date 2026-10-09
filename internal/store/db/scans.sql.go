@@ -14,7 +14,7 @@ import (
 )
 
 const activeManualScan = `-- name: ActiveManualScan :one
-SELECT id, org_id, project_id, trigger, triggered_by, branch, commit_sha, commit_message, commit_author, status, status_reason, partial, summary, gate_result, score, new_issues, fixed_issues, queued_at, started_at, finished_at, cleaned_at, log FROM scans WHERE org_id = $1 AND project_id = $2 AND branch = $3 AND status = 'queued' AND commit_sha = ''
+SELECT id, org_id, project_id, trigger, triggered_by, branch, commit_sha, commit_message, commit_author, status, status_reason, partial, summary, gate_result, score, new_issues, fixed_issues, queued_at, started_at, finished_at, cleaned_at, log, scope, base_sha, changed_files FROM scans WHERE org_id = $1 AND project_id = $2 AND branch = $3 AND status = 'queued' AND commit_sha = ''
 LIMIT 1
 `
 
@@ -50,6 +50,9 @@ func (q *Queries) ActiveManualScan(ctx context.Context, arg ActiveManualScanPara
 		&i.FinishedAt,
 		&i.CleanedAt,
 		&i.Log,
+		&i.Scope,
+		&i.BaseSha,
+		&i.ChangedFiles,
 	)
 	return i, err
 }
@@ -247,11 +250,12 @@ func (q *Queries) CreateSSHKey(ctx context.Context, arg CreateSSHKeyParams) erro
 
 const createScan = `-- name: CreateScan :one
 
-INSERT INTO scans (id, org_id, project_id, trigger, triggered_by, branch, commit_sha, commit_message, commit_author)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+INSERT INTO scans (id, org_id, project_id, trigger, triggered_by, branch, commit_sha, commit_message, commit_author,
+                   scope, base_sha)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 ON CONFLICT (project_id, branch, commit_sha)
     WHERE status IN ('queued', 'cloning', 'scanning', 'reporting') AND commit_sha <> '' DO NOTHING
-RETURNING id, org_id, project_id, trigger, triggered_by, branch, commit_sha, commit_message, commit_author, status, status_reason, partial, summary, gate_result, score, new_issues, fixed_issues, queued_at, started_at, finished_at, cleaned_at, log
+RETURNING id, org_id, project_id, trigger, triggered_by, branch, commit_sha, commit_message, commit_author, status, status_reason, partial, summary, gate_result, score, new_issues, fixed_issues, queued_at, started_at, finished_at, cleaned_at, log, scope, base_sha, changed_files
 `
 
 type CreateScanParams struct {
@@ -264,6 +268,8 @@ type CreateScanParams struct {
 	CommitSha     string
 	CommitMessage string
 	CommitAuthor  string
+	Scope         string
+	BaseSha       string
 }
 
 // ---------- scans ----------
@@ -278,6 +284,8 @@ func (q *Queries) CreateScan(ctx context.Context, arg CreateScanParams) (Scan, e
 		arg.CommitSha,
 		arg.CommitMessage,
 		arg.CommitAuthor,
+		arg.Scope,
+		arg.BaseSha,
 	)
 	var i Scan
 	err := row.Scan(
@@ -303,6 +311,9 @@ func (q *Queries) CreateScan(ctx context.Context, arg CreateScanParams) (Scan, e
 		&i.FinishedAt,
 		&i.CleanedAt,
 		&i.Log,
+		&i.Scope,
+		&i.BaseSha,
+		&i.ChangedFiles,
 	)
 	return i, err
 }
@@ -599,7 +610,7 @@ func (q *Queries) GetReport(ctx context.Context, arg GetReportParams) ([]byte, e
 }
 
 const getScan = `-- name: GetScan :one
-SELECT id, org_id, project_id, trigger, triggered_by, branch, commit_sha, commit_message, commit_author, status, status_reason, partial, summary, gate_result, score, new_issues, fixed_issues, queued_at, started_at, finished_at, cleaned_at, log FROM scans WHERE org_id = $1 AND id = $2
+SELECT id, org_id, project_id, trigger, triggered_by, branch, commit_sha, commit_message, commit_author, status, status_reason, partial, summary, gate_result, score, new_issues, fixed_issues, queued_at, started_at, finished_at, cleaned_at, log, scope, base_sha, changed_files FROM scans WHERE org_id = $1 AND id = $2
 `
 
 type GetScanParams struct {
@@ -633,12 +644,15 @@ func (q *Queries) GetScan(ctx context.Context, arg GetScanParams) (Scan, error) 
 		&i.FinishedAt,
 		&i.CleanedAt,
 		&i.Log,
+		&i.Scope,
+		&i.BaseSha,
+		&i.ChangedFiles,
 	)
 	return i, err
 }
 
 const getScanByID = `-- name: GetScanByID :one
-SELECT id, org_id, project_id, trigger, triggered_by, branch, commit_sha, commit_message, commit_author, status, status_reason, partial, summary, gate_result, score, new_issues, fixed_issues, queued_at, started_at, finished_at, cleaned_at, log FROM scans WHERE id = $1
+SELECT id, org_id, project_id, trigger, triggered_by, branch, commit_sha, commit_message, commit_author, status, status_reason, partial, summary, gate_result, score, new_issues, fixed_issues, queued_at, started_at, finished_at, cleaned_at, log, scope, base_sha, changed_files FROM scans WHERE id = $1
 `
 
 func (q *Queries) GetScanByID(ctx context.Context, id uuid.UUID) (Scan, error) {
@@ -667,6 +681,9 @@ func (q *Queries) GetScanByID(ctx context.Context, id uuid.UUID) (Scan, error) {
 		&i.FinishedAt,
 		&i.CleanedAt,
 		&i.Log,
+		&i.Scope,
+		&i.BaseSha,
+		&i.ChangedFiles,
 	)
 	return i, err
 }
@@ -956,7 +973,7 @@ func (q *Queries) ListNotificationChannels(ctx context.Context, orgID uuid.UUID)
 }
 
 const listOrgScans = `-- name: ListOrgScans :many
-SELECT s.id, s.org_id, s.project_id, s.trigger, s.triggered_by, s.branch, s.commit_sha, s.commit_message, s.commit_author, s.status, s.status_reason, s.partial, s.summary, s.gate_result, s.score, s.new_issues, s.fixed_issues, s.queued_at, s.started_at, s.finished_at, s.cleaned_at, s.log, p.name AS project_name, p.slug AS project_slug
+SELECT s.id, s.org_id, s.project_id, s.trigger, s.triggered_by, s.branch, s.commit_sha, s.commit_message, s.commit_author, s.status, s.status_reason, s.partial, s.summary, s.gate_result, s.score, s.new_issues, s.fixed_issues, s.queued_at, s.started_at, s.finished_at, s.cleaned_at, s.log, s.scope, s.base_sha, s.changed_files, p.name AS project_name, p.slug AS project_slug
 FROM scans s JOIN projects p ON p.id = s.project_id
 WHERE s.org_id = $1 ORDER BY s.queued_at DESC LIMIT $2
 `
@@ -989,6 +1006,9 @@ type ListOrgScansRow struct {
 	FinishedAt    *time.Time
 	CleanedAt     *time.Time
 	Log           string
+	Scope         string
+	BaseSha       string
+	ChangedFiles  *int32
 	ProjectName   string
 	ProjectSlug   string
 }
@@ -1025,6 +1045,9 @@ func (q *Queries) ListOrgScans(ctx context.Context, arg ListOrgScansParams) ([]L
 			&i.FinishedAt,
 			&i.CleanedAt,
 			&i.Log,
+			&i.Scope,
+			&i.BaseSha,
+			&i.ChangedFiles,
 			&i.ProjectName,
 			&i.ProjectSlug,
 		); err != nil {
@@ -1094,7 +1117,7 @@ func (q *Queries) ListProjectIssues(ctx context.Context, arg ListProjectIssuesPa
 }
 
 const listProjectScans = `-- name: ListProjectScans :many
-SELECT id, org_id, project_id, trigger, triggered_by, branch, commit_sha, commit_message, commit_author, status, status_reason, partial, summary, gate_result, score, new_issues, fixed_issues, queued_at, started_at, finished_at, cleaned_at, log FROM scans WHERE org_id = $1 AND project_id = $2 ORDER BY queued_at DESC LIMIT $3
+SELECT id, org_id, project_id, trigger, triggered_by, branch, commit_sha, commit_message, commit_author, status, status_reason, partial, summary, gate_result, score, new_issues, fixed_issues, queued_at, started_at, finished_at, cleaned_at, log, scope, base_sha, changed_files FROM scans WHERE org_id = $1 AND project_id = $2 ORDER BY queued_at DESC LIMIT $3
 `
 
 type ListProjectScansParams struct {
@@ -1135,6 +1158,9 @@ func (q *Queries) ListProjectScans(ctx context.Context, arg ListProjectScansPara
 			&i.FinishedAt,
 			&i.CleanedAt,
 			&i.Log,
+			&i.Scope,
+			&i.BaseSha,
+			&i.ChangedFiles,
 		); err != nil {
 			return nil, err
 		}
@@ -1318,8 +1344,30 @@ func (q *Queries) MarkMissingIssuesFixed(ctx context.Context, arg MarkMissingIss
 	return result.RowsAffected(), nil
 }
 
+const markMissingIssuesFixedInFiles = `-- name: MarkMissingIssuesFixedInFiles :execrows
+UPDATE issues SET status = 'fixed', fixed_in_scan_id = $1::uuid, updated_at = now()
+WHERE project_id = $2::uuid AND status = 'open'
+  AND file = ANY($3::text[])
+  AND id NOT IN (SELECT issue_id FROM scan_issues WHERE scan_id = $1::uuid)
+`
+
+type MarkMissingIssuesFixedInFilesParams struct {
+	ScanID    uuid.UUID
+	ProjectID uuid.UUID
+	Files     []string
+}
+
+// Diff scans: only issues in files the push touched can be proven fixed.
+func (q *Queries) MarkMissingIssuesFixedInFiles(ctx context.Context, arg MarkMissingIssuesFixedInFilesParams) (int64, error) {
+	result, err := q.db.Exec(ctx, markMissingIssuesFixedInFiles, arg.ScanID, arg.ProjectID, arg.Files)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const projectsMissingCredentials = `-- name: ProjectsMissingCredentials :many
-SELECT p.id, p.org_id, p.name, p.slug, p.repo_url, p.provider, p.auth_mode, p.branches, p.settings, p.schedule_cron, p.created_at, p.updated_at, p.archived_at, p.webhook_secret_enc, p.webhook_secret_nonce, p.fail_on, p.scan_history, p.sast_timeout_minutes FROM projects p
+SELECT p.id, p.org_id, p.name, p.slug, p.repo_url, p.provider, p.auth_mode, p.branches, p.settings, p.schedule_cron, p.created_at, p.updated_at, p.archived_at, p.webhook_secret_enc, p.webhook_secret_nonce, p.fail_on, p.scan_history, p.sast_timeout_minutes, p.push_scope FROM projects p
 WHERE p.webhook_secret_enc IS NULL
    OR NOT EXISTS (SELECT 1 FROM ssh_keys k WHERE k.project_id = p.id AND k.status = 'active')
 `
@@ -1353,6 +1401,7 @@ func (q *Queries) ProjectsMissingCredentials(ctx context.Context) ([]Project, er
 			&i.FailOn,
 			&i.ScanHistory,
 			&i.SastTimeoutMinutes,
+			&i.PushScope,
 		); err != nil {
 			return nil, err
 		}
@@ -1411,6 +1460,21 @@ type SetScanLogParams struct {
 
 func (q *Queries) SetScanLog(ctx context.Context, arg SetScanLogParams) error {
 	_, err := q.db.Exec(ctx, setScanLog, arg.ID, arg.Log)
+	return err
+}
+
+const setScanScope = `-- name: SetScanScope :exec
+UPDATE scans SET scope = $2, changed_files = $3 WHERE id = $1
+`
+
+type SetScanScopeParams struct {
+	ID           uuid.UUID
+	Scope        string
+	ChangedFiles *int32
+}
+
+func (q *Queries) SetScanScope(ctx context.Context, arg SetScanScopeParams) error {
+	_, err := q.db.Exec(ctx, setScanScope, arg.ID, arg.Scope, arg.ChangedFiles)
 	return err
 }
 
@@ -1477,7 +1541,7 @@ func (q *Queries) UpdateIssueStatus(ctx context.Context, arg UpdateIssueStatusPa
 }
 
 const updateProjectScanSettings = `-- name: UpdateProjectScanSettings :exec
-UPDATE projects SET fail_on = $3, scan_history = $4, sast_timeout_minutes = $5, updated_at = now()
+UPDATE projects SET fail_on = $3, scan_history = $4, sast_timeout_minutes = $5, push_scope = $6, updated_at = now()
 WHERE org_id = $1 AND id = $2
 `
 
@@ -1487,6 +1551,7 @@ type UpdateProjectScanSettingsParams struct {
 	FailOn             string
 	ScanHistory        bool
 	SastTimeoutMinutes int32
+	PushScope          string
 }
 
 func (q *Queries) UpdateProjectScanSettings(ctx context.Context, arg UpdateProjectScanSettingsParams) error {
@@ -1496,6 +1561,7 @@ func (q *Queries) UpdateProjectScanSettings(ctx context.Context, arg UpdateProje
 		arg.FailOn,
 		arg.ScanHistory,
 		arg.SastTimeoutMinutes,
+		arg.PushScope,
 	)
 	return err
 }

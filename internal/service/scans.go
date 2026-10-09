@@ -17,6 +17,25 @@ import (
 	"github.com/ininia/scanx/internal/store/db"
 )
 
+// Scan scopes.
+const (
+	ScopeFull = "full"
+	ScopeDiff = "diff"
+)
+
+// validSHA reports whether s is a full, non-zero git commit id.
+func validSHA(s string) bool {
+	if (len(s) != 40 && len(s) != 64) || strings.Trim(s, "0") == "" {
+		return false
+	}
+	for _, r := range s {
+		if !strings.ContainsRune("0123456789abcdef", r) {
+			return false
+		}
+	}
+	return true
+}
+
 // Job kinds.
 const (
 	JobScan           = "scan"
@@ -182,7 +201,7 @@ const (
 
 // UpdateScanSettings changes the quality gate, history scanning and the
 // code-analysis time limit.
-func (s *Service) UpdateScanSettings(ctx context.Context, o *OrgCtx, slug, failOn string, history bool, sastMinutes int, m Meta) error {
+func (s *Service) UpdateScanSettings(ctx context.Context, o *OrgCtx, slug, failOn string, history bool, sastMinutes int, pushScope string, m Meta) error {
 	p, err := s.GetProject(ctx, o, slug)
 	if err != nil {
 		return err
@@ -200,23 +219,37 @@ func (s *Service) UpdateScanSettings(ctx context.Context, o *OrgCtx, slug, failO
 	if sastMinutes < MinSASTMinutes || sastMinutes > MaxSASTMinutes {
 		return invalid("sast_timeout", "invalid")
 	}
+	if pushScope != ScopeDiff && pushScope != ScopeFull {
+		return invalid("push_scope", "invalid")
+	}
 	return wrap("scan settings", s.db.Tx(ctx, o.Scope(), func(q *db.Queries) error {
 		if err := q.UpdateProjectScanSettings(ctx, db.UpdateProjectScanSettingsParams{
 			OrgID: o.Org.ID, ID: p.ID, FailOn: failOn, ScanHistory: history, SastTimeoutMinutes: int32(sastMinutes), //nolint:gosec // validated range
+			PushScope: pushScope,
 		}); err != nil {
 			return err
 		}
 		return audit(ctx, q, &o.Org.ID, &o.P.UserID, "project.scan_settings_updated", "project", p.ID.String(), m,
-			map[string]any{"fail_on": failOn, "history": history, "sast_timeout_minutes": sastMinutes})
+			map[string]any{"fail_on": failOn, "history": history, "sast_timeout_minutes": sastMinutes, "push_scope": pushScope})
 	}))
 }
 
 // enqueueScan creates a scan and its job. It returns (nil, nil) when an
 // identical scan (same branch and commit) is already queued or running.
-func enqueueScan(ctx context.Context, q *db.Queries, p *db.Project, trigger string, by *uuid.UUID, branch, commit, msg, author string) (*db.Scan, error) {
+// A push is scanned incrementally (only the files it changed) when the
+// project asks for it and the previous commit is known; everything else is a
+// full scan. The worker falls back to a full scan if the diff cannot be made.
+func enqueueScan(ctx context.Context, q *db.Queries, p *db.Project, trigger string, by *uuid.UUID, branch, commit, msg, author, base string) (*db.Scan, error) {
+	scope := ScopeFull
+	if trigger == TriggerWebhook && p.PushScope == ScopeDiff && validSHA(base) && validSHA(commit) {
+		scope = ScopeDiff
+	} else {
+		base = ""
+	}
 	sc, err := q.CreateScan(ctx, db.CreateScanParams{
 		ID: newID(), OrgID: p.OrgID, ProjectID: p.ID, Trigger: trigger, TriggeredBy: by, Branch: branch,
 		CommitSha: commit, CommitMessage: trunc(msg, 500), CommitAuthor: trunc(author, 200),
+		Scope: scope, BaseSha: base,
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -278,7 +311,7 @@ func (s *Service) TriggerScan(ctx context.Context, o *OrgCtx, slug, branch, trig
 			return nil
 		}
 		var err error
-		if sc, err = enqueueScan(ctx, q, p, trigger, &o.P.UserID, branch, "", "", ""); err != nil {
+		if sc, err = enqueueScan(ctx, q, p, trigger, &o.P.UserID, branch, "", "", "", ""); err != nil {
 			return err
 		}
 		return audit(ctx, q, &o.Org.ID, &o.P.UserID, "scan.triggered", "scan", sc.ID.String(), m,

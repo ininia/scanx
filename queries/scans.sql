@@ -21,7 +21,7 @@ UPDATE projects SET webhook_secret_enc = $3, webhook_secret_nonce = $4, updated_
 WHERE org_id = $1 AND id = $2;
 
 -- name: UpdateProjectScanSettings :exec
-UPDATE projects SET fail_on = $3, scan_history = $4, sast_timeout_minutes = $5, updated_at = now()
+UPDATE projects SET fail_on = $3, scan_history = $4, sast_timeout_minutes = $5, push_scope = $6, updated_at = now()
 WHERE org_id = $1 AND id = $2;
 
 -- name: LookupWebhookProject :one
@@ -76,8 +76,9 @@ SELECT count(*) FROM jobs WHERE status IN ('queued', 'running');
 -- ---------- scans ----------
 
 -- name: CreateScan :one
-INSERT INTO scans (id, org_id, project_id, trigger, triggered_by, branch, commit_sha, commit_message, commit_author)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+INSERT INTO scans (id, org_id, project_id, trigger, triggered_by, branch, commit_sha, commit_message, commit_author,
+                   scope, base_sha)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 ON CONFLICT (project_id, branch, commit_sha)
     WHERE status IN ('queued', 'cloning', 'scanning', 'reporting') AND commit_sha <> '' DO NOTHING
 RETURNING *;
@@ -104,6 +105,16 @@ WHERE s.org_id = $1 ORDER BY s.queued_at DESC LIMIT $2;
 UPDATE scans SET status = $2, status_reason = $3,
     started_at = CASE WHEN $2 = 'cloning' THEN coalesce(started_at, now()) ELSE started_at END
 WHERE id = $1;
+
+-- name: SetScanScope :exec
+UPDATE scans SET scope = $2, changed_files = $3 WHERE id = $1;
+
+-- name: MarkMissingIssuesFixedInFiles :execrows
+-- Diff scans: only issues in files the push touched can be proven fixed.
+UPDATE issues SET status = 'fixed', fixed_in_scan_id = sqlc.arg(scan_id)::uuid, updated_at = now()
+WHERE project_id = sqlc.arg(project_id)::uuid AND status = 'open'
+  AND file = ANY(sqlc.arg(files)::text[])
+  AND id NOT IN (SELECT issue_id FROM scan_issues WHERE scan_id = sqlc.arg(scan_id)::uuid);
 
 -- name: SetScanLog :exec
 UPDATE scans SET log = $2 WHERE id = $1;

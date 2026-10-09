@@ -20,6 +20,14 @@ type NormalizeOptions struct {
 func Normalize(findings []Finding, opt NormalizeOptions) {
 	for i := range findings {
 		f := &findings[i]
+		if opt.SourceRoot != "" {
+			// Tools report absolute paths under the scanned root (which is
+			// not /work/src for incremental scans or local runs).
+			root := strings.TrimSuffix(filepath.ToSlash(opt.SourceRoot), "/") + "/"
+			if rel, ok := strings.CutPrefix(filepath.ToSlash(f.File), root); ok {
+				f.File = rel
+			}
+		}
 		f.File = CleanPath(f.File)
 		if f.EndLine < f.StartLine {
 			f.EndLine = f.StartLine

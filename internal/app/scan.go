@@ -56,9 +56,12 @@ type ScanOptions struct {
 	NoSnippets  bool
 	Parallelism int
 	SASTTimeout time.Duration
-	Branch      string
-	Commit      string
-	Repo        string
+	// OnlyFiles names a file listing repository-relative paths (one per
+	// line); only those files are scanned (incremental scan of a push).
+	OnlyFiles string
+	Branch    string
+	Commit    string
+	Repo      string
 	// DisplayPath / DisplayOut are the host paths shown to the user when the
 	// scan runs inside the scanner container (docker engine).
 	DisplayPath string
@@ -154,6 +157,15 @@ func runExecScan(ctx context.Context, o ScanOptions, policy report.Policy, stdou
 		return ExitScanError
 	}
 	defer func() { _ = os.RemoveAll(tmp) }()
+	if o.OnlyFiles != "" {
+		scoped, n, err := scopeTree(o.Path, o.OnlyFiles, tmp)
+		if err != nil {
+			fmt.Fprintln(stderr, "--only-files:", err)
+			return ExitConfig
+		}
+		fmt.Fprintf(stderr, "[%s] incremental scan: %d changed files\n", time.Now().Format("15:04:05"), n)
+		o.Path, o.History = scoped, false
+	}
 
 	env := scanner.Env{
 		SourceDir: o.Path,
@@ -372,4 +384,59 @@ func dockerArgs(o ScanOptions, image string) []string {
 		}
 	}
 	return args
+}
+
+// scopeTree copies the listed files of src into a new directory under tmp so
+// that every scanner sees only them, with unchanged relative paths. Paths
+// escaping src, symlinks and non-regular files are ignored.
+func scopeTree(src, listFile, tmp string) (string, int, error) {
+	list, err := os.ReadFile(listFile) //nolint:gosec // path chosen by the worker
+	if err != nil {
+		return "", 0, err
+	}
+	dst := filepath.Join(tmp, "changed")
+	if err := os.MkdirAll(dst, 0o750); err != nil {
+		return "", 0, err
+	}
+	n := 0
+	for _, rel := range strings.Split(string(list), "\n") {
+		rel = strings.TrimSpace(rel)
+		if rel == "" {
+			continue
+		}
+		from, err := finding.SafeJoin(src, rel)
+		if err != nil {
+			continue
+		}
+		st, err := os.Lstat(from) //nolint:gosec // from is confined to src by SafeJoin
+		if err != nil || !st.Mode().IsRegular() || st.Size() > 20<<20 {
+			continue
+		}
+		to := filepath.Join(dst, filepath.FromSlash(filepath.ToSlash(rel)))
+		if err := os.MkdirAll(filepath.Dir(to), 0o750); err != nil { //nolint:gosec // rel already validated by SafeJoin
+			return "", 0, err
+		}
+		if err := copyFile(from, to); err != nil {
+			return "", 0, err
+		}
+		n++
+	}
+	return dst, n, nil
+}
+
+func copyFile(from, to string) error {
+	in, err := os.Open(from) //nolint:gosec // validated by SafeJoin
+	if err != nil {
+		return err
+	}
+	defer func() { _ = in.Close() }()
+	out, err := os.OpenFile(to, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o640) //nolint:gosec // inside our temp dir
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(out, in); err != nil {
+		_ = out.Close()
+		return err
+	}
+	return out.Close()
 }

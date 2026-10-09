@@ -43,6 +43,7 @@ type Request struct {
 	RepoURL    string
 	Branch     string
 	Commit     string // optional: exact commit to check out
+	BaseCommit string // optional: diff base; the changed files are listed
 	SSHKey     []byte // OpenSSH private key (may be empty for public https repos)
 	KnownHosts string
 	Dest       string
@@ -61,13 +62,32 @@ type Result struct {
 	SizeMB   int      `json:"size_mb,omitempty"`
 	Branches []string `json:"branches,omitempty"`
 	Default  string   `json:"default_branch,omitempty"`
+	Diff     *Diff    `json:"diff,omitempty"`
 }
+
+// MaxDiffFiles is the largest incremental scan; bigger pushes are scanned in
+// full (a diff gains nothing).
+const MaxDiffFiles = 2000
+
+// Diff lists the files changed between BaseCommit and the checkout. The
+// added/modified paths are also written to ChangedListFile (one per line)
+// next to the checkout for the scan step.
+type Diff struct {
+	OK      bool     `json:"ok"`
+	Reason  string   `json:"reason,omitempty"` // why a full scan is needed
+	Base    string   `json:"base,omitempty"`
+	Changed []string `json:"changed,omitempty"` // added, copied, modified
+	Deleted []string `json:"deleted,omitempty"`
+}
+
+// ChangedListFile is written next to the checkout (…/work/changed.txt).
+const ChangedListFile = "changed.txt"
 
 // FromEnv builds a Request from SCANX_* variables.
 func FromEnv(getenv func(string) string) (*Request, error) {
 	r := &Request{
 		Mode: getenv("SCANX_FETCH_MODE"), RepoURL: getenv("SCANX_REPO_URL"), Branch: getenv("SCANX_BRANCH"),
-		Commit: getenv("SCANX_COMMIT"), KnownHosts: getenv("SCANX_KNOWN_HOSTS"), Dest: getenv("SCANX_DEST"),
+		Commit: getenv("SCANX_COMMIT"), BaseCommit: getenv("SCANX_BASE_COMMIT"), KnownHosts: getenv("SCANX_KNOWN_HOSTS"), Dest: getenv("SCANX_DEST"),
 		MaxMB: defaultMaxMB,
 	}
 	if r.Mode == "" {
@@ -118,6 +138,9 @@ func (r *Request) validate() error {
 		}
 		if r.Commit != "" && !shaRe.MatchString(r.Commit) {
 			return errors.New("invalid commit")
+		}
+		if r.BaseCommit != "" && !shaRe.MatchString(r.BaseCommit) {
+			return errors.New("invalid base commit")
 		}
 	}
 	return nil
@@ -330,7 +353,57 @@ func (g *git) clone(ctx context.Context, r *Request) *Result {
 	if len(parts) == 3 {
 		res.Commit, res.Author, res.Message = parts[0], truncate(parts[1], 200), truncate(parts[2], 500)
 	}
+	if r.BaseCommit != "" {
+		res.Diff = g.diff(ctx, r)
+	}
 	return res
+}
+
+// diff lists the files changed since r.BaseCommit. Any problem (force push,
+// unknown base, huge push) yields OK=false and the caller scans everything.
+func (g *git) diff(ctx context.Context, r *Request) *Diff {
+	d := &Diff{Base: r.BaseCommit}
+	if _, err := g.run(ctx, "cat-file", "-e", r.BaseCommit+"^{commit}"); err != nil {
+		// Shallow clones may miss the base: fetch just that commit.
+		if _, err := g.run(ctx, "fetch", "-q", "--no-tags", "--depth", "1", "origin", r.BaseCommit); err != nil {
+			d.Reason = "base commit not found (force push or first push)"
+			return d
+		}
+	}
+	list := func(filter string) ([]string, error) {
+		out, err := g.run(ctx, "diff", "--name-only", "-z", "--no-renames", "--diff-filter="+filter, r.BaseCommit, "HEAD", "--")
+		if err != nil {
+			return nil, err
+		}
+		var files []string
+		for _, f := range strings.Split(out, "\x00") {
+			if f != "" {
+				files = append(files, f)
+			}
+		}
+		return files, nil
+	}
+	var err error
+	if d.Changed, err = list("ACMT"); err != nil {
+		d.Reason = "git diff failed"
+		return d
+	}
+	if d.Deleted, err = list("D"); err != nil {
+		d.Reason = "git diff failed"
+		return d
+	}
+	if len(d.Changed)+len(d.Deleted) > MaxDiffFiles {
+		d.Changed, d.Deleted = nil, nil
+		d.Reason = fmt.Sprintf("more than %d files changed", MaxDiffFiles)
+		return d
+	}
+	listFile := filepath.Join(filepath.Dir(r.Dest), ChangedListFile)
+	if err := os.WriteFile(listFile, []byte(strings.Join(d.Changed, "\n")), 0o640); err != nil { //nolint:gosec // inside the scan volume
+		d.Reason = "cannot write the changed-file list"
+		return d
+	}
+	d.OK = true
+	return d
 }
 
 func truncate(s string, n int) string {

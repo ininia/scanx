@@ -39,6 +39,7 @@ var (
 // pushEvent is the provider-independent content of a push.
 type pushEvent struct {
 	Ref     string
+	Before  string // previous tip of the branch (diff base)
 	Commit  string
 	Message string
 	Author  string
@@ -123,7 +124,8 @@ func (s *Service) HandleWebhook(ctx context.Context, provider, projectID string,
 		if err != nil {
 			return err
 		}
-		sc, err := enqueueScan(ctx, q, &p, TriggerWebhook, nil, push.Ref, strings.ToLower(push.Commit), push.Message, push.Author)
+		sc, err := enqueueScan(ctx, q, &p, TriggerWebhook, nil, push.Ref, strings.ToLower(push.Commit), push.Message, push.Author,
+			strings.ToLower(push.Before))
 		if err != nil {
 			return err
 		}
@@ -257,6 +259,7 @@ func parsePush(provider string, body []byte) (*pushEvent, error) {
 	case "github", "gitea":
 		var p struct {
 			Ref        string `json:"ref"`
+			Before     string `json:"before"`
 			After      string `json:"after"`
 			Deleted    bool   `json:"deleted"`
 			HeadCommit *struct {
@@ -271,7 +274,7 @@ func parsePush(provider string, body []byte) (*pushEvent, error) {
 		if err := json.Unmarshal(body, &p); err != nil {
 			return nil, err
 		}
-		ev := &pushEvent{Ref: p.Ref, Commit: p.After, Deleted: p.Deleted}
+		ev := &pushEvent{Ref: p.Ref, Before: p.Before, Commit: p.After, Deleted: p.Deleted}
 		if p.HeadCommit != nil {
 			if p.HeadCommit.ID != "" {
 				ev.Commit = p.HeadCommit.ID
@@ -283,6 +286,7 @@ func parsePush(provider string, body []byte) (*pushEvent, error) {
 	case "gitlab":
 		var p struct {
 			Ref         string `json:"ref"`
+			Before      string `json:"before"`
 			After       string `json:"after"`
 			CheckoutSHA string `json:"checkout_sha"`
 			Commits     []struct {
@@ -297,7 +301,7 @@ func parsePush(provider string, body []byte) (*pushEvent, error) {
 		if err := json.Unmarshal(body, &p); err != nil {
 			return nil, err
 		}
-		ev := &pushEvent{Ref: p.Ref, Commit: p.CheckoutSHA}
+		ev := &pushEvent{Ref: p.Ref, Before: p.Before, Commit: p.CheckoutSHA}
 		if ev.Commit == "" {
 			ev.Commit = p.After
 		}
@@ -312,6 +316,11 @@ func parsePush(provider string, body []byte) (*pushEvent, error) {
 		var p struct {
 			Push struct {
 				Changes []struct {
+					Old *struct {
+						Target struct {
+							Hash string `json:"hash"`
+						} `json:"target"`
+					} `json:"old"`
 					New *struct {
 						Type   string `json:"type"`
 						Name   string `json:"name"`
@@ -343,6 +352,7 @@ func parsePush(provider string, body []byte) (*pushEvent, error) {
 		var p struct {
 			Ref     string `json:"ref"`
 			Branch  string `json:"branch"`
+			Before  string `json:"before"`
 			Commit  string `json:"commit"`
 			Message string `json:"message"`
 			Author  string `json:"author"`
@@ -350,7 +360,7 @@ func parsePush(provider string, body []byte) (*pushEvent, error) {
 		if err := json.Unmarshal(body, &p); err != nil {
 			return nil, err
 		}
-		ev := &pushEvent{Ref: p.Ref, Commit: p.Commit, Message: firstLine(p.Message), Author: p.Author}
+		ev := &pushEvent{Ref: p.Ref, Before: p.Before, Commit: p.Commit, Message: firstLine(p.Message), Author: p.Author}
 		if ev.Ref == "" && p.Branch != "" {
 			ev.Ref = "refs/heads/" + p.Branch
 		}

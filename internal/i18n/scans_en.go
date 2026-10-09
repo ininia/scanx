@@ -213,6 +213,13 @@ var enScans = map[string]string{
 	"score.cat.iac":              "Infrastructure config",
 	"score.not_analysed":         "not analysed",
 	"score.groups":               "%d distinct problems",
+	"scope.diff":                 "Changed files",
+	"scope.full":                 "Full scan",
+	"scope.diff_hint":            "Only files added or changed by this push were scanned; issues in other files are unchanged.",
+	"scope.option.diff":          "Only changed files (recommended, fast)",
+	"scope.option.full":          "Full scan on every push",
+	"settings.push_scope":        "Scan scope on push",
+	"settings.push_scope_hint":   "On push only the files changed by that push are scanned. “Scan now” always runs a full scan.",
 }
 
 func init() {

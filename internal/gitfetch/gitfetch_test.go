@@ -3,6 +3,9 @@ package gitfetch
 import (
 	"encoding/base64"
 	"errors"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -62,5 +65,59 @@ func TestParseResult(t *testing.T) {
 	}
 	if _, err := ParseResult([]byte("nothing")); err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+func TestDiffListsChangedFiles(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git not installed")
+	}
+	tmp := t.TempDir()
+	repo := filepath.Join(tmp, "src")
+	g := &git{
+		env: []string{
+			"HOME=" + tmp, "PATH=" + os.Getenv("PATH"), "GIT_CONFIG_NOSYSTEM=1",
+			"GIT_AUTHOR_NAME=t", "GIT_AUTHOR_EMAIL=t@x", "GIT_COMMITTER_NAME=t", "GIT_COMMITTER_EMAIL=t@x",
+		},
+		stderr: &strings.Builder{}, dir: repo,
+	}
+	must := func(args ...string) string {
+		out, err := g.run(t.Context(), args...)
+		if err != nil {
+			t.Fatal(args, err)
+		}
+		return strings.TrimSpace(out)
+	}
+	write := func(name, body string) {
+		p := filepath.Join(repo, name)
+		_ = os.MkdirAll(filepath.Dir(p), 0o750)
+		if err := os.WriteFile(p, []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	_ = os.MkdirAll(repo, 0o750)
+	must("init", "-q", ".")
+	write("keep.cs", "a")
+	write("old.cs", "b")
+	write("edit.cs", "c")
+	must("add", ".")
+	must("commit", "-q", "-m", "one")
+	base := must("rev-parse", "HEAD")
+	write("edit.cs", "c2")
+	write("dir/new file.js", "d")
+	must("rm", "-q", "old.cs")
+	must("add", ".")
+	must("commit", "-q", "-m", "two")
+
+	d := g.diff(t.Context(), &Request{BaseCommit: base, Dest: repo})
+	if !d.OK || strings.Join(d.Changed, ",") != "dir/new file.js,edit.cs" || strings.Join(d.Deleted, ",") != "old.cs" {
+		t.Fatalf("%+v", d)
+	}
+	list, err := os.ReadFile(filepath.Join(tmp, ChangedListFile))
+	if err != nil || string(list) != "dir/new file.js\nedit.cs" {
+		t.Fatalf("list %q %v", list, err)
+	}
+	if d := g.diff(t.Context(), &Request{BaseCommit: strings.Repeat("a", 40), Dest: repo}); d.OK || d.Reason == "" {
+		t.Fatalf("unknown base must fall back: %+v", d)
 	}
 }

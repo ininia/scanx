@@ -264,3 +264,47 @@ func TestEnsureProjectCredentialsBackfill(t *testing.T) {
 		t.Fatalf("second run touched %d projects", n)
 	}
 }
+
+func TestPushScopeDiff(t *testing.T) {
+	s, d := newService(t)
+	ctx := context.Background()
+	alice, _ := newUser(t, s, d, false)
+	o := newOrg(t, s, alice)
+	p, err := s.CreateProject(ctx, o, ProjectInput{RepoURL: "git@github.com:acme/" + uniq("r") + ".git"}, Meta{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	secret, _ := s.WebhookSecret(ctx, o, p.Slug)
+	before := strings.Repeat("b", 40)
+	body := []byte(`{"ref":"refs/heads/main","before":"` + before + `","after":"` + testSHA + `"}`)
+	res, err := s.HandleWebhook(ctx, "github", p.ID.String(), githubHeaders(secret, body, uniq("d")), body)
+	if err != nil || res.ScanID == nil {
+		t.Fatalf("%+v %v", res, err)
+	}
+	v, err := s.GetScan(ctx, o, res.ScanID.String(), false)
+	if err != nil || v.Scan.Scope != ScopeDiff || v.Scan.BaseSha != before {
+		t.Fatalf("webhook scan scope %q base %q %v", v.Scan.Scope, v.Scan.BaseSha, err)
+	}
+	// A new branch push (before = zeros) cannot be diffed → full.
+	body = []byte(`{"ref":"refs/heads/main","before":"` + strings.Repeat("0", 40) + `","after":"` + strings.Repeat("c", 40) + `"}`)
+	res, _ = s.HandleWebhook(ctx, "github", p.ID.String(), githubHeaders(secret, body, uniq("d")), body)
+	if v, _ := s.GetScan(ctx, o, res.ScanID.String(), false); v.Scan.Scope != ScopeFull {
+		t.Fatalf("zero base: %q", v.Scan.Scope)
+	}
+	// Manual scans are always full; projects can opt out of diff scans.
+	sc, _ := s.TriggerScan(ctx, o, p.Slug, "main", TriggerManual, Meta{})
+	if sc.Scope != ScopeFull {
+		t.Fatalf("manual: %q", sc.Scope)
+	}
+	if err := s.UpdateScanSettings(ctx, o, p.Slug, "high", true, 20, ScopeFull, Meta{}); err != nil {
+		t.Fatal(err)
+	}
+	body = []byte(`{"ref":"refs/heads/main","before":"` + before + `","after":"` + strings.Repeat("d", 40) + `"}`)
+	res, _ = s.HandleWebhook(ctx, "github", p.ID.String(), githubHeaders(secret, body, uniq("d")), body)
+	if v, _ := s.GetScan(ctx, o, res.ScanID.String(), false); v.Scan.Scope != ScopeFull {
+		t.Fatalf("project full: %q", v.Scan.Scope)
+	}
+	if err := s.UpdateScanSettings(ctx, o, p.Slug, "high", true, 20, "partial", Meta{}); err == nil {
+		t.Fatal("invalid scope accepted")
+	}
+}

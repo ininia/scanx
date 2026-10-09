@@ -316,3 +316,11 @@ func TestSecretSnippetShownMasked(t *testing.T) {
 		t.Fatalf("snippet %q", fs[0].Snippet)
 	}
 }
+
+func TestNormalizeRelativizesToSourceRoot(t *testing.T) {
+	fs := []Finding{{Tool: "gitleaks", RuleID: "r", Category: CategorySAST, File: "/tmp/scanx-1/changed/src/App/a.cs"}}
+	Normalize(fs, NormalizeOptions{SourceRoot: "/tmp/scanx-1/changed"})
+	if fs[0].File != "src/App/a.cs" {
+		t.Fatalf("file %q", fs[0].File)
+	}
+}

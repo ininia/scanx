@@ -154,6 +154,7 @@ type Project struct {
 	FailOn             string
 	ScanHistory        bool
 	SastTimeoutMinutes int32
+	PushScope          string
 }
 
 type Report struct {
@@ -188,6 +189,9 @@ type Scan struct {
 	FinishedAt    *time.Time
 	CleanedAt     *time.Time
 	Log           string
+	Scope         string
+	BaseSha       string
+	ChangedFiles  *int32
 }
 
 type ScanIssue struct {

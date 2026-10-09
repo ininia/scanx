@@ -232,3 +232,4 @@ a.sev:hover{text-decoration:none;filter:brightness(1.2)}
 .bar .fill{display:block;height:100%}
 .bar .good{background:var(--ok)}.bar .mid{background:var(--sev-medium)}.bar .bad{background:var(--sev-critical)}
 .bar .w0{width:0%}.bar .w5{width:5%}.bar .w10{width:10%}.bar .w15{width:15%}.bar .w20{width:20%}.bar .w25{width:25%}.bar .w30{width:30%}.bar .w35{width:35%}.bar .w40{width:40%}.bar .w45{width:45%}.bar .w50{width:50%}.bar .w55{width:55%}.bar .w60{width:60%}.bar .w65{width:65%}.bar .w70{width:70%}.bar .w75{width:75%}.bar .w80{width:80%}.bar .w85{width:85%}.bar .w90{width:90%}.bar .w95{width:95%}.bar .w100{width:100%}
+.badge.scope-diff{color:var(--sev-low);border-color:color-mix(in srgb,var(--sev-low) 50%,transparent);margin-left:6px}.badge.scope-full{margin-left:6px}

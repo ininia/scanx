@@ -214,6 +214,13 @@ var trScans = map[string]string{
 	"score.cat.iac":              "Altyapı yapılandırması",
 	"score.not_analysed":         "taranmadı",
 	"score.groups":               "%d farklı sorun",
+	"scope.diff":                 "Değişen dosyalar",
+	"scope.full":                 "Tam tarama",
+	"scope.diff_hint":            "Sadece bu push'ta eklenen/değişen dosyalar tarandı; diğer dosyalardaki bulgular olduğu gibi duruyor.",
+	"scope.option.diff":          "Sadece değişen dosyalar (önerilen, hızlı)",
+	"scope.option.full":          "Her push'ta tam tarama",
+	"settings.push_scope":        "Push'ta tarama kapsamı",
+	"settings.push_scope_hint":   "Push geldiğinde yalnızca o push'ta değişen dosyalar taranır. “Şimdi tara” her zaman tam tarama yapar.",
 }
 
 func init() {

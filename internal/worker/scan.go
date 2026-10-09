@@ -44,6 +44,12 @@ var reportFiles = map[string]string{
 
 const maxReportBytes = 256 << 20
 
+func (w *Worker) setScope(ctx context.Context, id uuid.UUID, scope string, changed *int32) {
+	_ = w.db.Tx(ctx, superadmin, func(q *db.Queries) error {
+		return q.SetScanScope(ctx, db.SetScanScopeParams{ID: id, Scope: scope, ChangedFiles: changed})
+	})
+}
+
 func (w *Worker) setStatus(ctx context.Context, scanID uuid.UUID, status, reason string) {
 	_ = w.db.Tx(ctx, superadmin, func(q *db.Queries) error {
 		return q.SetScanStatus(ctx, db.SetScanStatusParams{ID: scanID, Status: status, StatusReason: reason})
@@ -137,6 +143,7 @@ func (w *Worker) watchCancel(ctx context.Context, id uuid.UUID, cancel context.C
 type fetchMeta struct {
 	commit, message, author string
 	sizeMB                  int
+	diff                    *gitfetch.Diff // non-nil for incremental scans
 }
 
 // execute runs fetch + scan and returns the parsed report and raw files.
@@ -150,6 +157,9 @@ func (w *Worker) execute(ctx context.Context, job *db.Job, sc *db.Scan, p *db.Pr
 	env = append(env, "SCANX_BRANCH="+sc.Branch)
 	if sc.CommitSha != "" {
 		env = append(env, "SCANX_COMMIT="+sc.CommitSha)
+	}
+	if sc.Scope == service.ScopeDiff && sc.BaseSha != "" {
+		env = append(env, "SCANX_BASE_COMMIT="+sc.BaseSha)
 	}
 
 	volume := fmt.Sprintf("scanx-%s-%d", sc.ID, job.Attempts)
@@ -179,6 +189,22 @@ func (w *Worker) execute(ctx context.Context, job *db.Job, sc *db.Scan, p *db.Pr
 	}
 	meta := &fetchMeta{commit: fr.Commit, message: fr.Message, author: fr.Author, sizeMB: fr.SizeMB}
 	lg.add(ctx, "✔ Cloned commit %s (%d MB)", ShortCommit(fr.Commit), fr.SizeMB)
+	if sc.Scope == service.ScopeDiff {
+		if fr.Diff != nil && fr.Diff.OK {
+			meta.diff = fr.Diff
+			n := int32(min(len(fr.Diff.Changed), 1<<30))
+			w.setScope(ctx, sc.ID, service.ScopeDiff, &n)
+			lg.add(ctx, "Incremental scan: %d changed and %d deleted files since %s", len(fr.Diff.Changed), len(fr.Diff.Deleted), ShortCommit(sc.BaseSha))
+		} else {
+			reason := "no diff"
+			if fr.Diff != nil {
+				reason = fr.Diff.Reason
+			}
+			sc.Scope = service.ScopeFull
+			w.setScope(ctx, sc.ID, service.ScopeFull, nil)
+			lg.add(ctx, "Full scan instead of incremental: %s", reason)
+		}
+	}
 	_ = w.db.Tx(ctx, superadmin, func(q *db.Queries) error {
 		msg, author := sc.CommitMessage, sc.CommitAuthor
 		if msg == "" {
@@ -207,6 +233,9 @@ func (w *Worker) execute(ctx context.Context, job *db.Job, sc *db.Scan, p *db.Pr
 		"--history=" + strconv.FormatBool(p.ScanHistory), "--parallelism", strconv.Itoa(max(w.cfg.Parallelism, 1)),
 		"--branch", sc.Branch, "--commit", fr.Commit, "--repo", repoName, "--display-path", repoName,
 		"--sast-timeout", sast.String(),
+	}
+	if meta.diff != nil {
+		cmd = append(cmd, "--only-files", "/work/"+gitfetch.ChangedListFile)
 	}
 	files := map[string][]byte{}
 	spec := sandbox.ContainerSpec{
@@ -375,7 +404,19 @@ func (w *Worker) persist(ctx context.Context, sc *db.Scan, p *db.Project, rep *r
 		}
 		// Issues missing from a complete scan of the main branch are fixed.
 		// Partial scans or other branches cannot prove an issue is gone.
-		if !rep.Partial && sc.Branch == service.DefaultBranch(p) {
+		switch {
+		case rep.Partial || sc.Branch != service.DefaultBranch(p):
+		case meta.diff != nil:
+			// Incremental scan: only the touched files are re-checked.
+			touched := append(append([]string{}, meta.diff.Changed...), meta.diff.Deleted...)
+			if len(touched) > 0 {
+				n, err := q.MarkMissingIssuesFixedInFiles(ctx, db.MarkMissingIssuesFixedInFilesParams{ScanID: sc.ID, ProjectID: p.ID, Files: touched})
+				if err != nil {
+					return err
+				}
+				fixedCount = int(n)
+			}
+		default:
 			n, err := q.MarkMissingIssuesFixed(ctx, db.MarkMissingIssuesFixedParams{ScanID: sc.ID, ProjectID: p.ID})
 			if err != nil {
 				return err

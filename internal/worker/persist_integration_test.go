@@ -15,6 +15,7 @@ import (
 
 	"github.com/ininia/scanx/internal/crypto"
 	"github.com/ininia/scanx/internal/finding"
+	"github.com/ininia/scanx/internal/gitfetch"
 	"github.com/ininia/scanx/internal/report"
 	"github.com/ininia/scanx/internal/secret"
 	"github.com/ininia/scanx/internal/store"
@@ -76,7 +77,7 @@ func TestPersistIssueLifecycle(t *testing.T) {
 		var sc db.Scan
 		err := d.Tx(ctx, store.Scope{OrgID: orgID}, func(q *db.Queries) error {
 			var err error
-			sc, err = q.CreateScan(ctx, db.CreateScanParams{ID: newID(), OrgID: orgID, ProjectID: projID, Trigger: "manual", Branch: "main"})
+			sc, err = q.CreateScan(ctx, db.CreateScanParams{ID: newID(), OrgID: orgID, ProjectID: projID, Trigger: "manual", Branch: "main", Scope: "full"})
 			return err
 		})
 		if err != nil {
@@ -141,6 +142,26 @@ func TestPersistIssueLifecycle(t *testing.T) {
 		}
 		return nil
 	})
+	// Incremental scan touching only a.php: issues elsewhere stay open even
+	// though the (partial) report does not contain them.
+	s4 := newScan()
+	diffMeta := &fetchMeta{commit: "c", diff: &gitfetch.Diff{OK: true, Changed: []string{"a.php"}}}
+	if err := w.persist(ctx, s4, &p, rep(issue("A", finding.High)), files, diffMeta); err != nil {
+		t.Fatal(err)
+	}
+	_ = d.Tx(ctx, store.Scope{OrgID: orgID}, func(q *db.Queries) error {
+		issues, _ := q.ListProjectIssues(ctx, db.ListProjectIssuesParams{OrgID: orgID, ProjectID: projID})
+		st := map[string]string{}
+		for _, i := range issues {
+			st[i.Fingerprint] = i.Status
+		}
+		// B and C live in a.php (the touched file) and are gone → fixed.
+		if st["A"] != "open" || st["B"] != "fixed" || st["C"] != "fixed" {
+			t.Errorf("diff statuses %v", st)
+		}
+		return nil
+	})
+
 	// Another org cannot see these issues (RLS).
 	_ = d.Tx(ctx, store.Scope{OrgID: newID()}, func(q *db.Queries) error {
 		issues, _ := q.ListProjectIssues(ctx, db.ListProjectIssuesParams{OrgID: orgID, ProjectID: projID})

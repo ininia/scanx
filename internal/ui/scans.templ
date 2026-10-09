@@ -58,7 +58,7 @@ templ scanTable(p *Page, scans []db.Scan) {
 						<td><a href={ templ.SafeURL(p.OrgURL("/scans/" + s.ID.String())) }>{ Date(s.QueuedAt) }</a></td>
 						<td>{ s.Branch }</td>
 						<td class="mono" title={ s.CommitMessage }>{ ShortSHA(s.CommitSha) }</td>
-						<td>{ p.T("trigger." + s.Trigger) }</td>
+						<td>{ p.T("trigger." + s.Trigger) } @scopeBadge(p, &s)</td>
 						<td>@scanStatus(p, s.Status, s.GateResult)</td>
 						<td>{ ScoreText(s.Score) }</td>
 						<td>
@@ -210,6 +210,15 @@ templ ProjectDetail(p *Page, v *ProjectView) {
 						</div>
 						<label class="check"><input type="checkbox" name="history" value="1" checked?={ v.Project.ScanHistory }/> { p.T("settings.history") }</label>
 						<div class="field">
+							<label for="push_scope">{ p.T("settings.push_scope") }</label>
+							<select id="push_scope" name="push_scope">
+								for _, sc := range []string{"diff", "full"} {
+									<option value={ sc } selected?={ sc == v.Project.PushScope }>{ p.T("scope.option." + sc) }</option>
+								}
+							</select>
+							<span class="hint">{ p.T("settings.push_scope_hint") }</span>
+						</div>
+						<div class="field">
 							<label for="sast_timeout">{ p.T("settings.sast_timeout") }</label>
 							<input id="sast_timeout" name="sast_timeout" type="number" min="5" max="240" step="5" value={ strconv.Itoa(int(v.Project.SastTimeoutMinutes)) } required/>
 							<span class="hint">{ p.T("settings.sast_timeout_hint") }</span>
@@ -293,6 +302,7 @@ templ scanLive(p *Page, v *ScanPage) {
 					<a href={ templ.SafeURL(p.OrgURL("/projects/" + v.View.Project.Slug)) }>{ v.View.Project.Name }</a>
 				</div>
 				<h1>{ p.T("scan.title") } <span class="mono faint">{ v.View.Scan.Branch + " @ " + ShortSHA(v.View.Scan.CommitSha) }</span></h1>
+				@scopeBadge(p, &v.View.Scan)
 				if v.View.Scan.CommitMessage != "" {
 					<div class="muted">{ v.View.Scan.CommitMessage } <span class="faint">— { v.View.Scan.CommitAuthor }</span></div>
 				}
@@ -652,5 +662,18 @@ templ Notifications(p *Page, f *Form, v *NotificationsView) {
 				</form>
 			</div>
 		}
+	}
+}
+
+templ scopeBadge(p *Page, sc *db.Scan) {
+	if sc.Scope == "diff" {
+		<span class="badge scope-diff" title={ p.T("scope.diff_hint") }>
+			{ p.T("scope.diff") }
+			if sc.ChangedFiles != nil {
+				· { strconv.Itoa(int(*sc.ChangedFiles)) }
+			}
+		</span>
+	} else {
+		<span class="badge scope-full">{ p.T("scope.full") }</span>
 	}
 }
