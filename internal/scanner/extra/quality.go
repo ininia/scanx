@@ -60,7 +60,7 @@ func (ShellCheck) Command(env scanner.Env, s scanner.Settings) scanner.Cmd {
 		return scanner.Cmd{Path: "true", StdoutFile: out}
 	}
 	return scanner.Cmd{
-		Path: "shellcheck", Args: append([]string{"--format", "json1", "--severity", "warning", "--external-sources=false"}, files...),
+		Path: "shellcheck", Args: append([]string{"--format", "json1", "--severity", "warning"}, files...),
 		StdoutFile: out, OKExitCodes: []int{0, 1},
 	}
 }
@@ -151,7 +151,7 @@ func (Lizard) Command(env scanner.Env, s scanner.Settings) scanner.Cmd {
 		}
 	}
 	args = append(args, env.SourceDir)
-	return scanner.Cmd{Path: "lizard", Args: args, StdoutFile: filepath.Join(env.OutDir, "lizard.csv")}
+	return scanner.Cmd{Path: "lizard", Args: args, StdoutFile: filepath.Join(env.OutDir, "lizard.csv"), Env: pythonEnv}
 }
 
 // Parse implements scanner.Scanner. CSV columns: NLOC, CCN, tokens, params,

@@ -80,9 +80,16 @@ func (DevSkim) Applies(d *detect.Result, _ scanner.Settings) bool { return hasAn
 // Timeout implements scanner.Scanner.
 func (DevSkim) Timeout(scanner.Settings) time.Duration { return 15 * time.Minute }
 
+// dotnetEnv: the image has no ICU (globalization-invariant mode) and .NET
+// must never try telemetry; tools only get the variables passed here.
+var dotnetEnv = []string{"DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1", "DOTNET_CLI_TELEMETRY_OPTOUT=1", "DOTNET_NOLOGO=1"}
+
+// pythonEnv: the venv is read-only.
+var pythonEnv = []string{"PYTHONDONTWRITEBYTECODE=1"}
+
 // VersionCmd implements scanner.VersionReporter.
 func (DevSkim) VersionCmd() scanner.Cmd {
-	return scanner.Cmd{Path: "devskim", Args: []string{"--version"}}
+	return scanner.Cmd{Path: "devskim", Args: []string{"--version"}, Env: dotnetEnv}
 }
 
 // Command implements scanner.Scanner.
@@ -94,7 +101,7 @@ func (DevSkim) Command(env scanner.Env, s scanner.Settings) scanner.Cmd {
 	return scanner.Cmd{Path: "devskim", Args: []string{
 		"analyze", "--source-code", env.SourceDir, "--output-file", filepath.Join(env.OutDir, "devskim.sarif"),
 		"--file-format", "sarif", "--ignore-globs", strings.Join(globs, ","),
-	}, OKExitCodes: []int{0, 1}}
+	}, OKExitCodes: []int{0, 1}, Env: dotnetEnv}
 }
 
 // devskimSeverity: DevSkim puts its own severity in the rule properties
@@ -235,8 +242,14 @@ func (Checkov) Command(env scanner.Env, s scanner.Settings) scanner.Cmd {
 	for _, ex := range scanner.AllExcludes(s) {
 		args = append(args, "--skip-path", ex)
 	}
+	// Checkov's parallel runner deadlocks when a worker's result is large
+	// (child blocks writing it while the parent waits for the child), so
+	// it runs in one process.
 	return scanner.Cmd{Path: "checkov", Args: args, OKExitCodes: []int{0, 1},
-		Env: []string{"BC_SKIP_MAPPING=TRUE", "CHECKOV_ALLOW_KUSTOMIZE_FILE_EDITS=False", "LOG_LEVEL=ERROR"}}
+		Env: append([]string{
+			"BC_SKIP_MAPPING=TRUE", "CHECKOV_ALLOW_KUSTOMIZE_FILE_EDITS=False", "LOG_LEVEL=ERROR",
+			"CHECKOV_PARALLELIZATION_TYPE=none",
+		}, pythonEnv...)}
 }
 
 // checkovSeverity: open-source Checkov leaves severities empty; failed
@@ -356,7 +369,7 @@ func (Bandit) Timeout(scanner.Settings) time.Duration { return 15 * time.Minute 
 
 // VersionCmd implements scanner.VersionReporter.
 func (Bandit) VersionCmd() scanner.Cmd {
-	return scanner.Cmd{Path: "bandit", Args: []string{"--version"}}
+	return scanner.Cmd{Env: pythonEnv, Path: "bandit", Args: []string{"--version"}}
 }
 
 // Command implements scanner.Scanner.
@@ -365,7 +378,7 @@ func (Bandit) Command(env scanner.Env, s scanner.Settings) scanner.Cmd {
 	for _, e := range scanner.AllExcludes(s) {
 		ex = append(ex, "*/"+e, "*/"+e+"/*")
 	}
-	return scanner.Cmd{Path: "bandit", Args: []string{
+	return scanner.Cmd{Env: pythonEnv, Path: "bandit", Args: []string{
 		"-r", env.SourceDir, "-f", "sarif", "-o", filepath.Join(env.OutDir, "bandit.sarif"), "-q", "--exit-zero",
 		"-x", strings.Join(ex, ","),
 	}}
