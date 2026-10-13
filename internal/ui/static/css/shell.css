@@ -223,3 +223,45 @@ input[type=checkbox]{accent-color:var(--accent);width:16px;height:16px}
 .page-head .crumbs{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .page-head .crumbs .icon{width:13px;height:13px;color:var(--text-faint)}
 .ib-search.mini-search input{min-width:0;width:220px}
+
+/* ---------- scan page: one rhythm, equal tiles ---------- */
+.grid>.card+.card{margin-top:0}
+.scan-page{display:flex;flex-direction:column;gap:16px}
+.scan-page>*{margin:0}
+.scan-page>.page-head{margin-bottom:4px}
+.scan-page>.stepper{margin:0}
+.scan-page .alert{margin:0}
+.scan-page>details.card{padding:16px 20px}
+.scan-page>details.card>summary{display:flex;align-items:center;gap:8px}
+.tile-base,.sum-tile,.catscore,.sev-tile{border-radius:14px;border:1px solid color-mix(in srgb,var(--accent) 18%,var(--border));
+  background:linear-gradient(180deg,var(--surface-1),color-mix(in srgb,var(--surface-1) 80%,var(--bg)))}
+.sum-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.sum-tile{display:flex;align-items:center;gap:16px;padding:18px 20px;min-height:108px;position:relative;overflow:hidden}
+.sum-icon{display:grid;place-items:center;flex-shrink:0;width:46px;height:46px;border-radius:12px;color:var(--accent);
+  background:color-mix(in srgb,var(--accent) 9%,transparent);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
+.sum-icon .icon{width:24px;height:24px}
+.sum-label{font-size:11.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted)}
+.sum-value{display:flex;align-items:center;gap:10px;font:700 28px/1.15 var(--font-display);margin-top:6px;white-space:nowrap}
+.sum-value .faint{font-size:20px}
+.sum-sub{font-size:12px;color:var(--text-faint);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sum-tile .grade{font-size:15px;padding:3px 9px}
+.sum-tile.gate-pass{border-color:color-mix(in srgb,var(--ok) 45%,var(--border))}
+.sum-tile.gate-pass .sum-value{color:var(--ok)}
+.sum-tile.gate-fail{border-color:color-mix(in srgb,var(--danger) 50%,var(--border))}
+.sum-tile.gate-fail .sum-value{color:var(--danger)}
+.sum-tile.gate-fail .sum-icon{color:var(--danger);background:color-mix(in srgb,var(--danger) 10%,transparent);border-color:color-mix(in srgb,var(--danger) 35%,transparent)}
+.scan-page .catscores{grid-template-columns:repeat(5,minmax(0,1fr));gap:16px;margin:0}
+.scan-page .catscore{padding:16px 18px}
+.scan-page .catscore .faint{font-size:12.5px;margin-top:10px}
+.scan-page .cs-head span{font-weight:600;font-size:13.5px}
+.sev-tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:16px}
+.sev-tile{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px;color:var(--c);
+  border-left:3px solid var(--c);text-decoration:none}
+.sev-tile span{font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
+.sev-tile strong{font:700 24px/1 var(--font-display);color:var(--text)}
+.sev-tile:hover{text-decoration:none;background:color-mix(in srgb,var(--c) 8%,var(--surface-1))}
+.sev-tile.critical{--c:var(--sev-critical)}.sev-tile.high{--c:var(--sev-high)}.sev-tile.medium{--c:var(--sev-medium)}
+.sev-tile.low{--c:var(--sev-low)}.sev-tile.info{--c:var(--sev-info)}
+.scan-page>.panel,.scan-page>section{margin-top:0}
+@media (max-width:1100px){.sum-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.scan-page .catscores,.sev-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:600px){.sum-tiles,.scan-page .catscores,.sev-tiles{grid-template-columns:minmax(0,1fr)}}

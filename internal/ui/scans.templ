@@ -271,7 +271,7 @@ templ ScanDetail(p *Page, v *ScanPage) {
 // scanLive is the whole page body; while the scan runs it re-fetches itself
 // (keeping the current filters) so the header, stepper and log stay current.
 templ scanLive(p *Page, v *ScanPage) {
-	<div id="scan-live"
+	<div id="scan-live" class="scan-page"
 		if v.View.Active() {
 			hx-get={ p.Path }
 			hx-trigger="every 3s"
@@ -355,22 +355,46 @@ templ scanLive(p *Page, v *ScanPage) {
 			for _, w := range v.Summary.Warnings {
 				<div class="alert warn">{ w }</div>
 			}
-			<div class="grid cols-4">
-				<div class={ "card", "stat", "gate-card", "gate-" + Gate(v.View.Scan.GateResult) }>
-					<div class="n">{ p.T("gate." + Gate(v.View.Scan.GateResult)) }</div>
-					<div class="l">{ p.T("scan.gate") } · { v.Summary.Gate.Policy }</div>
-				</div>
-				<div class={ "card", "stat", "grade-card", "grade-" + v.Summary.Grade }>
-					<div class="n">
-						{ ScoreText(v.View.Scan.Score) }<span class="faint">/100</span>
-						if v.Summary.Grade != "" {
-							<span class="grade">{ v.Summary.Grade }</span>
+			<div class="sum-tiles">
+				<div class={ "sum-tile", "gate-" + Gate(v.View.Scan.GateResult) }>
+					<span class="sum-icon">
+						if Gate(v.View.Scan.GateResult) == "fail" {
+							@Icon("alert-triangle")
+						} else {
+							@Icon("shield-check")
 						}
+					</span>
+					<div>
+						<div class="sum-label">{ p.T("scan.gate") }</div>
+						<div class="sum-value">{ p.T("gate." + Gate(v.View.Scan.GateResult)) }</div>
+						<div class="sum-sub">{ v.Summary.Gate.Policy }</div>
 					</div>
-					<div class="l">{ p.T("field.score") }</div>
 				</div>
-				<div class="card stat"><div class="n"><span class="delta up">+{ Itoa32(v.View.Scan.NewIssues) }</span> <span class="delta down">−{ Itoa32(v.View.Scan.FixedIssues) }</span></div><div class="l">{ p.T("scans.new_fixed") }</div></div>
-				<div class="card stat"><div class="n">{ Duration(v.View.Scan.StartedAt, v.View.Scan.FinishedAt) }</div><div class="l">{ p.T("scan.duration") }</div></div>
+				<div class={ "sum-tile", "grade-" + v.Summary.Grade }>
+					<span class="sum-icon">@Icon("gauge")</span>
+					<div>
+						<div class="sum-label">{ p.T("field.score") }</div>
+						<div class="sum-value">{ ScoreText(v.View.Scan.Score) }<span class="faint">/100</span>
+							if v.Summary.Grade != "" {
+								<span class="grade">{ v.Summary.Grade }</span>
+							}
+						</div>
+					</div>
+				</div>
+				<div class="sum-tile">
+					<span class="sum-icon">@Icon("activity")</span>
+					<div>
+						<div class="sum-label">{ p.T("scans.new_fixed") }</div>
+						<div class="sum-value"><span class="delta up">+{ Itoa32(v.View.Scan.NewIssues) }</span> <span class="delta down">−{ Itoa32(v.View.Scan.FixedIssues) }</span></div>
+					</div>
+				</div>
+				<div class="sum-tile">
+					<span class="sum-icon">@Icon("clock")</span>
+					<div>
+						<div class="sum-label">{ p.T("scan.duration") }</div>
+						<div class="sum-value">{ Duration(v.View.Scan.StartedAt, v.View.Scan.FinishedAt) }</div>
+					</div>
+				</div>
 			</div>
 			if len(v.Summary.Categories) > 0 {
 				<div class="catscores">
@@ -395,9 +419,9 @@ templ scanLive(p *Page, v *ScanPage) {
 					}
 				</div>
 			}
-			<div class="sevbar">
+			<div class="sev-tiles">
 				for _, s := range FacetSeverities {
-					<a class={ "sev", s } href={ templ.SafeURL(v.Browser.Filter.Toggle("sev", s)) }>{ p.T("sev." + s) } { strconv.Itoa(SevSummary(v.Summary, s)) }</a>
+					<a class={ "sev-tile", s } href={ templ.SafeURL(v.Browser.Filter.Toggle("sev", s)) }><span>{ p.T("sev." + s) }</span><strong>{ strconv.Itoa(SevSummary(v.Summary, s)) }</strong></a>
 				}
 			</div>
 			@issueBrowser(p, v.Browser)
