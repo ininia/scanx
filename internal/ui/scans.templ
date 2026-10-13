@@ -28,26 +28,6 @@ templ copyBox(value string) {
 	</div>
 }
 
-templ orgScanTable(p *Page, scans []db.ListOrgScansRow) {
-	<div class="tablewrap">
-		<table>
-			<thead><tr><th>{ p.T("field.project") }</th><th>{ p.T("field.branch") }</th><th>{ p.T("field.commit") }</th><th>{ p.T("field.status") }</th><th>{ p.T("field.score") }</th><th>{ p.T("field.when") }</th></tr></thead>
-			<tbody>
-				for _, s := range scans {
-					<tr>
-						<td><a href={ templ.SafeURL(p.OrgURL("/projects/" + s.ProjectSlug)) }>{ s.ProjectName }</a></td>
-						<td>{ s.Branch }</td>
-						<td class="mono"><a href={ templ.SafeURL(p.OrgURL("/scans/" + s.ID.String())) }>{ ShortSHA(s.CommitSha) }</a></td>
-						<td>@scanStatus(p, s.Status, s.GateResult)</td>
-						<td>{ ScoreText(s.Score) }</td>
-						<td class="faint">{ Ago(s.QueuedAt) }</td>
-					</tr>
-				}
-			</tbody>
-		</table>
-	</div>
-}
-
 templ scanTable(p *Page, scans []db.Scan) {
 	<div class="tablewrap">
 		<table>

@@ -39,3 +39,44 @@ document.addEventListener("click", function (e) {
   root.setAttribute("data-theme", next);
   try { localStorage.setItem("scanx-theme", next); } catch (err) { /* not persisted */ }
 });
+
+// Sidebar collapse: <button data-sidebar-toggle>; remembered per browser.
+document.addEventListener("click", function (e) {
+  if (!e.target.closest("[data-sidebar-toggle]")) return;
+  var root = document.documentElement;
+  var on = !root.classList.contains("sidebar-collapsed");
+  root.classList.toggle("sidebar-collapsed", on);
+  try { localStorage.setItem("scanx-sidebar", on ? "collapsed" : "open"); } catch (err) { /* not persisted */ }
+});
+
+// Cmd/Ctrl+K focuses the top search box.
+document.addEventListener("keydown", function (e) {
+  if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K")) {
+    var box = document.querySelector("[data-search-input]");
+    if (box) { e.preventDefault(); box.focus(); box.select(); }
+  }
+});
+
+// Client-side table filter: <input data-filter-input="id">, <select
+// data-filter-status="id"> and <table data-filter-table="id"> whose rows
+// carry data-filter-row and data-status.
+function scanxFilter(id) {
+  var table = document.querySelector('[data-filter-table="' + id + '"]');
+  if (!table) return;
+  var text = document.querySelector('[data-filter-input="' + id + '"]');
+  var status = document.querySelector('[data-filter-status="' + id + '"]');
+  var q = text ? text.value.trim().toLowerCase() : "";
+  var st = status ? status.value : "";
+  table.querySelectorAll("[data-filter-row]").forEach(function (row) {
+    var ok = (!q || row.textContent.toLowerCase().indexOf(q) >= 0) && (!st || row.getAttribute("data-status") === st);
+    row.hidden = !ok;
+  });
+}
+document.addEventListener("input", function (e) {
+  var id = e.target.getAttribute && (e.target.getAttribute("data-filter-input") || e.target.getAttribute("data-filter-status"));
+  if (id) scanxFilter(id);
+});
+document.addEventListener("change", function (e) {
+  var id = e.target.getAttribute && e.target.getAttribute("data-filter-status");
+  if (id) scanxFilter(id);
+});

@@ -14,6 +14,7 @@ import (
 	"github.com/ininia/scanx/internal/auth"
 	"github.com/ininia/scanx/internal/i18n"
 	"github.com/ininia/scanx/internal/service"
+	"github.com/ininia/scanx/internal/store/db"
 )
 
 //go:embed static
@@ -59,6 +60,26 @@ type Page struct {
 	FlashKind string // ok | err | warn
 	Path      string
 	Version   string
+	// Problems feeds the notification bell (failed scans / gates, 7 days).
+	Problems []db.RecentProblemScansRow
+	// SearchQ is echoed in the top search box.
+	SearchQ string
+}
+
+// RoleLabel is the current user's role in the current org.
+func (p *Page) RoleLabel() string {
+	if p.Org == nil {
+		return ""
+	}
+	return p.T("role." + string(p.Org.Role))
+}
+
+// LangName is the display name of the current UI language.
+func (p *Page) LangName() string {
+	if p.Lang == i18n.TR {
+		return "Türkçe"
+	}
+	return "English"
 }
 
 // T translates for this page.

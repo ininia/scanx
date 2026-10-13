@@ -15,6 +15,7 @@ templ head(p *Page) {
 	<link rel="icon" href="/static/img/scanx-mark.svg" type="image/svg+xml"/>
 	<link rel="stylesheet" href={ Asset("css/tokens.css") }/>
 	<link rel="stylesheet" href={ Asset("css/app.css") }/>
+	<link rel="stylesheet" href={ Asset("css/shell.css") }/>
 	<script src={ Asset("js/theme.js") }></script>
 	<script src={ Asset("js/htmx.min.js") } defer></script>
 	<script src={ Asset("js/app.js") } defer></script>
@@ -58,11 +59,15 @@ templ AuthShell(p *Page, wide bool) {
 	</html>
 }
 
-templ navLink(p *Page, key, href, label string) {
-	<a href={ templ.SafeURL(href) } class={ templ.KV("active", p.Nav == key) }>{ label }</a>
+templ navLink(p *Page, key, href, icon, label string) {
+	<a href={ templ.SafeURL(href) } class={ templ.KV("active", p.Nav == key) } title={ label }>
+		@Icon(icon)
+		<span class="nav-label">{ label }</span>
+	</a>
 }
 
-// AppShell is the signed-in layout with sidebar, org switcher and user menu.
+// AppShell is the signed-in layout: sidebar (org switcher, navigation) and
+// top bar (search, notifications, language, theme, account).
 templ AppShell(p *Page) {
 	<!DOCTYPE html>
 	<html lang={ p.Lang }>
@@ -72,17 +77,25 @@ templ AppShell(p *Page) {
 		<body hx-boost="true">
 			<div class="shell">
 				<aside class="sidebar">
-					@brand()
+					<div class="side-head">
+						@brand()
+						<button type="button" class="icon-btn collapse-btn" data-sidebar-toggle aria-label={ p.T("nav.collapse") } title={ p.T("nav.collapse") }>
+							@Icon("chevrons-left")
+						</button>
+					</div>
 					if len(p.Orgs) > 0 {
-						<details class="dropdown">
+						<details class="dropdown org-switch no-caret">
 							<summary>
-								<span class="org-chip">
+								<span class="org-icon">@Icon("building")</span>
+								<span class="org-meta">
 									if p.Org != nil {
-										{ p.Org.Org.Name }
+										<strong>{ p.Org.Org.Name }</strong>
+										<small>{ p.RoleLabel() }</small>
 									} else {
-										{ p.T("nav.choose_org") }
+										<strong>{ p.T("nav.choose_org") }</strong>
 									}
 								</span>
+								@Icon("chevron-down")
 							</summary>
 							<div class="menu">
 								for _, o := range p.Orgs {
@@ -93,43 +106,115 @@ templ AppShell(p *Page) {
 					}
 					<nav class="nav" aria-label={ p.T("nav.main") }>
 						if p.Org != nil {
-							@navLink(p, "dashboard", p.OrgURL(""), p.T("nav.dashboard"))
-							@navLink(p, "projects", p.OrgURL("/projects"), p.T("nav.projects"))
-							@navLink(p, "notifications", p.OrgURL("/notifications"), p.T("nav.notifications"))
+							@navLink(p, "dashboard", p.OrgURL(""), "home", p.T("nav.dashboard"))
+							@navLink(p, "projects", p.OrgURL("/projects"), "folder", p.T("nav.projects"))
+							@navLink(p, "notifications", p.OrgURL("/notifications"), "bell", p.T("nav.notifications"))
 							<span class="sep">{ p.T("nav.organization") }</span>
-							@navLink(p, "members", p.OrgURL("/members"), p.T("nav.members"))
-							@navLink(p, "tokens", p.OrgURL("/tokens"), p.T("nav.tokens"))
+							@navLink(p, "members", p.OrgURL("/members"), "users", p.T("nav.members"))
+							@navLink(p, "tokens", p.OrgURL("/tokens"), "key", p.T("nav.tokens"))
 							if p.Can("audit.read") {
-								@navLink(p, "audit", p.OrgURL("/audit"), p.T("nav.audit"))
+								@navLink(p, "audit", p.OrgURL("/audit"), "file", p.T("nav.audit"))
 							}
 						}
 						if p.User != nil && p.User.IsSuperadmin {
 							<span class="sep">{ p.T("nav.instance") }</span>
-							@navLink(p, "admin", "/admin", p.T("nav.admin"))
+							@navLink(p, "admin", "/admin", "settings", p.T("nav.admin"))
 						}
 					</nav>
+					<div class="side-promo">
+						<svg class="promo-art" viewBox="0 0 120 120" aria-hidden="true">
+							<defs>
+								<linearGradient id="promo-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00ec93"></stop><stop offset="1" stop-color="#009e5c"></stop></linearGradient>
+							</defs>
+							<path d="M60 8 104 28v30c0 27-19 48-44 56C35 106 16 85 16 58V28z" fill="none" stroke="url(#promo-g)" stroke-width="3" opacity=".9"></path>
+							<path d="M60 24 90 38v20c0 18-13 32-30 38-17-6-30-20-30-38V38z" fill="url(#promo-g)" opacity=".18"></path>
+							<path d="m46 60 10 10 19-21" fill="none" stroke="url(#promo-g)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path>
+						</svg>
+						<strong>{ p.T("promo.title") }</strong>
+						<p>{ p.T("promo.body") }</p>
+					</div>
 					<div class="sidebar-foot">
 						<span>scanX { p.Version }</span>
-						<a href="https://github.com/ininia/scanx" rel="noopener noreferrer">GitHub</a>
+						<a href="https://github.com/ininia/scanx" rel="noopener noreferrer">@Icon("github") GitHub</a>
 					</div>
 				</aside>
 				<div class="main">
 					<header class="topbar">
+						if p.Org != nil {
+							<form class="top-search" role="search" method="get" action={ templ.SafeURL(p.OrgURL("/search")) }>
+								@Icon("search")
+								<input type="search" name="q" value={ p.SearchQ } placeholder={ p.T("search.placeholder") } aria-label={ p.T("search.placeholder") } data-search-input autocomplete="off"/>
+								<span class="kbd"><kbd>⌘</kbd><kbd>K</kbd></span>
+							</form>
+						}
 						<span class="spacer"></span>
-						<a href={ templ.SafeURL("/lang/" + p.OtherLang() + "?next=" + p.Path) } class="muted">{ p.T("lang.switch") }</a>
+						if p.Org != nil {
+							<details class="dropdown right no-caret bell">
+								<summary class="icon-btn" aria-label={ p.T("bell.title") } title={ p.T("bell.title") }>
+									@Icon("bell")
+									if len(p.Problems) > 0 {
+										<span class="dot"></span>
+									}
+								</summary>
+								<div class="menu wide">
+									<div class="menu-head">{ p.T("bell.title") }</div>
+									if len(p.Problems) == 0 {
+										<div class="menu-empty">{ p.T("bell.empty") }</div>
+									}
+									for _, s := range p.Problems {
+										<a href={ templ.SafeURL(p.OrgURL("/scans/" + s.ID.String())) } class="bell-item">
+											if s.Status == "failed" {
+												<span class="bi bad">@Icon("x")</span>
+											} else {
+												<span class="bi warn">@Icon("alert-triangle")</span>
+											}
+											<span>
+												<strong>{ s.ProjectName }</strong> · { s.Branch }
+												<small>
+													if s.Status == "failed" {
+														{ p.T("bell.scan_failed") }
+													} else {
+														{ p.T("bell.gate_failed") }
+													}
+													· { Ago(s.QueuedAt) }
+												</small>
+											</span>
+										</a>
+									}
+								</div>
+							</details>
+						}
+						<details class="dropdown right no-caret lang">
+							<summary>
+								@Icon("globe")
+								<span>{ p.LangName() }</span>
+								@Icon("chevron-down")
+							</summary>
+							<div class="menu">
+								<a href={ templ.SafeURL("/lang/tr?next=" + p.Path) }>Türkçe</a>
+								<a href={ templ.SafeURL("/lang/en?next=" + p.Path) }>English</a>
+							</div>
+						</details>
+						@themeToggle(p)
 						if p.User != nil {
-							<details class="dropdown right">
-								<summary aria-label={ p.T("nav.account") }>{ Initials(p.User.Name, p.User.Email) }</summary>
+							<details class="dropdown right no-caret account">
+								<summary aria-label={ p.T("nav.account") }>
+									<span class="avatar">{ Initials(p.User.Name, p.User.Email) }</span>
+									@Icon("chevron-down")
+								</summary>
 								<div class="menu">
-									<a href="/account">{ p.T("nav.account") }</a>
+									<div class="menu-head">
+										<strong>{ p.User.Name }</strong>
+										<small>{ p.User.Email }</small>
+									</div>
+									<a href="/account">@Icon("user") { p.T("nav.account") }</a>
 									<form method="post" action="/logout">
 										<input type="hidden" name="csrf_token" value={ p.CSRF }/>
-										<button type="submit">{ p.T("nav.logout") }</button>
+										<button type="submit">@Icon("logout") { p.T("nav.logout") }</button>
 									</form>
 								</div>
 							</details>
 						}
-						@themeToggle(p)
 					</header>
 					<main class="content" id="content">
 						@flash(p)

@@ -343,18 +343,44 @@ func (h *Handler) home(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) dashboard(w http.ResponseWriter, r *http.Request) {
 	o := orgFrom(r)
-	ps, total, err := h.Svc.ListProjects(r.Context(), o, 1, 8)
+	ctx := r.Context()
+	ps, total, err := h.Svc.ListProjects(ctx, o, 1, 10)
 	if err != nil {
 		h.fail(w, r, err)
 		return
 	}
-	members, _ := h.Svc.ListMembers(r.Context(), o)
-	stats, err := h.Svc.Stats(r.Context(), o)
+	stats, err := h.Svc.Stats(ctx, o)
 	if err != nil {
 		h.fail(w, r, err)
 		return
 	}
-	render(w, r, http.StatusOK, ui.Dashboard(h.page(r, "nav.dashboard", "dashboard"), &ui.DashboardView{Projects: total, Members: len(members), Recent: ps, Stats: stats}))
+	data, err := h.Svc.DashboardData(ctx, o)
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	render(w, r, http.StatusOK, ui.Dashboard(h.page(r, "nav.dashboard", "dashboard"),
+		&ui.DashboardView{Data: data, Stats: stats, Projects: ps, Total: total}))
+}
+
+func (h *Handler) allScans(w http.ResponseWriter, r *http.Request) {
+	scans, err := h.Svc.ListRecentScans(r.Context(), orgFrom(r), 100)
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	render(w, r, http.StatusOK, ui.AllScans(h.page(r, "scans.all_title", "dashboard"), scans))
+}
+
+func (h *Handler) search(w http.ResponseWriter, r *http.Request) {
+	res, err := h.Svc.Search(r.Context(), orgFrom(r), r.URL.Query().Get("q"))
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	pg := h.page(r, "search.title", "")
+	pg.SearchQ = res.Query
+	render(w, r, http.StatusOK, ui.Search(pg, res))
 }
 
 // ---------- projects ----------
@@ -365,7 +391,8 @@ func (h *Handler) projects(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, r, err)
 		return
 	}
-	render(w, r, http.StatusOK, ui.Projects(h.page(r, "nav.projects", "projects"), ps, total))
+	st, _ := h.Svc.Stats(r.Context(), orgFrom(r))
+	render(w, r, http.StatusOK, ui.Projects(h.page(r, "nav.projects", "projects"), ps, total, st))
 }
 
 func (h *Handler) projectNewForm(w http.ResponseWriter, r *http.Request) {

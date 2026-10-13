@@ -1,0 +1,327 @@
+package ui
+
+import (
+	"strconv"
+
+	"github.com/ininia/scanx/internal/service"
+	"github.com/ininia/scanx/internal/store/db"
+)
+
+templ breadcrumbs(p *Page, items ...string) {
+	<nav class="breadcrumbs" aria-label="breadcrumb">
+		<a href={ templ.SafeURL(p.OrgURL("")) } aria-label={ p.T("nav.dashboard") }>@Icon("home")</a>
+		for i, it := range items {
+			@Icon("chevron-right")
+			if i == len(items)-1 {
+				<span>{ it }</span>
+			} else {
+				<span class="muted">{ it }</span>
+			}
+		}
+	</nav>
+}
+
+templ sparkBars(vals []int64) {
+	<svg class="spark bars" viewBox="0 0 100 36" preserveAspectRatio="none" aria-hidden="true">
+		for _, b := range SparkBars(vals) {
+			<rect x={ b.X } y={ b.Y } width={ b.W } height={ b.H } rx="0.8"></rect>
+		}
+	</svg>
+}
+
+templ sparkLine(vals []int64) {
+	<svg class="spark line" viewBox="0 0 100 36" preserveAspectRatio="none" aria-hidden="true">
+		<path class="area" d={ sparkArea(vals) }></path>
+		<path class="stroke" d={ sparkStroke(vals) }></path>
+	</svg>
+}
+
+templ statCard(p *Page, tone, icon, label string, value int64, t service.Trend, upIsBad bool, periodKey string, spark templ.Component, hint string) {
+	<div class={ "stat-card", "tone-" + tone } title={ hint }>
+		<div class="stat-top">
+			<span class="stat-icon">@Icon(icon)</span>
+			<div>
+				<div class="stat-label">{ label }</div>
+				<div class="stat-value">{ strconv.FormatInt(value, 10) }</div>
+			</div>
+		</div>
+		<div class="stat-bottom">
+			<span class={ TrendClass(t, upIsBad) }>@Icon(TrendIcon(t)) { p.TrendText(t) }</span>
+			<span class="faint">{ p.T(periodKey) }</span>
+		</div>
+		<div class="stat-spark">@spark</div>
+	</div>
+}
+
+templ Dashboard(p *Page, v *DashboardView) {
+	@AppShell(p) {
+		@breadcrumbs(p, p.T("nav.dashboard"), p.Org.Org.Name)
+		<div class="hero-head">
+			<div class="hero-title">
+				<span class="hero-icon">@Icon("shield")</span>
+				<div>
+					<h1>{ p.Org.Org.Name } <span class="verified" title={ p.T("dashboard.verified") }>@Icon("badge-check")</span></h1>
+					<p class="muted">{ p.T("dashboard.subtitle") }</p>
+				</div>
+			</div>
+			if p.Can("project.write") {
+				<a class="btn primary glow" href={ templ.SafeURL(p.OrgURL("/projects/new")) }>@Icon("plus") { p.T("projects.new") }</a>
+			}
+		</div>
+		<div class="stats">
+			@statCard(p, "green", "folder", p.T("nav.projects"), v.Data.Projects.Now, v.Data.Projects, false, "trend.month", sparkBars(v.Data.ScansPerDay), p.T("spark.scans"))
+			@statCard(p, "blue", "users", p.T("nav.members"), v.Data.Members.Now, v.Data.Members, false, "trend.month", sparkBars(v.Data.MembersPerDay), p.T("spark.members"))
+			@statCard(p, "red", "alert-triangle", p.T("dashboard.open_critical"), v.Data.Critical.Now, v.Data.Critical, true, "trend.week", sparkLine(v.Data.NewCritical), p.T("spark.new_critical"))
+			@statCard(p, "orange", "alert-circle", p.T("dashboard.open_high"), v.Data.High.Now, v.Data.High, true, "trend.week", sparkLine(v.Data.NewHigh), p.T("spark.new_high"))
+		</div>
+		<section class="panel">
+			<div class="panel-head">
+				<span class="panel-icon">@Icon("activity")</span>
+				<div>
+					<h2>{ p.T("scans.recent") }</h2>
+					<p class="muted">{ p.T("scans.recent_sub") }</p>
+				</div>
+				<a class="btn ghost" href={ templ.SafeURL(p.OrgURL("/scans")) }>{ p.T("scans.all") } @Icon("arrow-right")</a>
+			</div>
+			if len(v.Stats.RecentScans) == 0 {
+				<p class="muted">{ p.T("scans.none_yet") }</p>
+			} else {
+				@scanRows(p, v.Stats.RecentScans)
+			}
+		</section>
+		<section class="panel">
+			<div class="panel-head">
+				<span class="panel-icon">@Icon("folder")</span>
+				<div>
+					<h2>{ p.T("nav.projects") }</h2>
+					<p class="muted">{ p.T("dashboard.projects_sub") }</p>
+				</div>
+				@tableFilter(p, "dash-projects")
+			</div>
+			if len(v.Projects) == 0 {
+				<div class="empty">
+					<img class="mark" src="/static/img/scanx-mark.svg" alt=""/>
+					<p>{ p.T("projects.empty") }</p>
+				</div>
+			} else {
+				@projectRows(p, v.Projects, v.Stats, "dash-projects")
+			}
+		</section>
+	}
+}
+
+// tableFilter is the client-side search + status filter of a table.
+templ tableFilter(p *Page, id string) {
+	<div class="table-tools">
+		<label class="mini-search">
+			@Icon("search")
+			<input type="search" placeholder={ p.T("projects.search") } aria-label={ p.T("projects.search") } data-filter-input={ id }/>
+		</label>
+		<label class="mini-select">
+			@Icon("filter")
+			<select data-filter-status={ id } aria-label={ p.T("field.status") }>
+				<option value="">{ p.T("issues.all") }</option>
+				<option value="active">{ p.T("project.active") }</option>
+				<option value="archived">{ p.T("project.archived") }</option>
+			</select>
+		</label>
+	</div>
+}
+
+templ scanRows(p *Page, scans []db.ListOrgScansRow) {
+	<div class="tablewrap flat">
+		<table class="data">
+			<thead><tr><th>{ p.T("field.project") }</th><th>{ p.T("field.branch") }</th><th>{ p.T("field.commit") }</th><th>{ p.T("field.status") }</th><th>{ p.T("field.score") }</th><th>{ p.T("field.when") }</th><th></th></tr></thead>
+			<tbody>
+				for _, s := range scans {
+					<tr>
+						<td><span class={ ScanDot(s.Status, s.GateResult) }></span><a href={ templ.SafeURL(p.OrgURL("/projects/" + s.ProjectSlug)) } class="strong">{ s.ProjectName }</a></td>
+						<td><span class="pill">{ s.Branch }</span></td>
+						<td>
+							<span class="commit">
+								<a class="mono" href={ templ.SafeURL(p.OrgURL("/scans/" + s.ID.String())) }>{ ShortSHA(s.CommitSha) }</a>
+								if s.CommitSha != "" {
+									<button type="button" class="icon-btn tiny" data-copy={ s.CommitSha } aria-label={ p.T("action.copy") }>@Icon("copy")</button>
+								}
+							</span>
+						</td>
+						<td>@statusBadge(p, s.Status, s.GateResult)</td>
+						<td>
+							<span class="score">
+								<span class="num">{ ScoreText(s.Score) }</span>
+								<span class="bar"><span class={ "fill " + ScoreBar(s.Score) }></span></span>
+							</span>
+						</td>
+						<td class="faint">{ Ago(s.QueuedAt) }</td>
+						<td class="row-menu">
+							<details class="dropdown right no-caret">
+								<summary class="icon-btn" aria-label={ p.T("action.more") }>@Icon("more")</summary>
+								<div class="menu">
+									<a href={ templ.SafeURL(p.OrgURL("/scans/" + s.ID.String())) }>{ p.T("scan.open") }</a>
+									if s.Status == "completed" {
+										<a href={ templ.SafeURL(p.OrgURL("/scans/" + s.ID.String() + "/report/html")) } target="_blank" rel="noopener" hx-boost="false">{ p.T("scan.report_html") }</a>
+									}
+									<a href={ templ.SafeURL(p.OrgURL("/projects/" + s.ProjectSlug)) }>{ p.T("project.open") }</a>
+								</div>
+							</details>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+}
+
+// statusBadge is the scan status with an icon (passed / failed / running…).
+templ statusBadge(p *Page, status string, gate *string) {
+	if status == "completed" && gate != nil {
+		if *gate == "fail" {
+			<span class="sbadge bad">@Icon("x") { p.T("gate.fail") }</span>
+		} else {
+			<span class="sbadge ok">@Icon("check") { p.T("gate." + *gate) }</span>
+		}
+	} else if status == "failed" {
+		<span class="sbadge bad">@Icon("alert-triangle") { p.T("scan.status.failed") }</span>
+	} else if status == "canceled" {
+		<span class="sbadge off">{ p.T("scan.status.canceled") }</span>
+	} else {
+		<span class="sbadge run"><span class="spinner"></span> { p.T("scan.status." + status) }</span>
+	}
+}
+
+templ projectRows(p *Page, ps []db.Project, st *service.OrgStats, id string) {
+	<div class="tablewrap flat">
+		<table class="data" data-filter-table={ id }>
+			<thead><tr><th>{ p.T("field.name") }</th><th>{ p.T("field.repo_url") }</th><th>{ p.T("field.branches") }</th><th>{ p.T("field.provider") }</th><th>{ p.T("projects.last_scan") }</th><th>{ p.T("field.status") }</th><th></th></tr></thead>
+			<tbody>
+				for _, pr := range ps {
+					<tr data-filter-row data-status={ projectState(&pr) }>
+						<td><span class="row-icon">@Icon("box")</span><a href={ templ.SafeURL(p.OrgURL("/projects/" + pr.Slug)) } class="strong">{ pr.Name }</a></td>
+						<td>
+							if u := RepoWebURL(pr.RepoUrl); u != "" {
+								<a href={ templ.URL(u) } target="_blank" rel="noopener noreferrer" class="repo-link">{ RepoShort(pr.RepoUrl) } @Icon("external")</a>
+							} else {
+								<span class="mono faint">{ pr.RepoUrl }</span>
+							}
+						</td>
+						<td>
+							for _, b := range pr.Branches {
+								<span class="pill">{ b }</span>
+							}
+						</td>
+						<td><span class="provider-cell">@Icon(ProviderIcon(pr.Provider)) { ProviderName(pr.Provider) }</span></td>
+						<td class="faint">
+							if ls := lastScan(st, &pr); ls != nil && ls.FinishedAt != nil {
+								{ Ago(*ls.FinishedAt) }
+							} else if ls != nil {
+								{ p.T("scan.status." + ls.Status) }
+							} else {
+								{ p.T("projects.never_scanned") }
+							}
+						</td>
+						<td>
+							if pr.ArchivedAt != nil {
+								<span class="sbadge off">{ p.T("project.archived") }</span>
+							} else {
+								<span class="sbadge ok">@Icon("check") { p.T("project.active") }</span>
+							}
+						</td>
+						<td class="row-menu">
+							<details class="dropdown right no-caret">
+								<summary class="icon-btn" aria-label={ p.T("action.more") }>@Icon("more")</summary>
+								<div class="menu">
+									<a href={ templ.SafeURL(p.OrgURL("/projects/" + pr.Slug)) }>{ p.T("project.open") }</a>
+									<a href={ templ.SafeURL(p.OrgURL("/projects/" + pr.Slug + "/issues")) }>{ p.T("issues.title") }</a>
+									if p.Can("project.write") {
+										<a href={ templ.SafeURL(p.OrgURL("/projects/" + pr.Slug + "/edit")) }>{ p.T("projects.edit") }</a>
+									}
+								</div>
+							</details>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+}
+
+// AllScans lists the org's recent scans.
+templ AllScans(p *Page, scans []db.ListOrgScansRow) {
+	@AppShell(p) {
+		@breadcrumbs(p, p.T("nav.dashboard"), p.T("scans.all_title"))
+		<div class="page-head"><div><h1>{ p.T("scans.all_title") }</h1></div></div>
+		<section class="panel">
+			if len(scans) == 0 {
+				<p class="muted">{ p.T("scans.none_yet") }</p>
+			} else {
+				@scanRows(p, scans)
+			}
+		</section>
+	}
+}
+
+// Search shows the global search results.
+templ Search(p *Page, r *service.SearchResult) {
+	@AppShell(p) {
+		@breadcrumbs(p, p.T("nav.dashboard"), p.T("search.title"))
+		<div class="page-head"><div><h1>{ p.T("search.title") }</h1>
+			if r.Query != "" {
+				<p class="muted">{ p.T("search.for", r.Query) }</p>
+			}
+		</div></div>
+		if len([]rune(r.Query)) < 2 {
+			<section class="panel"><p class="muted">{ p.T("search.too_short") }</p></section>
+		} else if len(r.Projects)+len(r.Issues)+len(r.Scans) == 0 {
+			<section class="panel"><div class="empty"><p>{ p.T("search.none") }</p></div></section>
+		} else {
+			if len(r.Projects) > 0 {
+				<section class="panel">
+					<div class="panel-head"><span class="panel-icon">@Icon("folder")</span><div><h2>{ p.T("nav.projects") } <span class="faint">({ strconv.Itoa(len(r.Projects)) })</span></h2></div></div>
+					@projectRows(p, r.Projects, nil, "search-projects")
+				</section>
+			}
+			if len(r.Issues) > 0 {
+				<section class="panel">
+					<div class="panel-head"><span class="panel-icon">@Icon("alert-triangle")</span><div><h2>{ p.T("issues.title") } <span class="faint">({ strconv.Itoa(len(r.Issues)) })</span></h2></div></div>
+					<div class="tablewrap flat">
+						<table class="data">
+							<thead><tr><th>{ p.T("field.severity") }</th><th>{ p.T("field.title") }</th><th>{ p.T("field.project") }</th><th>{ p.T("field.location") }</th><th>{ p.T("field.status") }</th></tr></thead>
+							<tbody>
+								for _, is := range r.Issues {
+									<tr>
+										<td>@sevBadge(p, is.Severity)</td>
+										<td><a href={ templ.SafeURL(p.OrgURL("/issues/" + is.ID.String())) }>{ is.Title }</a></td>
+										<td>{ is.ProjectName }</td>
+										<td class="mono">{ Loc(is.File, is.StartLine) }</td>
+										<td><span class={ "badge", "is-" + is.Status }>{ p.T("issue.status." + is.Status) }</span></td>
+									</tr>
+								}
+							</tbody>
+						</table>
+					</div>
+				</section>
+			}
+			if len(r.Scans) > 0 {
+				<section class="panel">
+					<div class="panel-head"><span class="panel-icon">@Icon("activity")</span><div><h2>{ p.T("search.scans") } <span class="faint">({ strconv.Itoa(len(r.Scans)) })</span></h2></div></div>
+					<div class="tablewrap flat">
+						<table class="data">
+							<thead><tr><th>{ p.T("field.project") }</th><th>{ p.T("field.branch") }</th><th>{ p.T("field.commit") }</th><th>{ p.T("field.status") }</th><th>{ p.T("field.when") }</th></tr></thead>
+							<tbody>
+								for _, s := range r.Scans {
+									<tr>
+										<td>{ s.ProjectName }</td>
+										<td><span class="pill">{ s.Branch }</span></td>
+										<td><a class="mono" href={ templ.SafeURL(p.OrgURL("/scans/" + s.ID.String())) }>{ ShortSHA(s.CommitSha) }</a> <span class="faint">{ s.CommitMessage }</span></td>
+										<td>@statusBadge(p, s.Status, s.GateResult)</td>
+										<td class="faint">{ Ago(s.QueuedAt) }</td>
+									</tr>
+								}
+							</tbody>
+						</table>
+					</div>
+				</section>
+			}
+		}
+	}
+}

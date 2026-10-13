@@ -84,6 +84,8 @@ func (h *Handler) Mount(r chi.Router) {
 				r.Use(h.resolveOrg)
 				r.Get("/", h.dashboard)
 				r.Get("/projects", h.projects)
+				r.Get("/scans", h.allScans)
+				r.Get("/search", h.search)
 				r.Get("/projects/new", h.projectNewForm)
 				r.Post("/projects/new", h.projectNew)
 				r.Get("/projects/{project}", h.projectDetail)
@@ -125,6 +127,7 @@ func (h *Handler) page(r *http.Request, titleKey, nav string) *ui.Page {
 	}
 	if o, ok := ctx.Value(orgKey{}).(*service.OrgCtx); ok {
 		p.Org = o
+		p.Problems, _ = h.Svc.ProblemScans(ctx, o)
 	}
 	if msg := r.URL.Query().Get("msg"); msg != "" && i18n.Has(msg) && strings.HasPrefix(msg, "flash.") {
 		p.Flash, p.FlashKind = msg, "ok"

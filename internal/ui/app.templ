@@ -21,74 +21,7 @@ templ NoOrg(p *Page) {
 	}
 }
 
-// DashboardView holds dashboard numbers.
-type DashboardView struct {
-	Projects int64
-	Members  int
-	Recent   []db.Project
-	Stats    *service.OrgStats
-}
-
-templ Dashboard(p *Page, v *DashboardView) {
-	@AppShell(p) {
-		<div class="page-head">
-			<div>
-				<div class="crumbs">{ p.T("nav.dashboard") }</div>
-				<h1>{ p.Org.Org.Name }</h1>
-			</div>
-			<div class="actions">
-				if p.Can("project.write") {
-					<a class="btn primary" href={ templ.SafeURL(p.OrgURL("/projects/new")) }>{ p.T("projects.new") }</a>
-				}
-			</div>
-		</div>
-		<div class="grid cols-4">
-			<div class="card stat accent"><div class="n">{ strconv.FormatInt(v.Projects, 10) }</div><div class="l">{ p.T("nav.projects") }</div></div>
-			<div class="card stat"><div class="n">{ strconv.Itoa(v.Members) }</div><div class="l">{ p.T("nav.members") }</div></div>
-			<div class="card stat crit"><div class="n">{ SevCount(v.Stats.Open, "critical") }</div><div class="l">{ p.T("dashboard.open_critical") }</div></div>
-			<div class="card stat high"><div class="n">{ SevCount(v.Stats.Open, "high") }</div><div class="l">{ p.T("dashboard.open_high") }</div></div>
-		</div>
-		<div class="card">
-			<h2>{ p.T("scans.recent") }</h2>
-			if len(v.Stats.RecentScans) == 0 {
-				<p class="muted">{ p.T("scans.none_yet") }</p>
-			} else {
-				@orgScanTable(p, v.Stats.RecentScans)
-			}
-		</div>
-		<div class="card">
-			<h2>{ p.T("dashboard.recent_projects") }</h2>
-			if len(v.Recent) == 0 {
-				<div class="empty">
-					<img class="mark" src="/static/img/scanx-mark.svg" alt=""/>
-					<p>{ p.T("projects.empty") }</p>
-				</div>
-			} else {
-				@projectTable(p, v.Recent)
-			}
-		</div>
-	}
-}
-
-templ projectTable(p *Page, ps []db.Project) {
-	<div class="tablewrap">
-		<table>
-			<thead><tr><th>{ p.T("field.name") }</th><th>{ p.T("field.repo_url") }</th><th>{ p.T("field.branches") }</th><th>{ p.T("field.provider") }</th></tr></thead>
-			<tbody>
-				for _, pr := range ps {
-					<tr>
-						<td><a href={ templ.SafeURL(p.OrgURL("/projects/" + pr.Slug)) }>{ pr.Name }</a></td>
-						<td class="mono">{ pr.RepoUrl }</td>
-						<td>{ strings.Join(pr.Branches, ", ") }</td>
-						<td><span class="provider">{ pr.Provider }</span></td>
-					</tr>
-				}
-			</tbody>
-		</table>
-	</div>
-}
-
-templ Projects(p *Page, ps []db.Project, total int64) {
+templ Projects(p *Page, ps []db.Project, total int64, st *service.OrgStats) {
 	@AppShell(p) {
 		<div class="page-head">
 			<div>
@@ -97,7 +30,7 @@ templ Projects(p *Page, ps []db.Project, total int64) {
 			</div>
 			<div class="actions">
 				if p.Can("project.write") {
-					<a class="btn primary" href={ templ.SafeURL(p.OrgURL("/projects/new")) }>{ p.T("projects.new") }</a>
+					<a class="btn primary glow" href={ templ.SafeURL(p.OrgURL("/projects/new")) }>@Icon("plus") { p.T("projects.new") }</a>
 				}
 			</div>
 		</div>
@@ -107,7 +40,14 @@ templ Projects(p *Page, ps []db.Project, total int64) {
 				<p>{ p.T("projects.empty") }</p>
 			</div>
 		} else {
-			@projectTable(p, ps)
+			<section class="panel">
+				<div class="panel-head">
+					<span class="panel-icon">@Icon("folder")</span>
+					<div><h2>{ p.T("nav.projects") } <span class="faint">({ strconv.FormatInt(total, 10) })</span></h2></div>
+					@tableFilter(p, "projects")
+				</div>
+				@projectRows(p, ps, st, "projects")
+			</section>
 		}
 	}
 }
