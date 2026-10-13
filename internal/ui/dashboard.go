@@ -210,3 +210,18 @@ func searchSub(p *Page, q string) string {
 	}
 	return p.T("search.for", q)
 }
+
+// PolicyText translates the simple "fail on X or higher" gate policy;
+// anything more complex is shown as is.
+func (p *Page) PolicyText(policy string) string {
+	sev, ok := strings.CutPrefix(policy, "fail on ")
+	if !ok {
+		return policy
+	}
+	sev, ok = strings.CutSuffix(sev, " or higher")
+	if !ok || strings.ContainsAny(sev, " ,>") {
+		return policy
+	}
+	text, _, _ := strings.Cut(p.T("failon."+sev), " (")
+	return text
+}

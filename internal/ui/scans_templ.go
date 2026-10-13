@@ -2921,9 +2921,9 @@ func scanLive(p *Page, v *ScanPage) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var174 string
-			templ_7745c5c3_Var174, templ_7745c5c3_Err = templ.JoinStringErrs(v.Summary.Gate.Policy)
+			templ_7745c5c3_Var174, templ_7745c5c3_Err = templ.JoinStringErrs(p.PolicyText(v.Summary.Gate.Policy))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `scans.templ`, Line: 370, Col: 50}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `scans.templ`, Line: 370, Col: 64}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var174))
 			if templ_7745c5c3_Err != nil {

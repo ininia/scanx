@@ -367,7 +367,7 @@ templ scanLive(p *Page, v *ScanPage) {
 					<div>
 						<div class="sum-label">{ p.T("scan.gate") }</div>
 						<div class="sum-value">{ p.T("gate." + Gate(v.View.Scan.GateResult)) }</div>
-						<div class="sum-sub">{ v.Summary.Gate.Policy }</div>
+						<div class="sum-sub">{ p.PolicyText(v.Summary.Gate.Policy) }</div>
 					</div>
 				</div>
 				<div class={ "sum-tile", "grade-" + v.Summary.Grade }>
