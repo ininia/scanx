@@ -222,6 +222,9 @@ var enScans = map[string]string{
 	"settings.push_scope_hint":   "On push only the files changed by that push are scanned. “Scan now” always runs a full scan.",
 	"score.cat.quality":          "Code quality",
 	"score.not_in_grade":         "not part of the grade",
+	"projects.edit":              "Edit project",
+	"projects.edit_repo_hint":    "If you change the repository URL, the deploy key and webhook stay the same; add them to the new repository too.",
+	"projects.slug_fixed":        "The project address (%s) does not change; links and the webhook URL stay the same.",
 }
 
 func init() {

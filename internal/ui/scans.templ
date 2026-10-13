@@ -83,6 +83,9 @@ templ ProjectDetail(p *Page, v *ProjectView) {
 			</div>
 			<div class="actions">
 				<a class="btn" href={ templ.SafeURL(p.OrgURL("/projects/" + v.Project.Slug + "/issues")) }>{ p.T("issues.title") }</a>
+				if p.Can("project.write") {
+					<a class="btn" href={ templ.SafeURL(p.OrgURL("/projects/" + v.Project.Slug + "/edit")) }>{ p.T("projects.edit") }</a>
+				}
 				if p.Can("scan.trigger") {
 					<form method="post" action={ templ.SafeURL(p.OrgURL("/projects/" + v.Project.Slug + "/scan")) } class="row inline">
 						@csrf(p)

@@ -23,6 +23,8 @@ func (h *Handler) mountScans(r chi.Router) {
 	r.Post("/projects/{project}/deploy-key/rotate", h.rotateDeployKey)
 	r.Post("/projects/{project}/webhook/rotate", h.rotateWebhookSecret)
 	r.Post("/projects/{project}/settings", h.projectSettings)
+	r.Get("/projects/{project}/edit", h.projectEditForm)
+	r.Post("/projects/{project}/edit", h.projectEdit)
 	r.Get("/projects/{project}/issues", h.projectIssues)
 	r.Get("/scans/{scan}", h.scanDetail)
 	r.Post("/scans/{scan}/cancel", h.scanCancel)
@@ -285,4 +287,47 @@ func (h *Handler) notificationDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	redirect(w, r, "/o/"+orgFrom(r).Org.Slug+"/notifications", "flash.deleted")
+}
+
+func (h *Handler) projectEditForm(w http.ResponseWriter, r *http.Request) {
+	o := orgFrom(r)
+	p, err := h.Svc.GetProject(r.Context(), o, chi.URLParam(r, "project"))
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	if err := o.Require(auth.ActProjectWrite, "write"); err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	f := ui.NewForm()
+	f.Values["name"], f.Values["repo_url"], f.Values["branches"] = p.Name, p.RepoUrl, strings.Join(p.Branches, ", ")
+	render(w, r, http.StatusOK, ui.ProjectEdit(h.page(r, "projects.edit", "projects"), f, p))
+}
+
+func (h *Handler) projectEdit(w http.ResponseWriter, r *http.Request) {
+	o := orgFrom(r)
+	slug := chi.URLParam(r, "project")
+	f := formFrom(r, "name", "repo_url", "branches")
+	branches := []string{}
+	for _, b := range strings.Split(f.V("branches"), ",") {
+		if b = strings.TrimSpace(b); b != "" {
+			branches = append(branches, b)
+		}
+	}
+	_, err := h.Svc.UpdateProject(r.Context(), o, slug, service.ProjectInput{Name: f.V("name"), RepoURL: f.V("repo_url"), Branches: branches}, server.MetaFrom(r))
+	if err != nil {
+		if !formErr(f, err) {
+			h.fail(w, r, err)
+			return
+		}
+		p, gerr := h.Svc.GetProject(r.Context(), o, slug)
+		if gerr != nil {
+			h.fail(w, r, gerr)
+			return
+		}
+		render(w, r, http.StatusUnprocessableEntity, ui.ProjectEdit(h.page(r, "projects.edit", "projects"), f, p))
+		return
+	}
+	redirect(w, r, "/o/"+o.Org.Slug+"/projects/"+slug, "flash.saved")
 }

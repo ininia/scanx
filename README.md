@@ -1,8 +1,10 @@
 <p align="center">
-  <img src="internal/ui/static/img/scanx-mark.svg" alt="scanX" width="120">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="internal/ui/static/img/scanx-logo.png">
+    <img src="internal/ui/static/img/scanx-logo-light.png" alt="scanX" width="320">
+  </picture>
 </p>
 
-<h1 align="center">scanX</h1>
 
 <p align="center">
   <b>Self-hosted code security scanning.</b> Install on your own Linux server, connect your Git

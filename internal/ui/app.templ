@@ -364,3 +364,48 @@ templ Audit(p *Page, rows []db.ListAuditLogsRow) {
 		</div>
 	}
 }
+
+// ProjectEdit changes name, repository URL and branches. The slug (and so
+// every link and the webhook URL) stays the same.
+templ ProjectEdit(p *Page, f *Form, pr *db.Project) {
+	@AppShell(p) {
+		<div class="page-head">
+			<div>
+				<div class="crumbs">
+					<a href={ templ.SafeURL(p.OrgURL("/projects")) }>{ p.T("nav.projects") }</a> /
+					<a href={ templ.SafeURL(p.OrgURL("/projects/" + pr.Slug)) }>{ pr.Name }</a>
+				</div>
+				<h1>{ p.T("projects.edit") }</h1>
+			</div>
+		</div>
+		<div class="card">
+			@formErr(p, f)
+			<form class="stack" method="post" action={ templ.SafeURL(p.OrgURL("/projects/" + pr.Slug + "/edit")) }>
+				@csrf(p)
+				<div class="field">
+					<label for="name">{ p.T("field.name") }</label>
+					<input id="name" name="name" type="text" required maxlength="200" value={ f.V("name") } autofocus/>
+					@fieldErr(p, f, "name")
+				</div>
+				<div class="field">
+					<label for="repo_url">{ p.T("field.repo_url") }</label>
+					<input id="repo_url" name="repo_url" type="text" required class="mono" value={ f.V("repo_url") }/>
+					<span class="hint">{ p.T("projects.repo_hint") }</span>
+					<span class="hint">{ p.T("projects.edit_repo_hint") }</span>
+					@fieldErr(p, f, "repo_url")
+				</div>
+				<div class="field">
+					<label for="branches">{ p.T("field.branches") }</label>
+					<input id="branches" name="branches" type="text" value={ f.V("branches") } placeholder="main, master"/>
+					<span class="hint">{ p.T("projects.branches_hint") }</span>
+					@fieldErr(p, f, "branches")
+				</div>
+				<p class="faint">{ p.T("projects.slug_fixed", pr.Slug) }</p>
+				<div>
+					<button class="btn primary" type="submit">{ p.T("action.save") }</button>
+					<a class="btn" href={ templ.SafeURL(p.OrgURL("/projects/" + pr.Slug)) }>{ p.T("action.cancel") }</a>
+				</div>
+			</form>
+		</div>
+	}
+}

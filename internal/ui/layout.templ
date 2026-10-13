@@ -21,8 +21,8 @@ templ head(p *Page) {
 
 templ brand() {
 	<a class="brand" href="/" aria-label="scanX">
-		<img src="/static/img/scanx-mark.svg" alt=""/>
-		<span>scan<span class="x">X</span></span>
+		<img class="logo logo-dark" src={ Asset("img/scanx-logo.png") } alt="scanX" width="560" height="144"/>
+		<img class="logo logo-light" src={ Asset("img/scanx-logo-light.png") } alt="" width="560" height="144"/>
 	</a>
 }
 
