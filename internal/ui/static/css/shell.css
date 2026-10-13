@@ -153,11 +153,11 @@ table.data td{padding:11px 14px}
 table.data tbody tr:hover{background:color-mix(in srgb,var(--surface-2) 55%,transparent)}
 table.data .strong{font-weight:600;color:var(--text)}
 table.data .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:12px;vertical-align:middle;background:var(--text-faint)}
-.dot.ok{background:var(--accent);box-shadow:0 0 8px color-mix(in srgb,var(--accent) 80%,transparent)}
-.dot.bad{background:var(--sev-critical);box-shadow:0 0 8px color-mix(in srgb,var(--sev-critical) 70%,transparent)}
-.dot.run{background:var(--sev-low);animation:pulse 1.4s ease-in-out infinite}
+table.data .dot.ok{background:var(--accent);box-shadow:0 0 8px color-mix(in srgb,var(--accent) 80%,transparent)}
+table.data .dot.bad{background:var(--sev-critical);box-shadow:0 0 8px color-mix(in srgb,var(--sev-critical) 70%,transparent)}
+table.data .dot.run{background:var(--sev-low);animation:pulse 1.4s ease-in-out infinite}
 @keyframes pulse{50%{opacity:.35}}
-@media (prefers-reduced-motion:reduce){.dot.run{animation:none}}
+@media (prefers-reduced-motion:reduce){table.data .dot.run{animation:none}}
 .pill{display:inline-block;padding:2px 9px;margin:1px 4px 1px 0;border-radius:6px;font:500 12px/1.6 var(--font-mono);color:var(--text);
   background:var(--surface-3);border:1px solid var(--border-strong)}
 .commit{display:inline-flex;align-items:center;gap:4px}

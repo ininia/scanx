@@ -30,7 +30,7 @@ templ Projects(p *Page, ps []db.Project, total int64, st *service.OrgStats) {
 			</div>
 			<div class="actions">
 				if p.Can("project.write") {
-					<a class="btn primary glow" href={ templ.SafeURL(p.OrgURL("/projects/new")) }>@Icon("plus") { p.T("projects.new") }</a>
+					<a class="btn primary glow" href={ templ.SafeURL(p.OrgURL("/projects/new")) }>@Icon("plus")<span>{ p.T("projects.new") }</span></a>
 				}
 			</div>
 		</div>

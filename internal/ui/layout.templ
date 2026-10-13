@@ -207,10 +207,10 @@ templ AppShell(p *Page) {
 										<strong>{ p.User.Name }</strong>
 										<small>{ p.User.Email }</small>
 									</div>
-									<a href="/account">@Icon("user") { p.T("nav.account") }</a>
+									<a href="/account">@Icon("user")<span>{ p.T("nav.account") }</span></a>
 									<form method="post" action="/logout">
 										<input type="hidden" name="csrf_token" value={ p.CSRF }/>
-										<button type="submit">@Icon("logout") { p.T("nav.logout") }</button>
+										<button type="submit">@Icon("logout")<span>{ p.T("nav.logout") }</span></button>
 									</form>
 								</div>
 							</details>

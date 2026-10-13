@@ -65,7 +65,7 @@ templ Dashboard(p *Page, v *DashboardView) {
 				</div>
 			</div>
 			if p.Can("project.write") {
-				<a class="btn primary glow" href={ templ.SafeURL(p.OrgURL("/projects/new")) }>@Icon("plus") { p.T("projects.new") }</a>
+				<a class="btn primary glow" href={ templ.SafeURL(p.OrgURL("/projects/new")) }>@Icon("plus")<span>{ p.T("projects.new") }</span></a>
 			}
 		</div>
 		<div class="stats">
@@ -176,12 +176,12 @@ templ scanRows(p *Page, scans []db.ListOrgScansRow) {
 templ statusBadge(p *Page, status string, gate *string) {
 	if status == "completed" && gate != nil {
 		if *gate == "fail" {
-			<span class="sbadge bad">@Icon("x") { p.T("gate.fail") }</span>
+			<span class="sbadge bad">@Icon("x")<span>{ p.T("gate.fail") }</span></span>
 		} else {
-			<span class="sbadge ok">@Icon("check") { p.T("gate." + *gate) }</span>
+			<span class="sbadge ok">@Icon("check")<span>{ p.T("gate." + *gate) }</span></span>
 		}
 	} else if status == "failed" {
-		<span class="sbadge bad">@Icon("alert-triangle") { p.T("scan.status.failed") }</span>
+		<span class="sbadge bad">@Icon("alert-triangle")<span>{ p.T("scan.status.failed") }</span></span>
 	} else if status == "canceled" {
 		<span class="sbadge off">{ p.T("scan.status.canceled") }</span>
 	} else {
@@ -223,7 +223,7 @@ templ projectRows(p *Page, ps []db.Project, st *service.OrgStats, id string) {
 							if pr.ArchivedAt != nil {
 								<span class="sbadge off">{ p.T("project.archived") }</span>
 							} else {
-								<span class="sbadge ok">@Icon("check") { p.T("project.active") }</span>
+								<span class="sbadge ok">@Icon("check")<span>{ p.T("project.active") }</span></span>
 							}
 						</td>
 						<td class="row-menu">
