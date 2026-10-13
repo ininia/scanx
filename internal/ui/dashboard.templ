@@ -46,7 +46,7 @@ templ statCard(p *Page, tone, icon, label string, value int64, t service.Trend, 
 			</div>
 		</div>
 		<div class="stat-bottom">
-			<span class={ TrendClass(t, upIsBad) }>@Icon(TrendIcon(t)) { p.TrendText(t) }</span>
+			<span class={ TrendClass(t, upIsBad) }>@Icon(TrendIcon(t))<span>{ p.TrendText(t) }</span></span>
 			<span class="faint">{ p.T(periodKey) }</span>
 		</div>
 		<div class="stat-spark">@spark</div>
@@ -209,7 +209,7 @@ templ projectRows(p *Page, ps []db.Project, st *service.OrgStats, id string) {
 								<span class="pill">{ b }</span>
 							}
 						</td>
-						<td><span class="provider-cell">@Icon(ProviderIcon(pr.Provider)) { ProviderName(pr.Provider) }</span></td>
+						<td><span class="provider-cell">@Icon(ProviderIcon(pr.Provider))<span>{ ProviderName(pr.Provider) }</span></span></td>
 						<td class="faint">
 							if ls := lastScan(st, &pr); ls != nil && ls.FinishedAt != nil {
 								{ Ago(*ls.FinishedAt) }
