@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"strconv"
 	"strings"
 
 	"github.com/ininia/scanx/internal/service"
@@ -23,17 +22,11 @@ templ NoOrg(p *Page) {
 
 templ Projects(p *Page, ps []db.Project, total int64, st *service.OrgStats) {
 	@AppShell(p) {
-		<div class="page-head">
-			<div>
-				<div class="crumbs">{ p.Org.Org.Name }</div>
-				<h1>{ p.T("nav.projects") } <span class="faint">({ strconv.FormatInt(total, 10) })</span></h1>
-			</div>
-			<div class="actions">
-				if p.Can("project.write") {
-					<a class="btn primary glow" href={ templ.SafeURL(p.OrgURL("/projects/new")) }>@Icon("plus")<span>{ p.T("projects.new") }</span></a>
-				}
-			</div>
-		</div>
+		@pageHero(p, "folder", p.T("nav.projects"), p.T("page.projects_sub"), p.T("nav.dashboard"), p.T("nav.projects")) {
+			if p.Can("project.write") {
+				<a class="btn primary glow" href={ templ.SafeURL(p.OrgURL("/projects/new")) }>@Icon("plus")<span>{ p.T("projects.new") }</span></a>
+			}
+		}
 		if len(ps) == 0 {
 			<div class="card empty">
 				<img class="mark" src="/static/img/scanx-mark.svg" alt=""/>
@@ -43,7 +36,7 @@ templ Projects(p *Page, ps []db.Project, total int64, st *service.OrgStats) {
 			<section class="panel">
 				<div class="panel-head">
 					<span class="panel-icon">@Icon("folder")</span>
-					<div><h2>{ p.T("nav.projects") } <span class="faint">({ strconv.FormatInt(total, 10) })</span></h2></div>
+					<div><h2>{ p.T("projects.count", total) }</h2><p class="muted">{ p.T("dashboard.projects_sub") }</p></div>
 					@tableFilter(p, "projects")
 				</div>
 				@projectRows(p, ps, st, "projects")
@@ -54,12 +47,7 @@ templ Projects(p *Page, ps []db.Project, total int64, st *service.OrgStats) {
 
 templ ProjectNew(p *Page, f *Form) {
 	@AppShell(p) {
-		<div class="page-head">
-			<div>
-				<div class="crumbs">{ p.T("nav.projects") }</div>
-				<h1>{ p.T("projects.new") }</h1>
-			</div>
-		</div>
+		@pageHero(p, "plus", p.T("projects.new"), p.T("page.project_new_sub"), p.T("nav.projects"), p.T("projects.new"))
 		<div class="card">
 			@formErr(p, f)
 			<form class="stack" method="post" action={ templ.SafeURL(p.OrgURL("/projects/new")) }>
@@ -102,12 +90,7 @@ type MembersView struct {
 
 templ Members(p *Page, f *Form, v *MembersView) {
 	@AppShell(p) {
-		<div class="page-head">
-			<div>
-				<div class="crumbs">{ p.Org.Org.Name }</div>
-				<h1>{ p.T("nav.members") }</h1>
-			</div>
-		</div>
+		@pageHero(p, "users", p.T("nav.members"), p.T("page.members_sub"), p.Org.Org.Name, p.T("nav.members"))
 		if v.NewInvite != "" {
 			<div class="alert ok">
 				<p>{ p.T("members.invite_created") }</p>
@@ -214,12 +197,7 @@ templ roleSelect(p *Page, cur string, allowOwner bool) {
 
 templ Tokens(p *Page, f *Form, rows []db.ListUserAPITokensRow, created string) {
 	@AppShell(p) {
-		<div class="page-head">
-			<div>
-				<div class="crumbs">{ p.Org.Org.Name }</div>
-				<h1>{ p.T("nav.tokens") }</h1>
-			</div>
-		</div>
+		@pageHero(p, "key", p.T("nav.tokens"), p.T("page.tokens_sub"), p.Org.Org.Name, p.T("nav.tokens"))
 		if created != "" {
 			<div class="alert ok">
 				<p>{ p.T("tokens.created") }</p>
@@ -280,12 +258,7 @@ templ Tokens(p *Page, f *Form, rows []db.ListUserAPITokensRow, created string) {
 
 templ Audit(p *Page, rows []db.ListAuditLogsRow) {
 	@AppShell(p) {
-		<div class="page-head">
-			<div>
-				<div class="crumbs">{ p.Org.Org.Name }</div>
-				<h1>{ p.T("nav.audit") }</h1>
-			</div>
-		</div>
+		@pageHero(p, "file", p.T("nav.audit"), p.T("page.audit_sub"), p.Org.Org.Name, p.T("nav.audit"))
 		<div class="tablewrap">
 			<table>
 				<thead><tr><th>{ p.T("audit.when") }</th><th>{ p.T("audit.who") }</th><th>{ p.T("audit.action") }</th><th>{ p.T("audit.target") }</th><th>IP</th></tr></thead>

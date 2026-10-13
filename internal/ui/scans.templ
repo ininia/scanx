@@ -560,12 +560,7 @@ templ IssueDetail(p *Page, f *Form, v *IssuePage) {
 
 templ Notifications(p *Page, f *Form, v *NotificationsView) {
 	@AppShell(p) {
-		<div class="page-head">
-			<div>
-				<div class="crumbs">{ p.Org.Org.Name }</div>
-				<h1>{ p.T("nav.notifications") }</h1>
-			</div>
-		</div>
+		@pageHero(p, "bell", p.T("nav.notifications"), p.T("page.notifications_sub"), p.Org.Org.Name, p.T("nav.notifications"))
 		if v.TestError != "" {
 			<div class="alert err">{ p.T("notify.test_failed") }: { v.TestError }</div>
 		}
@@ -625,13 +620,13 @@ templ Notifications(p *Page, f *Form, v *NotificationsView) {
 						</div>
 						<div class="field">
 							<label for="name">{ p.T("field.name") }</label>
-							<input id="name" name="name" value={ f.V("name") } maxlength="100" required/>
+							<input type="text" id="name" name="name" value={ f.V("name") } maxlength="100" required/>
 							@fieldErr(p, f, "name")
 						</div>
 					</div>
 					<div class="field">
 						<label for="target">{ p.T("notify.target") }</label>
-						<input id="target" name="target" value={ f.V("target") } maxlength="2000" required autocomplete="off"/>
+						<input type="text" id="target" name="target" value={ f.V("target") } maxlength="2000" required autocomplete="off"/>
 						@fieldErr(p, f, "target")
 						<span class="hint">{ p.T("notify.target_hint") }</span>
 						if !v.SMTPConfigured {

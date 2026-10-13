@@ -21,6 +21,26 @@ templ breadcrumbs(p *Page, items ...string) {
 	</nav>
 }
 
+// pageHero is the page header: breadcrumbs, icon, title, subtitle and
+// optional actions (children).
+templ pageHero(p *Page, icon, title, subtitle string, crumbs ...string) {
+	@breadcrumbs(p, crumbs...)
+	<div class="hero-head">
+		<div class="hero-title">
+			<span class="hero-icon">@Icon(icon)</span>
+			<div>
+				<h1>{ title }</h1>
+				if subtitle != "" {
+					<p class="muted">{ subtitle }</p>
+				}
+			</div>
+		</div>
+		<div class="actions">
+			{ children... }
+		</div>
+	</div>
+}
+
 templ sparkBars(vals []int64) {
 	<svg class="spark bars" viewBox="0 0 100 36" preserveAspectRatio="none" aria-hidden="true">
 		for _, b := range SparkBars(vals) {
@@ -248,8 +268,7 @@ templ projectRows(p *Page, ps []db.Project, st *service.OrgStats, id string) {
 // AllScans lists the org's recent scans.
 templ AllScans(p *Page, scans []db.ListOrgScansRow) {
 	@AppShell(p) {
-		@breadcrumbs(p, p.T("nav.dashboard"), p.T("scans.all_title"))
-		<div class="page-head"><div><h1>{ p.T("scans.all_title") }</h1></div></div>
+		@pageHero(p, "activity", p.T("scans.all_title"), p.T("scans.recent_sub"), p.T("nav.dashboard"), p.T("scans.all_title"))
 		<section class="panel">
 			if len(scans) == 0 {
 				<p class="muted">{ p.T("scans.none_yet") }</p>
@@ -263,12 +282,7 @@ templ AllScans(p *Page, scans []db.ListOrgScansRow) {
 // Search shows the global search results.
 templ Search(p *Page, r *service.SearchResult) {
 	@AppShell(p) {
-		@breadcrumbs(p, p.T("nav.dashboard"), p.T("search.title"))
-		<div class="page-head"><div><h1>{ p.T("search.title") }</h1>
-			if r.Query != "" {
-				<p class="muted">{ p.T("search.for", r.Query) }</p>
-			}
-		</div></div>
+		@pageHero(p, "search", p.T("search.title"), searchSub(p, r.Query), p.T("nav.dashboard"), p.T("search.title"))
 		if len([]rune(r.Query)) < 2 {
 			<section class="panel"><p class="muted">{ p.T("search.too_short") }</p></section>
 		} else if len(r.Projects)+len(r.Issues)+len(r.Scans) == 0 {

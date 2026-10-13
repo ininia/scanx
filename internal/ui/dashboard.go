@@ -203,3 +203,10 @@ func lastScan(st *service.OrgStats, p *db.Project) *db.LastScanPerProjectRow {
 	}
 	return nil
 }
+
+func searchSub(p *Page, q string) string {
+	if q == "" {
+		return ""
+	}
+	return p.T("search.for", q)
+}

@@ -20,12 +20,7 @@ type AccountView struct {
 
 templ Account(p *Page, v *AccountView) {
 	@AppShell(p) {
-		<div class="page-head">
-			<div>
-				<div class="crumbs">{ p.User.Email }</div>
-				<h1>{ p.T("nav.account") }</h1>
-			</div>
-		</div>
+		@pageHero(p, "user", p.T("nav.account"), p.User.Email, p.T("nav.account"))
 		if v.ForceTOTP {
 			<div class="alert warn">{ p.T("account.force_totp") }</div>
 		}
@@ -133,12 +128,7 @@ templ Account(p *Page, v *AccountView) {
 
 templ Admin(p *Page, f *Form, orgs []db.ListAllOrgsRow) {
 	@AppShell(p) {
-		<div class="page-head">
-			<div>
-				<div class="crumbs">{ p.T("nav.instance") }</div>
-				<h1>{ p.T("nav.admin") }</h1>
-			</div>
-		</div>
+		@pageHero(p, "settings", p.T("nav.admin"), p.T("page.admin_sub"), p.T("nav.instance"), p.T("nav.admin"))
 		<div class="card">
 			<h2>{ p.T("admin.create_org") }</h2>
 			@formErr(p, f)

@@ -196,3 +196,24 @@ tr[hidden]{display:none}
   .stats{grid-template-columns:1fr}
   .stat-spark{width:38%}
 }
+
+/* ---------- older pages adopt the panel look ---------- */
+.hero-head .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.hero-head .actions:empty{display:none}
+.card{border-radius:16px;border-color:color-mix(in srgb,var(--accent) 22%,var(--border));
+  background:linear-gradient(180deg,var(--surface-1),color-mix(in srgb,var(--surface-1) 80%,var(--bg)));
+  box-shadow:0 0 34px -22px color-mix(in srgb,var(--accent) 60%,transparent),inset 0 1px 0 color-mix(in srgb,#fff 4%,transparent)}
+.card h2{font-size:18px}
+.card+.card,.card+.tablewrap,.tablewrap+.card,.tablewrap+.tablewrap,.hero-head+.tablewrap{margin-top:18px}
+.tablewrap{border-radius:14px;border-color:color-mix(in srgb,var(--accent) 18%,var(--border))}
+.tablewrap th{font-size:11.5px;letter-spacing:.07em;padding:12px 14px}
+.tablewrap td{padding:12px 14px}
+.tablewrap tbody tr:last-child td{border-bottom:0}
+.tablewrap tbody tr:hover{background:color-mix(in srgb,var(--surface-2) 55%,transparent)}
+.page-head h1{font-size:28px;margin-bottom:4px}
+.page-head .crumbs{font-size:13px;color:var(--text-muted);margin-bottom:10px}
+.page-head .crumbs a{color:var(--text-muted)}
+.page-head .crumbs a:hover{color:var(--accent)}
+input:not([type]),input[type=text],input[type=email],input[type=password],input[type=url],input[type=number],select,textarea{
+  border-radius:10px;background:color-mix(in srgb,var(--bg) 70%,var(--surface-1))}
+input[type=checkbox]{accent-color:var(--accent);width:16px;height:16px}
