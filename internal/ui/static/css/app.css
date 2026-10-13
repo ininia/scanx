@@ -24,9 +24,9 @@ code,pre,.mono{font-family:var(--font-mono);font-size:.92em}
 .brand{display:flex;align-items:center;gap:10px;font:700 24px/1 var(--font-display);font-style:italic;letter-spacing:-.6px;color:var(--text);padding:4px 6px}
 .brand:hover{text-decoration:none;color:var(--text)}
 .brand img.logo{width:132px;height:auto;display:block}
-.brand .logo-light{display:none}
-@media (prefers-color-scheme: light){:root:not([data-theme="dark"]) .brand .logo-dark{display:none}:root:not([data-theme="dark"]) .brand .logo-light{display:block}}
-:root[data-theme="light"] .brand .logo-dark{display:none}:root[data-theme="light"] .brand .logo-light{display:block}
+.brand img.logo-light{display:none}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]) .brand img.logo-dark{display:none}:root:not([data-theme="dark"]) .brand img.logo-light{display:block}}
+:root[data-theme="light"] .brand img.logo-dark{display:none}:root[data-theme="light"] .brand img.logo-light{display:block}
 .brand .x{color:var(--accent)}
 .nav{display:flex;flex-direction:column;gap:2px}
 .nav a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--radius);color:var(--text-muted);font-weight:500}
