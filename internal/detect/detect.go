@@ -94,6 +94,8 @@ func Scan(root string) (*Result, error) {
 			iac["terraform"] = true
 		case lower == "chart.yaml":
 			iac["helm"] = true
+		case isAPISpecName(lower):
+			iac["openapi"] = true
 		}
 		return nil
 	})
@@ -109,6 +111,18 @@ func Scan(root string) (*Result, error) {
 	r.IaC = sortedKeys(iac)
 	sort.Strings(r.Lockfiles)
 	return r, nil
+}
+
+// isAPISpecName matches the usual OpenAPI/Swagger file names
+// (openapi.yaml, swagger.json, petstore.openapi.yml...). Specs with other
+// names are still found by the API linter's content check when YAML exists.
+func isAPISpecName(lower string) bool {
+	ext := filepath.Ext(lower)
+	if ext != ".yaml" && ext != ".yml" && ext != ".json" {
+		return false
+	}
+	base := strings.TrimSuffix(lower, ext)
+	return strings.Contains(base, "openapi") || strings.Contains(base, "swagger")
 }
 
 func sortedKeys(m map[string]bool) []string {

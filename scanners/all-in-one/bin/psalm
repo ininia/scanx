@@ -1,0 +1,3 @@
+#!/bin/sh
+# Psalm (PHP) on the image's PHP 8.2 CLI.
+exec php -d memory_limit=1024M -d display_errors=stderr /opt/scanx/psalm/psalm.phar "$@"

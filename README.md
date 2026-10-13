@@ -42,17 +42,24 @@ Scanners in this release (all open source, all run offline in a network-less con
 | **Opengrep** | source code (SAST), 776 open-licensed rules incl. scanX's own PHP taint rules; only rules for the repository's languages are loaded |
 | **DevSkim** (Microsoft) | security patterns in many languages incl. C# |
 | **Bandit** | Python security |
+| **gosec** | Go security (only for Go repositories) |
+| **Psalm** (taint analysis) | PHP: user input reaching SQL, shell, include, echo, unserialize (only for PHP repositories) |
+| **Ruff** | Python code quality (only for Python repositories) |
 | **Gitleaks** | leaked secrets in the working tree and git history |
 | **Trivy** | vulnerable dependencies, IaC misconfiguration, secrets, licenses |
 | **OSV-Scanner** | vulnerable dependencies (second opinion, Google OSV) |
 | **Checkov** | infrastructure as code: Dockerfile, Kubernetes, Terraform, Helm, Bicep, CI pipelines |
 | **zizmor** | GitHub Actions workflow security (injection, secret exposure, dangerous triggers) |
+| **actionlint** | GitHub Actions workflow mistakes (syntax, expressions, action inputs) |
+| **kube-linter** | Kubernetes manifests and Helm charts |
+| **Spectral** | OpenAPI/Swagger documents against the OWASP API Security Top 10 |
 | **Hadolint** | Dockerfile best practice and security |
 | **ShellCheck** | shell script bugs |
 | **Lizard** | code complexity (code-quality score, not part of the security grade) |
 | **Syft** | SBOM (CycloneDX) |
 
-Findings from different tools are merged into one issue. Pushes are scanned incrementally (only the
+Each tool runs only when the repository contains what it checks (its language, workflows, manifests or
+API documents). Findings from different tools are merged into one issue. Pushes are scanned incrementally (only the
 files the push changed); "Scan now" runs a full scan.
 
 ## What scanX does (target v1.0)

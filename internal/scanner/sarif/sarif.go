@@ -82,6 +82,12 @@ type Options struct {
 	Tool     string
 	Category finding.Category
 	Severity SeverityFunc // nil = DefaultSeverity
+	// RuleIDFromName uses the rule's name as RuleID (for tools whose
+	// rule ids are opaque numbers, e.g. Psalm).
+	RuleIDFromName bool
+	// TitleFromMessage uses the result message as the title (for tools
+	// whose rule descriptions are generic or contain placeholders).
+	TitleFromMessage bool
 }
 
 // DefaultSeverity uses the "security-severity" score (GitHub convention:
@@ -216,6 +222,9 @@ func Parse(data []byte, opt Options) ([]finding.Finding, error) {
 				Title: firstLine(r.Message.Text), CWE: cwes(rule),
 			}
 			if rule != nil {
+				if opt.RuleIDFromName && rule.Name != "" {
+					f.RuleID = rule.Name
+				}
 				if t := text(rule.ShortDescription); t != "" {
 					f.Title = t
 				}
@@ -224,6 +233,9 @@ func Parse(data []byte, opt Options) ([]finding.Finding, error) {
 				if rule.HelpURI != "" {
 					f.References = []string{rule.HelpURI}
 				}
+			}
+			if opt.TitleFromMessage && strings.TrimSpace(r.Message.Text) != "" {
+				f.Title = firstLine(r.Message.Text)
 			}
 			if f.Title == "" {
 				f.Title = r.RuleID

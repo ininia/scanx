@@ -5,6 +5,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versioning: SemVer.
 ## [Unreleased]
 ### Added — scan quality and speed
 - New analysers in the scanner image (checksum/hash pinned, offline): DevSkim, Bandit, Checkov, zizmor, Hadolint, ShellCheck, Lizard. Generic SARIF ingestion.
+- Language and config analysers, each selected automatically from what the repository contains: gosec (Go), Psalm taint analysis (PHP), Ruff (Python quality), actionlint (GitHub Actions), kube-linter (Kubernetes/Helm), Spectral with the OWASP API Security Top 10 ruleset (OpenAPI).
 - Incremental scans on push: only the files changed by the push are scanned; issues are only marked fixed in touched files. Project setting for push scope; "Scan now" is a full scan.
 - Live activity log on the scan page; per-project code-analysis time limit.
 - Issue filters (severity, type, tool, status, new, search) and grouping (file + rule, rule, none).

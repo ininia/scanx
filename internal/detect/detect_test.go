@@ -35,6 +35,7 @@ func TestScanSkipsVendorAndDetectsGit(t *testing.T) {
 		"charts/app/Chart.yaml":   "name: app",
 		"build/Dockerfile.prod":   "FROM scratch",
 		"src/App.csproj":          "<Project/>",
+		"docs/swagger.json":       "{}",
 	} {
 		p := filepath.Join(dir, filepath.FromSlash(name))
 		if err := os.MkdirAll(filepath.Dir(p), 0o750); err != nil {
@@ -54,7 +55,7 @@ func TestScanSkipsVendorAndDetectsGit(t *testing.T) {
 	if !r.HasGit {
 		t.Fatal("git not detected")
 	}
-	for _, k := range []string{"terraform", "helm", "dockerfile", "yaml"} {
+	for _, k := range []string{"terraform", "helm", "dockerfile", "yaml", "openapi"} {
 		if !r.HasIaC(k) {
 			t.Errorf("iac %s missing: %v", k, r.IaC)
 		}

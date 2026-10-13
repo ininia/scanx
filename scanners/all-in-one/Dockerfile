@@ -82,6 +82,50 @@ RUN set -eu; \
     cp -r devskim/tools/net8.0/any/. /out/devskim/; \
     chmod 0755 /out/bin/*
 
+# ---------- language and config analysers (Faz 4.6) ----------
+# gosec runs on the official Go toolchain (SHA-256 from go.dev). Tools
+# without a checksum file are pinned to the SHA-256 digest GitHub records
+# for the release asset; the Spectral OWASP ruleset to its npm SHA-512
+# integrity. Each tool only runs when its language/files are detected.
+ARG GO_VERSION=1.27.2
+ARG GO_SHA256=ecbadb99091a3f46e31f5f934b068b1864eafa7995211b39eaddf76996045fe5
+ARG GOSEC_VERSION=2.29.0
+ARG GOSEC_SHA256=6431b119741c1f4a50fdfcf94e782e16b9e642afc8c7fa9b5d39d48bf3003095
+ARG RUFF_VERSION=0.16.9
+ARG RUFF_SHA256=1bfbb819b5d4f9af501748862276b60e412d336034d99387691a4d4bce7a6f13
+ARG ACTIONLINT_VERSION=1.7.12
+ARG ACTIONLINT_SHA256=8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+ARG KUBELINTER_VERSION=0.8.3
+ARG KUBELINTER_SHA256=1a6d8419b11971372971fdbc22682b684ebfb7cf1c39591662d1b6ca736c41df
+ARG SPECTRAL_VERSION=6.16.3
+ARG SPECTRAL_SHA256=b90ac8da7b804d04052b9db8d4ea5028d29fba9bc69b02dc85d46e5fcc476452
+ARG SPECTRAL_OWASP_VERSION=2.0.1
+ARG SPECTRAL_OWASP_SHA512=f52e99de5330221e687b95f9c52f3aee2426f3160c802c18d3c16247802de88beeefc950ee89054bbf88f5152cd3565ac1dd0fb5a81e41e67cdc4b72fef94941
+ARG PSALM_VERSION=6.17.2
+ARG PSALM_SHA256=6a90161289d7db95fe74b40a0b6dedfb31c7670b9da2f7b03ce4746b9cf739c7
+RUN set -eu; \
+    dl() { curl -fsSL --retry 3 -o "$2" "$1"; echo "$3  $2" | sha256sum -c -; }; \
+    dl512() { curl -fsSL --retry 3 -o "$2" "$1"; echo "$3  $2" | sha512sum -c -; }; \
+    GH=https://github.com; mkdir -p /out/lang/bin /out/spectral /out/psalm; \
+    dl "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" go.tgz "$GO_SHA256"; \
+    tar -xzf go.tgz -C /out/lang; \
+    rm -rf /out/lang/go/test /out/lang/go/api /out/lang/go/doc /out/lang/go/misc /out/lang/go/pkg/obj; \
+    dl "$GH/securego/gosec/releases/download/v${GOSEC_VERSION}/gosec_${GOSEC_VERSION}_linux_amd64.tar.gz" gosec.tgz "$GOSEC_SHA256"; \
+    tar -xzf gosec.tgz -C /out/lang/bin gosec; \
+    dl "$GH/astral-sh/ruff/releases/download/${RUFF_VERSION}/ruff-x86_64-unknown-linux-gnu.tar.gz" ruff.tgz "$RUFF_SHA256"; \
+    tar -xzf ruff.tgz --strip-components=1 -C /out/lang/bin ruff-x86_64-unknown-linux-gnu/ruff; \
+    dl "$GH/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz" actionlint.tgz "$ACTIONLINT_SHA256"; \
+    tar -xzf actionlint.tgz -C /out/lang/bin actionlint; \
+    dl "$GH/stackrox/kube-linter/releases/download/v${KUBELINTER_VERSION}/kube-linter-linux.tar.gz" kube-linter.tgz "$KUBELINTER_SHA256"; \
+    tar -xzf kube-linter.tgz -C /out/lang/bin kube-linter; \
+    dl "$GH/stoplightio/spectral/releases/download/v${SPECTRAL_VERSION}/spectral-linux-x64" spectral "$SPECTRAL_SHA256"; \
+    install -m 0755 spectral /out/lang/bin/spectral; \
+    dl512 "https://registry.npmjs.org/@stoplight/spectral-owasp-ruleset/-/spectral-owasp-ruleset-${SPECTRAL_OWASP_VERSION}.tgz" owasp.tgz "$SPECTRAL_OWASP_SHA512"; \
+    tar -xzf owasp.tgz package/dist/ruleset.mjs; cp package/dist/ruleset.mjs /out/spectral/owasp.mjs; \
+    dl "$GH/vimeo/psalm/releases/download/${PSALM_VERSION}/psalm.phar" psalm.phar "$PSALM_SHA256"; \
+    install -m 0644 psalm.phar /out/psalm/psalm.phar; \
+    chmod 0755 /out/lang/bin/*
+
 # ---------- Python analysers: Checkov (IaC), Bandit (Python SAST), Lizard
 # (complexity). Every package, including dependencies, is pinned by hash. ----------
 FROM debian:bookworm-slim AS py
@@ -123,6 +167,7 @@ RUN set -eu; echo "db snapshot ${DB_DATE}"; \
 # ---------- final image ----------
 FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates git openssh-client python3 \
+      php8.2-cli php8.2-xml php8.2-mbstring \
  && rm -rf /var/lib/apt/lists/* \
  && groupadd -g 65532 scanx && useradd -u 65532 -g 65532 -M -d /nonexistent -s /usr/sbin/nologin scanx \
  && mkdir -p /work && chown 65532:65532 /work
@@ -130,6 +175,9 @@ COPY --from=fetch /out/bin/ /usr/local/bin/
 COPY --from=extra /out/bin/ /usr/local/bin/
 COPY --from=extra /out/dotnet /opt/dotnet
 COPY --from=extra /out/devskim /opt/scanx/devskim
+COPY --from=extra /out/lang/bin/ /usr/local/bin/
+COPY --from=extra /out/lang/go /opt/go
+COPY --from=extra /out/psalm /opt/scanx/psalm
 COPY --from=py /opt/scanx/py /opt/scanx/py
 COPY scanners/all-in-one/bin/ /usr/local/bin/
 COPY --from=scanx /out/scanx /usr/local/bin/scanx
@@ -138,9 +186,11 @@ COPY --from=db /out/trivy /opt/scanx/db/trivy
 COPY --from=db /out/osv /opt/scanx/db/osv
 COPY --from=db /out/DB_BUILT_AT /opt/scanx/db/DB_BUILT_AT
 COPY scanners/all-in-one/config /opt/scanx/config
+COPY --from=extra /out/spectral/owasp.mjs /opt/scanx/config/spectral/owasp.mjs
 # Opengrep unpacks itself into $HOME/.cache on first run; do it at build time so
 # the runtime filesystem can stay read-only.
-ENV LANG=C.UTF-8 LC_ALL=C.UTF-8 \
+ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/go/bin \
+    LANG=C.UTF-8 LC_ALL=C.UTF-8 \
     DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 \
     BC_SKIP_MAPPING=TRUE PYTHONDONTWRITEBYTECODE=1 \
     SCANX_TOOL_HOME=/opt/scanx/home \

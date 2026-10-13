@@ -64,6 +64,10 @@ Running them as separate programs is still generally fine, but any *modified* AG
 | bundler-audit / ruby-advisory-db | GPL-3.0 | Public domain (contributor dedication) | low | | https://github.com/rubysec/bundler-audit , https://github.com/rubysec/ruby-advisory-db/blob/master/LICENSE.txt |
 | zizmor / actionlint | MIT / MIT | Built in | none | | https://github.com/zizmorcore/zizmor , https://github.com/rhysd/actionlint |
 | DevSkim | MIT | Built in | none | | https://github.com/microsoft/DevSkim |
+| gosec | Apache-2.0 | Built in | none | Runs on the Go toolchain (BSD-3-Clause) | https://github.com/securego/gosec |
+| Psalm | MIT | Built in (stubs MIT) | none | Runs on PHP 8.2 CLI from Debian (PHP License 3.01) | https://github.com/vimeo/psalm |
+| Ruff | MIT | Built in | none | | https://github.com/astral-sh/ruff |
+| Spectral / spectral-owasp-ruleset | Apache-2.0 / MIT | Ruleset bundled from npm | none | | https://github.com/stoplightio/spectral , https://github.com/stoplightio/spectral-owasp-ruleset |
 | PMD | BSD-style | Built in | none | | https://github.com/pmd/pmd/blob/main/LICENSE |
 | detekt, kube-linter, kubescape, detect-secrets, 2ms, Dependency-Check, osv-scalibr, retire.js | Apache-2.0 | Built in or own feeds. Retire.js repository data license **UNVERIFIED**. Kubescape regolibrary license **UNVERIFIED**. | none / low | | respective GitHub repos (see scanners.md) |
 | tflint | MPL-2.0 | Plugins have their own licenses (**UNVERIFIED**) | none | | https://github.com/terraform-linters/tflint |

@@ -222,11 +222,15 @@ func runOne(ctx context.Context, r Runner, env scanner.Env, s scanner.Settings, 
 	tctx, cancel := context.WithTimeout(ctx, sc.Timeout(s))
 	defer cancel()
 	start := time.Now()
-	code, out, err := r.Run(tctx, sc.Command(env, s), env.TmpDir)
+	cmd := sc.Command(env, s)
+	dir := env.TmpDir
+	if cmd.Dir != "" {
+		dir = cmd.Dir
+	}
+	code, out, err := r.Run(tctx, cmd, dir)
 	run.DurationMS = time.Since(start).Milliseconds()
 	run.ExitCode = code
 	run.LogExcerpt = excerpt(out)
-	cmd := sc.Command(env, s)
 	switch {
 	case errors.Is(tctx.Err(), context.DeadlineExceeded):
 		run.Status, run.Error = StatusTimeout, fmt.Sprintf("timed out after %s", sc.Timeout(s))

@@ -1,0 +1,24 @@
+#!/bin/sh
+# Runs gosec once per Go module (gosec only loads packages from inside a
+# module, so a repository with modules in subdirectories needs one run
+# each). Usage: scanx-gosec OUT_DIR MODULE_DIR...
+# Writes OUT_DIR/gosec-<n>.sarif for the n-th module. Extra directory
+# names to skip come from SCANX_GOSEC_EXCLUDE_DIRS (comma separated).
+set -u
+out=$1
+shift
+set -f
+excl=""
+IFS=,
+for d in ${SCANX_GOSEC_EXCLUDE_DIRS:-}; do
+  excl="$excl -exclude-dir=$d"
+done
+unset IFS
+n=0
+for mod in "$@"; do
+  n=$((n + 1))
+  # shellcheck disable=SC2086 # $excl is a list of flags
+  (cd "$mod" && gosec -fmt sarif -out "$out/gosec-$n.sarif" -no-fail -quiet -exclude-generated -exclude G101 $excl ./...) ||
+    echo "gosec failed in module $n" >&2
+done
+exit 0

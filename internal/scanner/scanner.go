@@ -50,6 +50,9 @@ type Cmd struct {
 	// StdoutFile, when set, receives the tool's stdout (for tools that only
 	// print their report); stderr still goes to the log excerpt.
 	StdoutFile string
+	// Dir is the working directory (default: the scan's TmpDir). Tools
+	// that report paths relative to where they run start in SourceDir.
+	Dir string
 }
 
 // Scanner is one tool adapter.

@@ -1,9 +1,12 @@
 // Package extra adapts the additional analysers of the all-in-one image:
 // DevSkim (Microsoft, multi-language security patterns incl. C#), zizmor
 // (GitHub Actions workflow security), Checkov (infrastructure as code),
-// Hadolint (Dockerfiles), ShellCheck (shell scripts), Bandit (Python) and
-// Lizard (code complexity). All run offline inside the network-less scan
-// container; none of them is given credentials or an online mode.
+// Hadolint (Dockerfiles), ShellCheck (shell scripts), Bandit (Python),
+// Lizard (code complexity), gosec (Go), Ruff (Python quality), Psalm (PHP
+// taint analysis), actionlint (workflow correctness), kube-linter
+// (Kubernetes) and Spectral (OpenAPI, OWASP API Top 10). All run offline
+// inside the network-less scan container; none of them is given
+// credentials or an online mode.
 package extra
 
 import (
@@ -29,6 +32,12 @@ func init() {
 	scanner.Register(ShellCheck{})
 	scanner.Register(Bandit{})
 	scanner.Register(Lizard{})
+	scanner.Register(Gosec{})
+	scanner.Register(Ruff{})
+	scanner.Register(Psalm{})
+	scanner.Register(Actionlint{})
+	scanner.Register(KubeLinter{})
+	scanner.Register(Spectral{})
 }
 
 func readSARIF(env scanner.Env, file string, opt sarif.Options) ([]finding.Finding, error) {
