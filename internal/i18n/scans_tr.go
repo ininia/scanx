@@ -226,6 +226,7 @@ var trScans = map[string]string{
 	"projects.edit":              "Projeyi düzenle",
 	"projects.edit_repo_hint":    "Repo adresini değiştirirseniz deploy key ve webhook aynı kalır; yeni repoya da eklemeniz gerekir.",
 	"projects.slug_fixed":        "Proje adresi (%s) değişmez; bağlantılar ve webhook adresi aynı kalır.",
+	"theme.toggle":               "Açık / koyu tema",
 }
 
 func init() {

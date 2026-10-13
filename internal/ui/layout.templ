@@ -15,6 +15,7 @@ templ head(p *Page) {
 	<link rel="icon" href="/static/img/scanx-mark.svg" type="image/svg+xml"/>
 	<link rel="stylesheet" href={ Asset("css/tokens.css") }/>
 	<link rel="stylesheet" href={ Asset("css/app.css") }/>
+	<script src={ Asset("js/theme.js") }></script>
 	<script src={ Asset("js/htmx.min.js") } defer></script>
 	<script src={ Asset("js/app.js") } defer></script>
 }
@@ -40,6 +41,7 @@ templ AuthShell(p *Page, wide bool) {
 			@head(p)
 		</head>
 		<body class={ templ.KV("wide", wide) }>
+			<div class="theme-corner">@themeToggle(p)</div>
 			<main class="auth">
 				<div class="auth-card">
 					@brand()
@@ -127,6 +129,7 @@ templ AppShell(p *Page) {
 								</div>
 							</details>
 						}
+						@themeToggle(p)
 					</header>
 					<main class="content" id="content">
 						@flash(p)
@@ -163,4 +166,14 @@ templ ErrorPage(p *Page, code int, titleKey, msgKey string) {
 			<a class="btn primary" href="/">{ p.T("action.home") }</a>
 		</div>
 	}
+}
+
+// themeToggle switches between the dark and light theme (static/js/app.js);
+// the choice is remembered in the browser and applied before first paint
+// (static/js/theme.js). Without a choice the OS setting is followed.
+templ themeToggle(p *Page) {
+	<button type="button" class="theme-toggle" data-theme-toggle aria-label={ p.T("theme.toggle") } title={ p.T("theme.toggle") }>
+		<svg class="icon-sun" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="currentColor"></circle><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"></path></g></svg>
+		<svg class="icon-moon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M20.2 14.6A8.5 8.5 0 0 1 9.4 3.8a8.5 8.5 0 1 0 10.8 10.8z"></path></svg>
+	</button>
 }

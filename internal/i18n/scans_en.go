@@ -225,6 +225,7 @@ var enScans = map[string]string{
 	"projects.edit":              "Edit project",
 	"projects.edit_repo_hint":    "If you change the repository URL, the deploy key and webhook stay the same; add them to the new repository too.",
 	"projects.slug_fixed":        "The project address (%s) does not change; links and the webhook URL stay the same.",
+	"theme.toggle":               "Light / dark theme",
 }
 
 func init() {

@@ -25,3 +25,17 @@ document.addEventListener("click", function (e) {
   try { document.execCommand("copy"); done(); } catch (err) { /* ignore */ }
   document.body.removeChild(ta);
 });
+
+// Theme switch: <button data-theme-toggle>. Toggles between dark and light
+// starting from the theme currently shown (explicit choice or OS setting).
+document.addEventListener("click", function (e) {
+  if (!e.target.closest("[data-theme-toggle]")) return;
+  var root = document.documentElement;
+  var current = root.getAttribute("data-theme");
+  if (current !== "light" && current !== "dark") {
+    current = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  }
+  var next = current === "light" ? "dark" : "light";
+  root.setAttribute("data-theme", next);
+  try { localStorage.setItem("scanx-theme", next); } catch (err) { /* not persisted */ }
+});
