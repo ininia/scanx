@@ -283,9 +283,11 @@ templ Audit(p *Page, rows []db.ListAuditLogsRow) {
 templ ProjectEdit(p *Page, f *Form, pr *db.Project) {
 	@AppShell(p) {
 		<div class="page-head">
+			<span class="hero-icon">@Icon("settings")</span>
 			<div>
 				<div class="crumbs">
-					<a href={ templ.SafeURL(p.OrgURL("/projects")) }>{ p.T("nav.projects") }</a> /
+					<a href={ templ.SafeURL(p.OrgURL("/projects")) }>{ p.T("nav.projects") }</a>
+					@Icon("chevron-right")
 					<a href={ templ.SafeURL(p.OrgURL("/projects/" + pr.Slug)) }>{ pr.Name }</a>
 				</div>
 				<h1>{ p.T("projects.edit") }</h1>

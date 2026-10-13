@@ -56,6 +56,7 @@ templ scanTable(p *Page, scans []db.Scan) {
 templ ProjectDetail(p *Page, v *ProjectView) {
 	@AppShell(p) {
 		<div class="page-head">
+			<span class="hero-icon">@Icon("box")</span>
 			<div>
 				<div class="crumbs"><a href={ templ.SafeURL(p.OrgURL("/projects")) }>{ p.T("nav.projects") }</a></div>
 				<h1>{ v.Project.Name }</h1>
@@ -279,9 +280,11 @@ templ scanLive(p *Page, v *ScanPage) {
 		}
 	>
 		<div class="page-head">
+			<span class="hero-icon">@Icon("activity")</span>
 			<div>
 				<div class="crumbs">
-					<a href={ templ.SafeURL(p.OrgURL("/projects")) }>{ p.T("nav.projects") }</a> /
+					<a href={ templ.SafeURL(p.OrgURL("/projects")) }>{ p.T("nav.projects") }</a>
+					@Icon("chevron-right")
 					<a href={ templ.SafeURL(p.OrgURL("/projects/" + v.View.Project.Slug)) }>{ v.View.Project.Name }</a>
 				</div>
 				<h1>{ p.T("scan.title") } <span class="mono faint">{ v.View.Scan.Branch + " @ " + ShortSHA(v.View.Scan.CommitSha) }</span></h1>
@@ -431,9 +434,11 @@ templ scanLive(p *Page, v *ScanPage) {
 templ ProjectIssues(p *Page, pr *db.Project, b *IssueBrowser) {
 	@AppShell(p) {
 		<div class="page-head">
+			<span class="hero-icon">@Icon("alert-triangle")</span>
 			<div>
 				<div class="crumbs">
-					<a href={ templ.SafeURL(p.OrgURL("/projects")) }>{ p.T("nav.projects") }</a> /
+					<a href={ templ.SafeURL(p.OrgURL("/projects")) }>{ p.T("nav.projects") }</a>
+					@Icon("chevron-right")
 					<a href={ templ.SafeURL(p.OrgURL("/projects/" + pr.Slug)) }>{ pr.Name }</a>
 				</div>
 				<h1>{ p.T("issues.title") }</h1>
@@ -446,9 +451,11 @@ templ ProjectIssues(p *Page, pr *db.Project, b *IssueBrowser) {
 templ IssueDetail(p *Page, f *Form, v *IssuePage) {
 	@AppShell(p) {
 		<div class="page-head">
+			<span class="hero-icon">@Icon("alert-circle")</span>
 			<div>
 				<div class="crumbs">
-					<a href={ templ.SafeURL(p.OrgURL("/projects/" + v.View.Project.Slug)) }>{ v.View.Project.Name }</a> /
+					<a href={ templ.SafeURL(p.OrgURL("/projects/" + v.View.Project.Slug)) }>{ v.View.Project.Name }</a>
+					@Icon("chevron-right")
 					<a href={ templ.SafeURL(p.OrgURL("/projects/" + v.View.Project.Slug + "/issues")) }>{ p.T("issues.title") }</a>
 				</div>
 				<h1>{ v.View.Issue.Title }</h1>

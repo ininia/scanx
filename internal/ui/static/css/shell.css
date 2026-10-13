@@ -217,3 +217,9 @@ tr[hidden]{display:none}
 input:not([type]),input[type=text],input[type=email],input[type=password],input[type=url],input[type=number],select,textarea{
   border-radius:10px;background:color-mix(in srgb,var(--bg) 70%,var(--surface-1))}
 input[type=checkbox]{accent-color:var(--accent);width:16px;height:16px}
+.page-head{align-items:center}
+.page-head>.hero-icon{flex-shrink:0;align-self:flex-start;margin-top:22px}
+.page-head>.hero-icon+div{flex:1 1 320px;min-width:0}
+.page-head .crumbs{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.page-head .crumbs .icon{width:13px;height:13px;color:var(--text-faint)}
+.ib-search.mini-search input{min-width:0;width:220px}

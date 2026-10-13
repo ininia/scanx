@@ -6,7 +6,8 @@ templ issueBrowser(p *Page, b *IssueBrowser) {
 	<div class="card">
 		<div class="ib-head">
 			<h2>{ p.T("issues.title") } <span class="faint">({ strconv.Itoa(b.Shown) }/{ strconv.Itoa(b.Total) })</span></h2>
-			<form method="get" action={ templ.SafeURL(b.Filter.Base) } class="ib-search">
+			<form method="get" action={ templ.SafeURL(b.Filter.Base) } class="ib-search mini-search">
+				@Icon("search")
 				for _, kv := range b.Filter.Hidden() {
 					<input type="hidden" name={ kv.K } value={ kv.V }/>
 				}
