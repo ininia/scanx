@@ -448,6 +448,7 @@ func (w *Worker) persist(ctx context.Context, sc *db.Scan, p *db.Project, rep *r
 	}
 	msg := w.message(ctx, sc, p, notify.EventScanCompleted)
 	msg.Gate, msg.Score, msg.New, msg.Fixed = rep.Gate.Result, rep.Score, newCount, fixedCount
+	msg.Grade = report.Grade(rep.Score)
 	msg.Critical, msg.High, msg.Medium, msg.Low = rep.Summary.Critical, rep.Summary.High, rep.Summary.Medium, rep.Summary.Low
 	w.notify(ctx, sc.OrgID, msg, rep.Gate.Result == "fail")
 	return nil
@@ -481,8 +482,22 @@ func (w *Worker) failScan(ctx context.Context, sc *db.Scan, p *db.Project, code,
 }
 
 func (w *Worker) message(ctx context.Context, sc *db.Scan, p *db.Project, event string) notify.Message {
-	m := notify.Message{Event: event, Project: p.Name, Branch: sc.Branch, Commit: sc.CommitSha}
+	m := notify.Message{
+		Event: event, Project: p.Name, Branch: sc.Branch, Commit: sc.CommitSha, Scope: sc.Scope,
+		CommitMessage: trunc(firstLine(sc.CommitMessage), 120), Author: sc.CommitAuthor, BaseURL: w.cfg.BaseURL,
+	}
+	if sc.ChangedFiles != nil {
+		m.ChangedFiles = int(*sc.ChangedFiles)
+	}
 	_ = w.db.Tx(ctx, superadmin, func(q *db.Queries) error {
+		if v, err := q.GetSetting(ctx, "instance"); err == nil {
+			var inst struct {
+				DefaultLocale string `json:"default_locale"`
+			}
+			if json.Unmarshal(v, &inst) == nil {
+				m.Lang = inst.DefaultLocale
+			}
+		}
 		o, err := q.GetOrgByID(ctx, sc.OrgID)
 		if err != nil {
 			return err

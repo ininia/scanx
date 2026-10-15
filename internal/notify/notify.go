@@ -12,10 +12,13 @@ import (
 	"fmt"
 	"io"
 	"mime"
+	"mime/multipart"
+	"mime/quotedprintable"
 	"net"
 	"net/http"
 	"net/mail"
 	"net/smtp"
+	"net/textproto"
 	"net/url"
 	"strconv"
 	"strings"
@@ -60,43 +63,47 @@ type Message struct {
 	Fixed    int    `json:"fixed_issues"`
 	Reason   string `json:"reason,omitempty"`
 	URL      string `json:"url,omitempty"`
+	// Level is filled for JSON webhooks: critical | fail | error | pass | test.
+	LevelTag      string `json:"level,omitempty"`
+	Grade         string `json:"grade,omitempty"`
+	Scope         string `json:"scope,omitempty"` // diff | full
+	ChangedFiles  int    `json:"changed_files,omitempty"`
+	CommitMessage string `json:"commit_message,omitempty"`
+	Author        string `json:"author,omitempty"`
+	// BaseURL (public URL of the instance, for the status icons) and Lang
+	// (instance default language) only shape the rendering.
+	BaseURL string `json:"-"`
+	Lang    string `json:"-"`
 }
 
-// Title is a one-line summary.
+// Title is a one-line summary (e-mail subject, chat preview).
 func (m Message) Title() string {
-	switch m.Event {
-	case EventTest:
-		return "scanX: test notification for " + m.Org
-	case EventScanFailed:
-		return fmt.Sprintf("scanX: scan of %s (%s) failed", m.Project, m.Branch)
-	case EventGateFailed:
-		return fmt.Sprintf("scanX: quality gate FAILED for %s (%s)", m.Project, m.Branch)
+	switch m.Level() {
+	case LevelTest:
+		return m.t("card.title.test", m.Org)
+	case LevelCritical:
+		return m.t("card.title.critical", m.Project, m.Branch, m.Critical)
 	default:
-		return fmt.Sprintf("scanX: scan of %s (%s) completed — gate %s", m.Project, m.Branch, strings.ToUpper(m.Gate))
+		return m.t("card.title."+m.Level(), m.Project, m.Branch)
 	}
 }
 
-// Text is the multi-line body.
+// Text is the plain-text body.
 func (m Message) Text() string {
-	if m.Event == EventTest {
-		return "This is a test message from scanX. Notifications for this channel are working."
-	}
 	var b strings.Builder
-	if m.Commit != "" {
-		c := m.Commit
-		if len(c) > 12 {
-			c = c[:12]
+	b.WriteString(m.lead() + "\n")
+	if m.showCounts() {
+		var parts []string
+		for _, s := range m.severities() {
+			parts = append(parts, fmt.Sprintf("%s %d", m.t("card."+s.Key), s.N))
 		}
-		fmt.Fprintf(&b, "Commit %s\n", c)
+		b.WriteString(strings.Join(parts, " · ") + "\n")
 	}
-	if m.Event == EventScanFailed {
-		fmt.Fprintf(&b, "Reason: %s\n", m.Reason)
-	} else {
-		fmt.Fprintf(&b, "Score %d/100 · critical %d · high %d · medium %d · low %d\n", m.Score, m.Critical, m.High, m.Medium, m.Low)
-		fmt.Fprintf(&b, "New issues: %d · fixed: %d\n", m.New, m.Fixed)
+	for _, f := range m.facts() {
+		fmt.Fprintf(&b, "%s: %s\n", f.Title, f.Value)
 	}
 	if m.URL != "" {
-		fmt.Fprintf(&b, "%s\n", m.URL)
+		b.WriteString(m.URL + "\n")
 	}
 	return strings.TrimSpace(b.String())
 }
@@ -210,25 +217,13 @@ func ValidateTarget(kind, target string) error {
 func (s *Sender) Send(ctx context.Context, kind, target string, m Message) error {
 	switch kind {
 	case KindSlack:
-		return s.postJSON(ctx, target, map[string]any{"text": "*" + m.Title() + "*\n" + m.Text()})
+		return s.postJSON(ctx, target, m.slackPayload())
 	case KindTeams:
 		// Adaptive card: accepted by Teams "Workflows" webhooks and legacy
 		// incoming-webhook connectors.
-		body := []map[string]any{{"type": "TextBlock", "text": m.Title(), "weight": "Bolder", "wrap": true}}
-		for _, line := range strings.Split(m.Text(), "\n") {
-			body = append(body, map[string]any{"type": "TextBlock", "text": line, "wrap": true, "spacing": "Small"})
-		}
-		return s.postJSON(ctx, target, map[string]any{
-			"type": "message",
-			"attachments": []map[string]any{{
-				"contentType": "application/vnd.microsoft.card.adaptive",
-				"content": map[string]any{
-					"$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-					"type":    "AdaptiveCard", "version": "1.4", "body": body,
-				},
-			}},
-		})
+		return s.postJSON(ctx, target, m.teamsCard())
 	case KindWebhook:
+		m.LevelTag = m.Level()
 		return s.postJSON(ctx, target, m)
 	case KindEmail:
 		return s.sendMail(ctx, target, m)
@@ -286,11 +281,15 @@ func (s *Sender) sendMail(ctx context.Context, to string, m Message) error {
 		return fmt.Errorf("SCANX_SMTP_FROM: %w", err)
 	}
 	subject := strings.NewReplacer("\r", "", "\n", " ").Replace(m.Title())
+	body, boundary, err := mailBody(m)
+	if err != nil {
+		return err
+	}
 	var msg bytes.Buffer
 	fmt.Fprintf(&msg, "From: %s\r\nTo: %s\r\nSubject: %s\r\nDate: %s\r\nMIME-Version: 1.0\r\n"+
-		"Content-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n%s\r\n",
-		from.String(), strings.Join(rcpts, ", "), mimeHeader(subject), time.Now().UTC().Format(time.RFC1123Z),
-		strings.ReplaceAll(m.Text(), "\n", "\r\n"))
+		"Content-Type: multipart/alternative; boundary=%q\r\n\r\n",
+		from.String(), strings.Join(rcpts, ", "), mimeHeader(subject), time.Now().UTC().Format(time.RFC1123Z), boundary)
+	msg.Write(body)
 
 	port := s.SMTP.Port
 	if port == 0 {
@@ -352,3 +351,36 @@ func (s *Sender) sendMail(ctx context.Context, to string, m Message) error {
 }
 
 func mimeHeader(s string) string { return mime.BEncoding.Encode("utf-8", s) }
+
+// mailBody builds a multipart/alternative body: plain text first, then the
+// HTML card (both quoted-printable, so long lines stay valid SMTP).
+func mailBody(m Message) ([]byte, string, error) {
+	html, err := m.mailHTML()
+	if err != nil {
+		return nil, "", err
+	}
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	for _, part := range []struct{ ctype, content string }{
+		{"text/plain; charset=utf-8", m.Text()},
+		{"text/html; charset=utf-8", html},
+	} {
+		w, err := mw.CreatePart(textproto.MIMEHeader{
+			"Content-Type": {part.ctype}, "Content-Transfer-Encoding": {"quoted-printable"},
+		})
+		if err != nil {
+			return nil, "", err
+		}
+		qp := quotedprintable.NewWriter(w)
+		if _, err := qp.Write([]byte(part.content)); err != nil {
+			return nil, "", err
+		}
+		if err := qp.Close(); err != nil {
+			return nil, "", err
+		}
+	}
+	if err := mw.Close(); err != nil {
+		return nil, "", err
+	}
+	return buf.Bytes(), mw.Boundary(), nil
+}

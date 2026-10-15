@@ -510,6 +510,12 @@ func tail(b []byte, n int) string {
 	return s
 }
 
+// firstLine is the subject line of a commit message.
+func firstLine(s string) string {
+	s, _, _ = strings.Cut(strings.TrimSpace(s), "\n")
+	return strings.TrimSpace(s)
+}
+
 func trunc(s string, n int) string {
 	if len(s) <= n {
 		return s

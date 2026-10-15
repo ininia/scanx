@@ -157,7 +157,11 @@ func (s *Service) TestChannel(ctx context.Context, o *OrgCtx, channelID string) 
 	if s.notifier == nil {
 		return &DeliveryError{Msg: "notifications are not enabled on this server"}
 	}
-	if err := s.notifier.Send(ctx, ch.Kind, string(target), notify.Message{Event: notify.EventTest, Org: o.Org.Name}); err != nil {
+	msg := notify.Message{Event: notify.EventTest, Org: o.Org.Name}
+	if inst, err := s.Instance(ctx); err == nil {
+		msg.Lang, msg.BaseURL = inst.DefaultLocale, inst.BaseURL
+	}
+	if err := s.notifier.Send(ctx, ch.Kind, string(target), msg); err != nil {
 		return &DeliveryError{Msg: err.Error()}
 	}
 	return nil
