@@ -69,7 +69,7 @@ templ Databases(p *Page, list []service.DBConnView) {
 												<span class="num">{ ScoreText(v.Last.Score) }</span>
 												<span class="bar"><span class={ "fill " + ScoreBar(v.Last.Score) }></span></span>
 												if v.Last.Grade != "" {
-													<span class={ "grade", "grade-" + v.Last.Grade }>{ v.Last.Grade }</span>
+													<span class={ "gpill", "g-" + v.Last.Grade }>{ v.Last.Grade }</span>
 												}
 											</span>
 										} else {
@@ -323,7 +323,7 @@ templ DBConnDetail(p *Page, d *service.DBConnDetail) {
 												<span class="score">
 													<span class="num">{ ScoreText(s.Score) }</span>
 													<span class="bar"><span class={ "fill " + ScoreBar(s.Score) }></span></span>
-													<span class={ "grade", "grade-" + s.Grade }>{ s.Grade }</span>
+													<span class={ "gpill", "g-" + s.Grade }>{ s.Grade }</span>
 												</span>
 											} else {
 												<span class="faint">—</span>
@@ -358,13 +358,13 @@ templ dbCountChips(p *Page, counts map[string]int) {
 // dbVerifyCard is the read-only check result.
 templ dbVerifyCard(p *Page, d *service.DBConnDetail) {
 	<section class={ "card", "verify-card", "vc-" + d.Conn.Status }>
-		<h2>@Icon("lock") { p.T("db.verify_title") }</h2>
+		<h2>@Icon("lock")<span>{ p.T("db.verify_title") }</span></h2>
 		switch d.Conn.Status {
 			case "pending", "verifying":
 				<p class="vc-state"><span class="spinner"></span> { p.T("db.verifying") }</p>
 				<p class="muted">{ p.T("db.verifying_body") }</p>
 			case "ready":
-				<p class="vc-state ok">@Icon("shield-check") { p.T("db.verified_ok") }</p>
+				<p class="vc-state ok">@Icon("shield-check")<span>{ p.T("db.verified_ok") }</span></p>
 				if d.Verify.ReadOnly != nil {
 					<p class="muted">{ p.T("db.verified_as", d.Verify.ReadOnly.User) }</p>
 					<ul class="perm-list ok">
@@ -377,7 +377,7 @@ templ dbVerifyCard(p *Page, d *service.DBConnDetail) {
 					<p class="faint">{ p.T("db.verified_at") } { d.Conn.VerifiedAt.Local().Format("2006-01-02 15:04") }</p>
 				}
 			case "rejected":
-				<p class="vc-state bad">@Icon("alert-triangle") { p.T("db.rejected") }</p>
+				<p class="vc-state bad">@Icon("alert-triangle")<span>{ p.T("db.rejected") }</span></p>
 				<p class="muted">{ p.T("db.rejected_body") }</p>
 				if d.Verify.ReadOnly != nil {
 					<ul class="perm-list bad">
@@ -390,7 +390,7 @@ templ dbVerifyCard(p *Page, d *service.DBConnDetail) {
 					<a class="btn primary" href={ templ.SafeURL(p.OrgURL("/databases/" + d.Conn.ID.String() + "/edit")) }>{ p.T("db.enter_readonly") }</a>
 				}
 			case "error":
-				<p class="vc-state bad">@Icon("alert-circle") { p.T("db.verify_error") }</p>
+				<p class="vc-state bad">@Icon("alert-circle")<span>{ p.T("db.verify_error") }</span></p>
 				<p class="mono snippet-line">{ d.Verify.Error }</p>
 				<p class="muted">{ p.T("db.error_hint." + errCode(d.Verify.Code)) }</p>
 		}
@@ -584,7 +584,7 @@ templ dbFindings(p *Page, v *service.DBScanView, f DBFilter) {
 	</section>
 	if v.ReadOnly != nil {
 		<details class="card">
-			<summary><strong>@Icon("lock") { p.T("db.ro_evidence") }</strong></summary>
+			<summary><strong>@Icon("lock")<span>{ p.T("db.ro_evidence") }</span></strong></summary>
 			<p class="muted">{ p.T("db.verified_as", v.ReadOnly.User) }</p>
 			<ul class="perm-list ok">
 				for _, a := range v.ReadOnly.Allowed {
@@ -756,7 +756,9 @@ templ adminModuleCard(p *Page, m string, om service.OrgModule) {
 			<span class="hint">{ p.T("module.max_hint") }</span>
 		</div>
 		<label class="check"><input type="checkbox" name={ m + "_admins_only" } checked?={ om.Settings.AdminsOnly }/> { p.T("module.admins_only") }</label>
-		<label class="check"><input type="checkbox" name={ m + "_no_schedule" } checked?={ om.Settings.NoSchedule }/> { p.T("module.no_schedule") }</label>
+		if m == "db" {
+			<label class="check"><input type="checkbox" name={ m + "_no_schedule" } checked?={ om.Settings.NoSchedule }/> { p.T("module.no_schedule") }</label>
+		}
 		<label class="check"><input type="checkbox" name={ m + "_no_notifications" } checked?={ om.Settings.NoNotifications }/> { p.T("module.no_notifications") }</label>
 	</section>
 }
