@@ -1,8 +1,6 @@
 package worker
 
 import (
-	"bytes"
-	"compress/gzip"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -410,7 +408,6 @@ func (w *Worker) finishDBScan(ctx context.Context, sc *db.DbScan, c *db.DbConnec
 				Stats: rep.Stats, Categories: rep.Categories, Checked: rep.Checked, Server: res.Snapshot.ServerVersion,
 				Database: res.Snapshot.Database, Duration: res.Duration, FailOn: rep.FailOn,
 			})
-			params.SnapshotGz = gzJSON(res.Snapshot)
 			params.NewFindings, params.FixedFindings = int32(newCount), int32(fixedCount) //nolint:gosec // counts
 		}
 		return q.FinishDBScan(fctx, params)
@@ -434,15 +431,6 @@ func nonNil(s []string) []string {
 		return []string{}
 	}
 	return s
-}
-
-func gzJSON(v any) []byte {
-	var b bytes.Buffer
-	zw := gzip.NewWriter(&b)
-	if json.NewEncoder(zw).Encode(v) != nil || zw.Close() != nil {
-		return nil
-	}
-	return b.Bytes()
 }
 
 // dbNotify sends the scan outcome to the org's subscribed channels.

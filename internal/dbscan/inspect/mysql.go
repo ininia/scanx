@@ -145,12 +145,12 @@ func (mysqlEngine) snapshot(ctx context.Context, c *sql.Conn, r Request) (*dbsca
 	autoInc := map[string]int64{}
 	err := each(ctx, c, `
 SELECT TABLE_NAME, TABLE_TYPE, COALESCE(ENGINE, ''), COALESCE(TABLE_ROWS, 0), COALESCE(TABLE_COLLATION, ''),
-       COALESCE(TABLE_COMMENT, ''), COALESCE(AUTO_INCREMENT, 0)
+       COALESCE(AUTO_INCREMENT, 0)
 FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? ORDER BY TABLE_NAME`, func(rows *sql.Rows) error {
 		var t dbscan.Table
 		var typ string
 		var ai int64
-		if err := rows.Scan(&t.Name, &typ, &t.StorageEngine, &t.RowEst, &t.Collation, &t.Comment, &ai); err != nil {
+		if err := rows.Scan(&t.Name, &typ, &t.StorageEngine, &t.RowEst, &t.Collation, &ai); err != nil {
 			return err
 		}
 		switch {
@@ -173,13 +173,13 @@ FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? ORDER BY TABLE_NAME`, func
 
 	err = each(ctx, c, `
 SELECT TABLE_NAME, COLUMN_NAME, LOWER(DATA_TYPE), LOWER(COLUMN_TYPE), COALESCE(CHARACTER_MAXIMUM_LENGTH, 0), IS_NULLABLE,
-       COALESCE(COLUMN_DEFAULT, ''), LOWER(EXTRA), COALESCE(COLLATION_NAME, ''), COALESCE(COLUMN_COMMENT, '')
+       LOWER(EXTRA), COALESCE(COLLATION_NAME, '')
 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? ORDER BY TABLE_NAME, ORDINAL_POSITION`, func(rows *sql.Rows) error {
 		var table, nullable, extra string
 		var length int64
 		var col dbscan.Column
-		if err := rows.Scan(&table, &col.Name, &col.DataType, &col.FullType, &length, &nullable, &col.Default, &extra,
-			&col.Collation, &col.Comment); err != nil {
+		if err := rows.Scan(&table, &col.Name, &col.DataType, &col.FullType, &length, &nullable, &extra,
+			&col.Collation); err != nil {
 			return err
 		}
 		col.Nullable = nullable == "YES"

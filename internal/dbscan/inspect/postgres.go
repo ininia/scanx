@@ -7,7 +7,6 @@ import (
 	"net"
 	"net/url"
 	"strconv"
-	"strings"
 
 	_ "github.com/jackc/pgx/v5/stdlib" // database/sql driver "pgx"
 
@@ -156,12 +155,12 @@ FROM pg_database d WHERE d.datname = current_database()`).Scan(&s.Database, &s.S
 	byKey := map[string]*dbscan.Table{}
 	key := func(schema, table string) string { return schema + "\x00" + table }
 	err := each(ctx, c, `
-SELECT n.nspname::text, c.relname::text, c.reltuples::bigint, coalesce(obj_description(c.oid, 'pg_class'), '')
+SELECT n.nspname::text, c.relname::text, c.reltuples::bigint
 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
 WHERE `+pgUserSchemas+` AND c.relkind IN ('r', 'p') AND NOT c.relispartition AND `+pgNotExtension+`
 ORDER BY 1, 2 LIMIT $1`, func(rows *sql.Rows) error {
 		var t dbscan.Table
-		if err := rows.Scan(&t.Schema, &t.Name, &t.RowEst, &t.Comment); err != nil {
+		if err := rows.Scan(&t.Schema, &t.Name, &t.RowEst); err != nil {
 			return err
 		}
 		s.Tables = append(s.Tables, t)
@@ -179,9 +178,11 @@ ORDER BY 1, 2 LIMIT $1`, func(rows *sql.Rows) error {
 
 	err = each(ctx, c, `
 SELECT n.nspname::text, c.relname::text, a.attname::text, format_type(a.atttypid, a.atttypmod), t.typname::text,
-       NOT a.attnotnull, coalesce(pg_get_expr(d.adbin, d.adrelid), ''), a.attidentity <> '',
+       NOT a.attnotnull,
+       -- identity or serial; the default expression itself never leaves the database
+       a.attidentity <> '' OR coalesce(pg_get_expr(d.adbin, d.adrelid), '') LIKE 'nextval(%',
        CASE WHEN t.typname IN ('varchar', 'bpchar') AND a.atttypmod > 4 THEN a.atttypmod - 4 ELSE 0 END,
-       coalesce(co.collname::text, ''), coalesce(col_description(c.oid, a.attnum), '')
+       coalesce(co.collname::text, '')
 FROM pg_attribute a
 JOIN pg_class c ON c.oid = a.attrelid JOIN pg_namespace n ON n.oid = c.relnamespace
 JOIN pg_type t ON t.oid = a.atttypid
@@ -191,14 +192,11 @@ WHERE `+pgUserSchemas+` AND c.relkind IN ('r', 'p') AND NOT c.relispartition AND
 ORDER BY n.nspname, c.relname, a.attnum`, func(rows *sql.Rows) error {
 		var schema, table, typname string
 		var col dbscan.Column
-		if err := rows.Scan(&schema, &table, &col.Name, &col.FullType, &typname, &col.Nullable, &col.Default,
-			&col.Identity, &col.Length, &col.Collation, &col.Comment); err != nil {
+		if err := rows.Scan(&schema, &table, &col.Name, &col.FullType, &typname, &col.Nullable,
+			&col.Identity, &col.Length, &col.Collation); err != nil {
 			return err
 		}
 		col.DataType = pgType(typname)
-		if strings.HasPrefix(col.Default, "nextval(") {
-			col.Identity = true
-		}
 		if t := byKey[key(schema, table)]; t != nil {
 			t.Columns = append(t.Columns, col)
 		}

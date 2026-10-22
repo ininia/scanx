@@ -14,7 +14,7 @@ import (
 )
 
 const activeDBScan = `-- name: ActiveDBScan :one
-SELECT id, org_id, connection_id, trigger, triggered_by, status, status_reason, locked_by, locked_until, score, grade, gate_result, counts, summary, read_only, snapshot_gz, new_findings, fixed_findings, log, queued_at, started_at, finished_at FROM db_scans WHERE connection_id = $1 AND status IN ('queued', 'running') LIMIT 1
+SELECT id, org_id, connection_id, trigger, triggered_by, status, status_reason, locked_by, locked_until, score, grade, gate_result, counts, summary, read_only, new_findings, fixed_findings, log, queued_at, started_at, finished_at FROM db_scans WHERE connection_id = $1 AND status IN ('queued', 'running') LIMIT 1
 `
 
 func (q *Queries) ActiveDBScan(ctx context.Context, connectionID uuid.UUID) (DbScan, error) {
@@ -36,7 +36,6 @@ func (q *Queries) ActiveDBScan(ctx context.Context, connectionID uuid.UUID) (DbS
 		&i.Counts,
 		&i.Summary,
 		&i.ReadOnly,
-		&i.SnapshotGz,
 		&i.NewFindings,
 		&i.FixedFindings,
 		&i.Log,
@@ -75,7 +74,7 @@ WHERE id = (
     FOR UPDATE SKIP LOCKED
     LIMIT 1
 )
-RETURNING id, org_id, connection_id, trigger, triggered_by, status, status_reason, locked_by, locked_until, score, grade, gate_result, counts, summary, read_only, snapshot_gz, new_findings, fixed_findings, log, queued_at, started_at, finished_at
+RETURNING id, org_id, connection_id, trigger, triggered_by, status, status_reason, locked_by, locked_until, score, grade, gate_result, counts, summary, read_only, new_findings, fixed_findings, log, queued_at, started_at, finished_at
 `
 
 type ClaimDBScanParams struct {
@@ -102,7 +101,6 @@ func (q *Queries) ClaimDBScan(ctx context.Context, arg ClaimDBScanParams) (DbSca
 		&i.Counts,
 		&i.Summary,
 		&i.ReadOnly,
-		&i.SnapshotGz,
 		&i.NewFindings,
 		&i.FixedFindings,
 		&i.Log,
@@ -257,7 +255,7 @@ const createDBScan = `-- name: CreateDBScan :one
 INSERT INTO db_scans (id, org_id, connection_id, trigger, triggered_by)
 VALUES ($1, $2, $3, $4, $5)
 ON CONFLICT (connection_id) WHERE status IN ('queued', 'running') DO NOTHING
-RETURNING id, org_id, connection_id, trigger, triggered_by, status, status_reason, locked_by, locked_until, score, grade, gate_result, counts, summary, read_only, snapshot_gz, new_findings, fixed_findings, log, queued_at, started_at, finished_at
+RETURNING id, org_id, connection_id, trigger, triggered_by, status, status_reason, locked_by, locked_until, score, grade, gate_result, counts, summary, read_only, new_findings, fixed_findings, log, queued_at, started_at, finished_at
 `
 
 type CreateDBScanParams struct {
@@ -295,7 +293,6 @@ func (q *Queries) CreateDBScan(ctx context.Context, arg CreateDBScanParams) (DbS
 		&i.Counts,
 		&i.Summary,
 		&i.ReadOnly,
-		&i.SnapshotGz,
 		&i.NewFindings,
 		&i.FixedFindings,
 		&i.Log,
@@ -406,9 +403,9 @@ func (q *Queries) FailStaleDBScans(ctx context.Context) (int64, error) {
 const finishDBScan = `-- name: FinishDBScan :exec
 UPDATE db_scans SET status = $1, status_reason = $2, score = $3,
     grade = $4, gate_result = $5, counts = $6, summary = $7,
-    read_only = $8, snapshot_gz = $9, new_findings = $10,
-    fixed_findings = $11, log = $12, finished_at = now(), locked_by = '', locked_until = NULL
-WHERE id = $13
+    read_only = $8, new_findings = $9,
+    fixed_findings = $10, log = $11, finished_at = now(), locked_by = '', locked_until = NULL
+WHERE id = $12
 `
 
 type FinishDBScanParams struct {
@@ -420,7 +417,6 @@ type FinishDBScanParams struct {
 	Counts        json.RawMessage
 	Summary       json.RawMessage
 	ReadOnly      json.RawMessage
-	SnapshotGz    []byte
 	NewFindings   int32
 	FixedFindings int32
 	Log           string
@@ -437,7 +433,6 @@ func (q *Queries) FinishDBScan(ctx context.Context, arg FinishDBScanParams) erro
 		arg.Counts,
 		arg.Summary,
 		arg.ReadOnly,
-		arg.SnapshotGz,
 		arg.NewFindings,
 		arg.FixedFindings,
 		arg.Log,
@@ -532,7 +527,7 @@ func (q *Queries) GetDBProfile(ctx context.Context, orgID uuid.UUID) (DbProfile,
 }
 
 const getDBScan = `-- name: GetDBScan :one
-SELECT id, org_id, connection_id, trigger, triggered_by, status, status_reason, locked_by, locked_until, score, grade, gate_result, counts, summary, read_only, snapshot_gz, new_findings, fixed_findings, log, queued_at, started_at, finished_at FROM db_scans WHERE org_id = $1 AND id = $2
+SELECT id, org_id, connection_id, trigger, triggered_by, status, status_reason, locked_by, locked_until, score, grade, gate_result, counts, summary, read_only, new_findings, fixed_findings, log, queued_at, started_at, finished_at FROM db_scans WHERE org_id = $1 AND id = $2
 `
 
 type GetDBScanParams struct {
@@ -559,7 +554,6 @@ func (q *Queries) GetDBScan(ctx context.Context, arg GetDBScanParams) (DbScan, e
 		&i.Counts,
 		&i.Summary,
 		&i.ReadOnly,
-		&i.SnapshotGz,
 		&i.NewFindings,
 		&i.FixedFindings,
 		&i.Log,

@@ -104,7 +104,6 @@ type DbScan struct {
 	Counts        json.RawMessage
 	Summary       json.RawMessage
 	ReadOnly      json.RawMessage
-	SnapshotGz    []byte
 	NewFindings   int32
 	FixedFindings int32
 	Log           string

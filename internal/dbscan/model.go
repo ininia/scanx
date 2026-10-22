@@ -4,7 +4,9 @@
 // security rules.
 //
 // Only catalog metadata is read (names, types, keys, indexes, row-count
-// estimates and grants); table contents are never queried. The inspection
+// estimates and grants); table contents, comments and default
+// expressions are never queried, and the structure itself is not stored:
+// only the findings and counts of a scan are kept. The inspection
 // runs in a throw-away sandbox container (see package inspect); the rules
 // run in the worker on the resulting Snapshot.
 package dbscan
@@ -64,7 +66,6 @@ type Table struct {
 	// Storage engine (MySQL: InnoDB, MyISAM...).
 	StorageEngine string `json:"storage_engine,omitempty"`
 	Collation     string `json:"collation,omitempty"`
-	Comment       string `json:"comment,omitempty"`
 }
 
 // QualifiedName is schema.name (name alone when there is no schema).
@@ -82,13 +83,11 @@ type Column struct {
 	FullType string `json:"full_type"` // with length/precision: varchar(100)
 	Length   int    `json:"length,omitempty"`
 	Nullable bool   `json:"nullable"`
-	Default  string `json:"default,omitempty"`
 	Identity bool   `json:"identity,omitempty"`
 	// IdentityValue is the current identity/auto-increment/sequence value
 	// when the catalog exposes it (overflow check); 0 = unknown.
 	IdentityValue int64  `json:"identity_value,omitempty"`
 	Collation     string `json:"collation,omitempty"`
-	Comment       string `json:"comment,omitempty"`
 }
 
 // ForeignKey is a foreign-key constraint.

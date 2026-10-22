@@ -121,7 +121,7 @@ UPDATE db_scans SET log = $2 WHERE id = $1;
 -- name: FinishDBScan :exec
 UPDATE db_scans SET status = sqlc.arg(status), status_reason = sqlc.arg(status_reason), score = sqlc.arg(score),
     grade = sqlc.arg(grade), gate_result = sqlc.arg(gate_result), counts = sqlc.arg(counts), summary = sqlc.arg(summary),
-    read_only = sqlc.arg(read_only), snapshot_gz = sqlc.arg(snapshot_gz), new_findings = sqlc.arg(new_findings),
+    read_only = sqlc.arg(read_only), new_findings = sqlc.arg(new_findings),
     fixed_findings = sqlc.arg(fixed_findings), log = sqlc.arg(log), finished_at = now(), locked_by = '', locked_until = NULL
 WHERE id = sqlc.arg(id);
 

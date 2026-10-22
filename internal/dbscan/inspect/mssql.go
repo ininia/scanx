@@ -163,15 +163,13 @@ SELECT DB_NAME(), CAST(SERVERPROPERTY('ProductVersion') AS nvarchar(128)) + ' ' 
 	var ids []int64
 	err := each(ctx, c, `
 SELECT TOP (@p1) t.object_id, s.name, t.name,
-       ISNULL((SELECT SUM(p.rows) FROM sys.partitions p WHERE p.object_id = t.object_id AND p.index_id IN (0, 1)), 0),
-       ISNULL(CAST(ep.value AS nvarchar(2000)), '')
+       ISNULL((SELECT SUM(p.rows) FROM sys.partitions p WHERE p.object_id = t.object_id AND p.index_id IN (0, 1)), 0)
 FROM sys.tables t JOIN sys.schemas s ON s.schema_id = t.schema_id
-LEFT JOIN sys.extended_properties ep ON ep.class = 1 AND ep.major_id = t.object_id AND ep.minor_id = 0 AND ep.name = 'MS_Description'
 WHERE t.is_ms_shipped = 0
 ORDER BY s.name, t.name`, func(rows *sql.Rows) error {
 		var id int64
 		var t dbscan.Table
-		if err := rows.Scan(&id, &t.Schema, &t.Name, &t.RowEst, &t.Comment); err != nil {
+		if err := rows.Scan(&id, &t.Schema, &t.Name, &t.RowEst); err != nil {
 			return err
 		}
 		s.Tables = append(s.Tables, t)
@@ -190,19 +188,18 @@ ORDER BY s.name, t.name`, func(rows *sql.Rows) error {
 
 	err = each(ctx, c, `
 SELECT c.object_id, c.name, LOWER(ty.name), c.max_length, c.precision, c.scale, c.is_nullable,
-       ISNULL(dc.definition, ''), c.is_identity, ISNULL(c.collation_name, ''),
+       c.is_identity, ISNULL(c.collation_name, ''),
        CASE WHEN c.is_identity = 1 THEN CAST(CAST(IDENT_CURRENT(QUOTENAME(s.name) + '.' + QUOTENAME(t.name)) AS decimal(38, 0)) AS nvarchar(40)) ELSE '' END
 FROM sys.columns c
 JOIN sys.tables t ON t.object_id = c.object_id JOIN sys.schemas s ON s.schema_id = t.schema_id
 JOIN sys.types ty ON ty.user_type_id = c.user_type_id
-LEFT JOIN sys.default_constraints dc ON dc.object_id = c.default_object_id
 WHERE t.is_ms_shipped = 0
 ORDER BY c.object_id, c.column_id`, func(rows *sql.Rows) error {
 		var id int64
 		var maxLen, prec, scale int
 		var ident string
 		var col dbscan.Column
-		if err := rows.Scan(&id, &col.Name, &col.DataType, &maxLen, &prec, &scale, &col.Nullable, &col.Default,
+		if err := rows.Scan(&id, &col.Name, &col.DataType, &maxLen, &prec, &scale, &col.Nullable,
 			&col.Identity, &col.Collation, &ident); err != nil {
 			return err
 		}
