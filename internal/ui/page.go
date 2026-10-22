@@ -66,6 +66,23 @@ type Page struct {
 	SearchQ string
 	// Modules the current organization may use (nil = all).
 	Modules map[string]service.OrgModule
+	// EgressIPs are the addresses scanX connects from.
+	EgressIPs []EgressIP
+}
+
+// EgressIP is an address scanX connects from, with an optional label.
+type EgressIP struct{ IP, Label string }
+
+// ParseEgressIPs reads "1.2.3.4=Internet,10.0.0.5=VPC" (labels optional).
+func ParseEgressIPs(s string) []EgressIP {
+	var out []EgressIP
+	for _, part := range strings.Split(s, ",") {
+		ip, label, _ := strings.Cut(strings.TrimSpace(part), "=")
+		if ip = strings.TrimSpace(ip); ip != "" {
+			out = append(out, EgressIP{IP: ip, Label: strings.TrimSpace(label)})
+		}
+	}
+	return out
 }
 
 // HasModule reports whether the current org may use a module.

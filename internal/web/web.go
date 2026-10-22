@@ -36,6 +36,8 @@ type Handler struct {
 	KnownHostsExtra string
 	// SMTPConfigured enables e-mail notification hints.
 	SMTPConfigured bool
+	// EgressIPs are shown on the database pages (firewall allow-lists).
+	EgressIPs []ui.EgressIP
 
 	setupDone atomic.Bool
 }
@@ -125,6 +127,7 @@ func (h *Handler) page(r *http.Request, titleKey, nav string) *ui.Page {
 		p.Orgs, _ = h.Svc.ListMyOrgs(ctx, p.User)
 	}
 	p.Lang = i18n.Detect(r, userLocale, langCookie, inst.DefaultLocale)
+	p.EgressIPs = h.EgressIPs
 	if titleKey != "" {
 		p.Title = p.T(titleKey)
 	}

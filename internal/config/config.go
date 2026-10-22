@@ -58,6 +58,9 @@ type Config struct {
 	// DBInspectImage runs `scanx db-inspect` for the database module (the
 	// small scanX image is enough: the drivers are part of the binary).
 	DBInspectImage string `env:"DB_INSPECT_IMAGE" envDefault:"ghcr.io/ininia/scanx:dev"`
+	// EgressIPs are the addresses scanX connects from, shown to users so
+	// they can allow them in database firewalls: "1.2.3.4=Internet,10.0.0.5=VPC".
+	EgressIPs      string `env:"EGRESS_IPS"`
 	DockerHost     string `env:"DOCKER_HOST" envDefault:"unix:///var/run/docker.sock"`
 	EgressNetwork  string `env:"EGRESS_NETWORK" envDefault:"scanx-egress"`
 	SSHKnownHosts  string `env:"SSH_KNOWN_HOSTS"` // extra known_hosts lines for self-hosted Git servers

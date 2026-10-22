@@ -46,6 +46,7 @@ templ Databases(p *Page, list []service.DBConnView) {
 					}
 				</div>
 			</section>
+			@dbEgress(p)
 			@dbReadOnlyHelp(p, "")
 		} else {
 			<section class="panel">
@@ -92,6 +93,32 @@ templ Databases(p *Page, list []service.DBConnView) {
 			</section>
 		}
 	}
+}
+
+// dbEgress lists the addresses to allow in the database firewall.
+templ dbEgress(p *Page) {
+	<section class="panel egress">
+		<div class="panel-head">
+			<span class="panel-icon">@Icon("globe")</span>
+			<div><h2>{ p.T("db.egress_title") }</h2><p class="muted">{ p.T("db.egress_sub") }</p></div>
+		</div>
+		if len(p.EgressIPs) == 0 {
+			<p class="muted">{ p.T("db.egress_unset") }</p>
+		} else {
+			<ul class="egress-list">
+				for _, e := range p.EgressIPs {
+					<li>
+						<code class="mono">{ e.IP }</code>
+						if e.Label != "" {
+							<span class="faint">{ e.Label }</span>
+						}
+						<button type="button" class="icon-btn tiny" data-copy={ e.IP } aria-label={ p.T("action.copy") }>@Icon("copy")</button>
+					</li>
+				}
+			</ul>
+			<p class="faint">{ p.T("db.egress_hint") }</p>
+		}
+	</section>
 }
 
 // dbReadOnlyHelp shows how to create a read-only account per engine.
@@ -236,7 +263,10 @@ templ DBConnForm(p *Page, f *Form, d *service.DBConnDetail, mod service.OrgModul
 					</div>
 				</form>
 			</section>
-			@dbReadOnlyHelp(p, f.V("engine"))
+			<div class="stack-col">
+				@dbEgress(p)
+				@dbReadOnlyHelp(p, f.V("engine"))
+			</div>
 		</div>
 	}
 }
@@ -393,6 +423,19 @@ templ dbVerifyCard(p *Page, d *service.DBConnDetail) {
 				<p class="vc-state bad">@Icon("alert-circle")<span>{ p.T("db.verify_error") }</span></p>
 				<p class="mono snippet-line">{ d.Verify.Error }</p>
 				<p class="muted">{ p.T("db.error_hint." + errCode(d.Verify.Code)) }</p>
+				if errCode(d.Verify.Code) == "connect" && len(p.EgressIPs) > 0 {
+					<p class="muted">{ p.T("db.egress_check") }</p>
+					<ul class="egress-list">
+						for _, e := range p.EgressIPs {
+							<li><code class="mono">{ e.IP }</code>
+								if e.Label != "" {
+									<span class="faint">{ e.Label }</span>
+								}
+								<button type="button" class="icon-btn tiny" data-copy={ e.IP } aria-label={ p.T("action.copy") }>@Icon("copy")</button>
+							</li>
+						}
+					</ul>
+				}
 		}
 	</section>
 }

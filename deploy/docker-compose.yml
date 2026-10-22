@@ -62,6 +62,7 @@ services:
     command: ["server"]
     environment:
       SCANX_BASE_URL: ${SCANX_BASE_URL:-https://localhost}
+      SCANX_EGRESS_IPS: ${SCANX_EGRESS_IPS:-}
       SCANX_DATABASE_URL: postgres://scanx_app:${SCANX_APP_DB_PASSWORD:?set in .env}@postgres:5432/scanx?sslmode=disable
       SCANX_MASTER_KEY: ${SCANX_MASTER_KEY:?set in .env}
       SCANX_SESSION_KEY: ${SCANX_SESSION_KEY:?set in .env}

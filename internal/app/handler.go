@@ -16,6 +16,7 @@ import (
 	"github.com/ininia/scanx/internal/service"
 	"github.com/ininia/scanx/internal/store"
 	"github.com/ininia/scanx/internal/store/db"
+	"github.com/ininia/scanx/internal/ui"
 	"github.com/ininia/scanx/internal/web"
 )
 
@@ -47,6 +48,7 @@ func BuildHandler(ctx context.Context, cfg *config.Config, pool *pgxpool.Pool, l
 	webH := &web.Handler{
 		Svc: svc, Cookies: cookies, SessionKey: sessionKey, Require2FA: scfg.RequireAdmin2FA,
 		KnownHostsExtra: cfg.SSHKnownHosts, SMTPConfigured: cfg.SMTPHost != "" && cfg.SMTPFrom != "",
+		EgressIPs: ui.ParseEgressIPs(cfg.EgressIPs),
 	}
 	return server.New(server.Options{
 		HSTS: secure,
