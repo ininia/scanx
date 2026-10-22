@@ -374,12 +374,12 @@ templ DBConnDetail(p *Page, d *service.DBConnDetail) {
 
 templ dbCountChips(p *Page, counts map[string]int) {
 	<span class="sev-mini">
-		for _, s := range []string{"high", "medium", "low"} {
+		for _, s := range []string{"critical", "high", "medium", "low"} {
 			if counts[s] > 0 {
 				<span class={ "sev", s }>{ strconv.Itoa(counts[s]) }</span>
 			}
 		}
-		if counts["high"]+counts["medium"]+counts["low"] == 0 {
+		if counts["critical"]+counts["high"]+counts["medium"]+counts["low"] == 0 {
 			<span class="faint">0</span>
 		}
 	</span>
@@ -781,11 +781,7 @@ templ adminModuleCard(p *Page, m string, om service.OrgModule) {
 	<section class={ "card", "module-card", templ.KV("off", !om.Enabled) }>
 		<div class="module-head">
 			<span class="panel-icon">
-				if m == "db" {
-					@Icon("database")
-				} else {
-					@Icon("folder")
-				}
+				@Icon(ModuleIcon(m))
 			</span>
 			<div>
 				<h2>{ p.T("module." + m) }</h2>
@@ -799,7 +795,7 @@ templ adminModuleCard(p *Page, m string, om service.OrgModule) {
 			<span class="hint">{ p.T("module.max_hint") }</span>
 		</div>
 		<label class="check"><input type="checkbox" name={ m + "_admins_only" } checked?={ om.Settings.AdminsOnly }/> { p.T("module.admins_only") }</label>
-		if m == "db" {
+		if m != "repo" {
 			<label class="check"><input type="checkbox" name={ m + "_no_schedule" } checked?={ om.Settings.NoSchedule }/> { p.T("module.no_schedule") }</label>
 		}
 		<label class="check"><input type="checkbox" name={ m + "_no_notifications" } checked?={ om.Settings.NoNotifications }/> { p.T("module.no_notifications") }</label>

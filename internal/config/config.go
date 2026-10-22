@@ -60,12 +60,15 @@ type Config struct {
 	DBInspectImage string `env:"DB_INSPECT_IMAGE" envDefault:"ghcr.io/ininia/scanx:dev"`
 	// EgressIPs are the addresses scanX connects from, shown to users so
 	// they can allow them in database firewalls: "1.2.3.4=Internet,10.0.0.5=VPC".
-	EgressIPs      string `env:"EGRESS_IPS"`
-	DockerHost     string `env:"DOCKER_HOST" envDefault:"unix:///var/run/docker.sock"`
-	EgressNetwork  string `env:"EGRESS_NETWORK" envDefault:"scanx-egress"`
-	SSHKnownHosts  string `env:"SSH_KNOWN_HOSTS"` // extra known_hosts lines for self-hosted Git servers
-	CloneDepth     int    `env:"CLONE_DEPTH" envDefault:"0"`
-	ScannerProfile string `env:"SCANNER_PROFILE" envDefault:"default"`
+	EgressIPs string `env:"EGRESS_IPS"`
+	// AllowPrivateTargets lets TLS monitoring and web scans reach private
+	// addresses (off by default: no SSRF into internal networks).
+	AllowPrivateTargets bool   `env:"ALLOW_PRIVATE_TARGETS" envDefault:"false"`
+	DockerHost          string `env:"DOCKER_HOST" envDefault:"unix:///var/run/docker.sock"`
+	EgressNetwork       string `env:"EGRESS_NETWORK" envDefault:"scanx-egress"`
+	SSHKnownHosts       string `env:"SSH_KNOWN_HOSTS"` // extra known_hosts lines for self-hosted Git servers
+	CloneDepth          int    `env:"CLONE_DEPTH" envDefault:"0"`
+	ScannerProfile      string `env:"SCANNER_PROFILE" envDefault:"default"`
 
 	// Notifications (Faz 4).
 	SMTPHost     string        `env:"SMTP_HOST"`

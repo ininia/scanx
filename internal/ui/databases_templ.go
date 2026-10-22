@@ -2919,7 +2919,7 @@ func dbCountChips(p *Page, counts map[string]int) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		for _, s := range []string{"high", "medium", "low"} {
+		for _, s := range []string{"critical", "high", "medium", "low"} {
 			if counts[s] > 0 {
 				var templ_7745c5c3_Var158 = []any{"sev", s}
 				templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var158...)
@@ -2958,7 +2958,7 @@ func dbCountChips(p *Page, counts map[string]int) templ.Component {
 				}
 			}
 		}
-		if counts["high"]+counts["medium"]+counts["low"] == 0 {
+		if counts["critical"]+counts["high"]+counts["medium"]+counts["low"] == 0 {
 			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 273, "<span class=\"faint\">0</span>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -6147,16 +6147,9 @@ func adminModuleCard(p *Page, m string, om service.OrgModule) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if m == "db" {
-			templ_7745c5c3_Err = Icon("database").Render(ctx, templ_7745c5c3_Buffer)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-		} else {
-			templ_7745c5c3_Err = Icon("folder").Render(ctx, templ_7745c5c3_Buffer)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
+		templ_7745c5c3_Err = Icon(ModuleIcon(m)).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
 		}
 		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 569, "</span><div><h2>")
 		if templ_7745c5c3_Err != nil {
@@ -6165,7 +6158,7 @@ func adminModuleCard(p *Page, m string, om service.OrgModule) templ.Component {
 		var templ_7745c5c3_Var342 string
 		templ_7745c5c3_Var342, templ_7745c5c3_Err = templ.JoinStringErrs(p.T("module." + m))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 791, Col: 28}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 787, Col: 28}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var342))
 		if templ_7745c5c3_Err != nil {
@@ -6178,7 +6171,7 @@ func adminModuleCard(p *Page, m string, om service.OrgModule) templ.Component {
 		var templ_7745c5c3_Var343 string
 		templ_7745c5c3_Var343, templ_7745c5c3_Err = templ.JoinStringErrs(p.T("module." + m + ".desc"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 792, Col: 51}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 788, Col: 51}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var343))
 		if templ_7745c5c3_Err != nil {
@@ -6191,7 +6184,7 @@ func adminModuleCard(p *Page, m string, om service.OrgModule) templ.Component {
 		var templ_7745c5c3_Var344 string
 		templ_7745c5c3_Var344, templ_7745c5c3_Err = templ.ResolveAttributeValue(m + "_enabled")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 794, Col: 69}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 790, Col: 69}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var344)
 		if templ_7745c5c3_Err != nil {
@@ -6214,7 +6207,7 @@ func adminModuleCard(p *Page, m string, om service.OrgModule) templ.Component {
 		var templ_7745c5c3_Var345 string
 		templ_7745c5c3_Var345, templ_7745c5c3_Err = templ.JoinStringErrs(p.T("module.enabled"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 794, Col: 126}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 790, Col: 126}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var345))
 		if templ_7745c5c3_Err != nil {
@@ -6227,7 +6220,7 @@ func adminModuleCard(p *Page, m string, om service.OrgModule) templ.Component {
 		var templ_7745c5c3_Var346 string
 		templ_7745c5c3_Var346, templ_7745c5c3_Err = templ.ResolveAttributeValue(m + "_max")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 797, Col: 26}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 793, Col: 26}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var346)
 		if templ_7745c5c3_Err != nil {
@@ -6240,7 +6233,7 @@ func adminModuleCard(p *Page, m string, om service.OrgModule) templ.Component {
 		var templ_7745c5c3_Var347 string
 		templ_7745c5c3_Var347, templ_7745c5c3_Err = templ.JoinStringErrs(p.T("module." + m + ".max"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 797, Col: 58}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 793, Col: 58}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var347))
 		if templ_7745c5c3_Err != nil {
@@ -6253,7 +6246,7 @@ func adminModuleCard(p *Page, m string, om service.OrgModule) templ.Component {
 		var templ_7745c5c3_Var348 string
 		templ_7745c5c3_Var348, templ_7745c5c3_Err = templ.ResolveAttributeValue(m + "_max")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 798, Col: 39}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 794, Col: 39}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var348)
 		if templ_7745c5c3_Err != nil {
@@ -6266,7 +6259,7 @@ func adminModuleCard(p *Page, m string, om service.OrgModule) templ.Component {
 		var templ_7745c5c3_Var349 string
 		templ_7745c5c3_Var349, templ_7745c5c3_Err = templ.ResolveAttributeValue(m + "_max")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 798, Col: 59}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 794, Col: 59}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var349)
 		if templ_7745c5c3_Err != nil {
@@ -6279,7 +6272,7 @@ func adminModuleCard(p *Page, m string, om service.OrgModule) templ.Component {
 		var templ_7745c5c3_Var350 string
 		templ_7745c5c3_Var350, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(om.Settings.MaxItems))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 798, Col: 125}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 794, Col: 125}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var350)
 		if templ_7745c5c3_Err != nil {
@@ -6292,7 +6285,7 @@ func adminModuleCard(p *Page, m string, om service.OrgModule) templ.Component {
 		var templ_7745c5c3_Var351 string
 		templ_7745c5c3_Var351, templ_7745c5c3_Err = templ.JoinStringErrs(p.T("module.max_hint"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 799, Col: 46}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 795, Col: 46}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var351))
 		if templ_7745c5c3_Err != nil {
@@ -6305,7 +6298,7 @@ func adminModuleCard(p *Page, m string, om service.OrgModule) templ.Component {
 		var templ_7745c5c3_Var352 string
 		templ_7745c5c3_Var352, templ_7745c5c3_Err = templ.ResolveAttributeValue(m + "_admins_only")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 801, Col: 71}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 797, Col: 71}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var352)
 		if templ_7745c5c3_Err != nil {
@@ -6328,7 +6321,7 @@ func adminModuleCard(p *Page, m string, om service.OrgModule) templ.Component {
 		var templ_7745c5c3_Var353 string
 		templ_7745c5c3_Var353, templ_7745c5c3_Err = templ.JoinStringErrs(p.T("module.admins_only"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 801, Col: 139}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 797, Col: 139}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var353))
 		if templ_7745c5c3_Err != nil {
@@ -6338,7 +6331,7 @@ func adminModuleCard(p *Page, m string, om service.OrgModule) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if m == "db" {
+		if m != "repo" {
 			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 586, "<label class=\"check\"><input type=\"checkbox\" name=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -6346,7 +6339,7 @@ func adminModuleCard(p *Page, m string, om service.OrgModule) templ.Component {
 			var templ_7745c5c3_Var354 string
 			templ_7745c5c3_Var354, templ_7745c5c3_Err = templ.ResolveAttributeValue(m + "_no_schedule")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 803, Col: 72}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 799, Col: 72}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var354)
 			if templ_7745c5c3_Err != nil {
@@ -6369,7 +6362,7 @@ func adminModuleCard(p *Page, m string, om service.OrgModule) templ.Component {
 			var templ_7745c5c3_Var355 string
 			templ_7745c5c3_Var355, templ_7745c5c3_Err = templ.JoinStringErrs(p.T("module.no_schedule"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 803, Col: 140}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 799, Col: 140}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var355))
 			if templ_7745c5c3_Err != nil {
@@ -6387,7 +6380,7 @@ func adminModuleCard(p *Page, m string, om service.OrgModule) templ.Component {
 		var templ_7745c5c3_Var356 string
 		templ_7745c5c3_Var356, templ_7745c5c3_Err = templ.ResolveAttributeValue(m + "_no_notifications")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 805, Col: 76}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 801, Col: 76}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var356)
 		if templ_7745c5c3_Err != nil {
@@ -6410,7 +6403,7 @@ func adminModuleCard(p *Page, m string, om service.OrgModule) templ.Component {
 		var templ_7745c5c3_Var357 string
 		templ_7745c5c3_Var357, templ_7745c5c3_Err = templ.JoinStringErrs(p.T("module.no_notifications"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 805, Col: 154}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `databases.templ`, Line: 801, Col: 154}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var357))
 		if templ_7745c5c3_Err != nil {

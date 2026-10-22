@@ -105,6 +105,7 @@ func (h *Handler) Mount(r chi.Router) {
 				r.Get("/audit", h.audit)
 				h.mountScans(r)
 				h.mountDatabases(r)
+				h.mountDomains(r)
 			})
 		})
 	})

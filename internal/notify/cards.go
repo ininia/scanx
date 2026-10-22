@@ -90,6 +90,9 @@ func (m Message) lead() string {
 	if m.Alarm != "" {
 		return m.Alarm
 	}
+	if m.Note != "" {
+		return m.Note
+	}
 	switch m.Level() {
 	case LevelCritical:
 		return m.t("card.critical.lead", m.Critical)

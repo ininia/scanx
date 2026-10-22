@@ -27,6 +27,8 @@ func (h *Handler) moduleGate(next http.Handler) http.Handler {
 		switch {
 		case strings.HasPrefix(rest, "/databases"):
 			module = service.ModuleDB
+		case strings.HasPrefix(rest, "/domains"):
+			module = service.ModuleTLS
 		case strings.HasPrefix(rest, "/projects"), strings.HasPrefix(rest, "/scans"):
 			module = service.ModuleRepo
 		}

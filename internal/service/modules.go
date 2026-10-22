@@ -15,10 +15,11 @@ import (
 const (
 	ModuleRepo = "repo" // repository (code) scanning
 	ModuleDB   = "db"   // database structure scanning
+	ModuleTLS  = "tls"  // certificate, domain and TLS monitoring
 )
 
 // AllModules lists the modules in display order.
-var AllModules = []string{ModuleRepo, ModuleDB}
+var AllModules = []string{ModuleRepo, ModuleDB, ModuleTLS}
 
 // ModuleSettings are the instance admin's limits for one module of one
 // organization. Zero values mean "no limit / allowed".

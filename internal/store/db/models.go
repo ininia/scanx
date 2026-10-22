@@ -112,6 +112,17 @@ type DbScan struct {
 	FinishedAt    *time.Time
 }
 
+type DomainCheck struct {
+	ID        uuid.UUID
+	OrgID     uuid.UUID
+	DomainID  uuid.UUID
+	CheckedAt time.Time
+	Score     int32
+	Grade     string
+	Counts    json.RawMessage
+	Result    json.RawMessage
+}
+
 type InstanceSetting struct {
 	Key       string
 	Value     json.RawMessage
@@ -188,6 +199,28 @@ type Membership struct {
 	UserID    uuid.UUID
 	Role      string
 	CreatedAt time.Time
+}
+
+type MonitoredDomain struct {
+	ID            uuid.UUID
+	OrgID         uuid.UUID
+	Host          string
+	Port          int32
+	Label         string
+	Enabled       bool
+	Schedule      string
+	NextCheckAt   time.Time
+	LockedUntil   *time.Time
+	LastCheckID   *uuid.UUID
+	LastCheckedAt *time.Time
+	LastScore     *int32
+	LastGrade     string
+	LastError     string
+	CertNotAfter  *time.Time
+	CertIssuer    string
+	AlertedDays   *int32
+	CreatedBy     *uuid.UUID
+	CreatedAt     time.Time
 }
 
 type NotificationChannel struct {

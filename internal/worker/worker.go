@@ -57,6 +57,9 @@ type Config struct {
 	PollInterval         time.Duration
 	// DBImage runs the database inspector (empty = database module off).
 	DBImage string
+	// AllowPrivateTargets lets TLS checks and web scans reach private
+	// addresses (internal sites).
+	AllowPrivateTargets bool
 }
 
 // Worker claims and runs jobs.
@@ -117,6 +120,11 @@ func (w *Worker) Run(ctx context.Context) error {
 			w.loop(ctx)
 		}()
 	}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		w.tlsLoop(ctx)
+	}()
 	if w.cfg.DBImage != "" {
 		wg.Add(1)
 		go func() {

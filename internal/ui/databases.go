@@ -355,3 +355,18 @@ func (p *Page) Path0() string {
 	path, _, _ := strings.Cut(p.Path, "?")
 	return path
 }
+
+// ModuleIcon is the icon of a module.
+func ModuleIcon(m string) string {
+	switch m {
+	case "db":
+		return "database"
+	case "tls":
+		return "lock"
+	case "sbom":
+		return "list"
+	case "dast":
+		return "globe"
+	}
+	return "folder"
+}

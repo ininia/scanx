@@ -47,6 +47,7 @@ func RunWorker(ctx context.Context, cfg *config.Config, log *slog.Logger) error 
 		NanoCPUs: int64(cfg.ScannerCPUs * 1e9), MaxRepoMB: cfg.MaxRepoMB, CloneDepth: cfg.CloneDepth,
 		Runtime: cfg.SandboxRuntime, Profile: cfg.ScannerProfile, Parallelism: cfg.ScannerParallelism,
 		AllowPrivateGitHosts: cfg.AllowPrivateGitHosts, BaseURL: cfg.BaseURL, DBImage: cfg.DBInspectImage,
+		AllowPrivateTargets: cfg.AllowPrivateTargets,
 	}, log)
 	return w.Run(ctx)
 }

@@ -1,0 +1,292 @@
+package ui
+
+import (
+	"strconv"
+	"strings"
+
+	"github.com/ininia/scanx/internal/service"
+	"github.com/ininia/scanx/internal/store/db"
+)
+
+// Domains lists the monitored endpoints with the add form.
+templ Domains(p *Page, list []db.MonitoredDomain, f *Form) {
+	@AppShell(p) {
+		@pageHero(p, "lock", p.T("tls.title"), p.T("tls.subtitle"), p.T("nav.dashboard"), p.T("tls.title"))
+		if p.Can("project.write") {
+			<section class="card">
+				<h2>{ p.T("tls.add") }</h2>
+				@formErr(p, f)
+				<form method="post" action={ templ.SafeURL(p.OrgURL("/domains")) } class="row">
+					@csrf(p)
+					<div class="field grow">
+						<label for="host">{ p.T("tls.host") }</label>
+						<input type="text" id="host" name="host" value={ f.V("host") } required maxlength="300" placeholder="www.example.com" class="mono"/>
+						@fieldErr(p, f, "host")
+					</div>
+					<div class="field narrow">
+						<label for="port">{ p.T("db.port") }</label>
+						<input type="number" id="port" name="port" value={ f.V("port") } min="1" max="65535" placeholder="443"/>
+					</div>
+					<div class="field">
+						<label for="label">{ p.T("tls.label") }</label>
+						<input type="text" id="label" name="label" value={ f.V("label") } maxlength="100" placeholder={ p.T("tls.label_ph") }/>
+					</div>
+					<div class="field narrow">
+						<label for="schedule">{ p.T("db.schedule") }</label>
+						<select id="schedule" name="schedule">
+							for _, s := range []string{"daily", "hourly"} {
+								<option value={ s } selected?={ f.V("schedule") == s }>{ p.T("db.schedule." + s) }</option>
+							}
+						</select>
+					</div>
+					<button class="btn primary" type="submit">@Icon("plus")<span>{ p.T("tls.add_btn") }</span></button>
+				</form>
+				<p class="hint">{ p.T("tls.add_hint") }</p>
+			</section>
+		}
+		if len(list) == 0 {
+			<section class="panel"><div class="empty"><span class="hero-icon">@Icon("lock")</span><p class="muted">{ p.T("tls.empty") }</p></div></section>
+		} else {
+			<section class="panel">
+				<div class="panel-head">
+					<span class="panel-icon">@Icon("lock")</span>
+					<div><h2>{ p.T("tls.count", len(list)) }</h2><p class="muted">{ p.T("tls.list_sub") }</p></div>
+				</div>
+				<div class="tablewrap flat">
+					<table class="data">
+						<thead><tr><th>{ p.T("tls.host") }</th><th>{ p.T("tls.grade") }</th><th>{ p.T("tls.cert") }</th><th>{ p.T("tls.issuer") }</th><th>{ p.T("tls.last_check") }</th></tr></thead>
+						<tbody>
+							for _, d := range list {
+								<tr>
+									<td>
+										<a class="strong" href={ templ.SafeURL(p.OrgURL("/domains/" + d.ID.String())) }>{ d.Host }{ PortSuffix(d.Port) }</a>
+										if d.Label != "" {
+											<div class="faint">{ d.Label }</div>
+										}
+										if !d.Enabled {
+											<span class="sbadge off">{ p.T("tls.paused") }</span>
+										}
+									</td>
+									<td>
+										if d.LastGrade != "" {
+											<span class={ "gpill", "g-" + d.LastGrade }>{ d.LastGrade }</span>
+										} else {
+											<span class="faint">—</span>
+										}
+									</td>
+									<td>
+										if d.LastError != "" && d.CertNotAfter == nil {
+											<span class="sbadge bad">@Icon("x")<span>{ p.T("tls.unreachable") }</span></span>
+										} else if d.CertNotAfter != nil {
+											<span class={ ExpiryClass(d.CertNotAfter) }>{ p.ExpiryText(d.CertNotAfter) }</span>
+											<span class="faint"> { d.CertNotAfter.Format("2006-01-02") }</span>
+										} else {
+											<span class="sbadge run"><span class="spinner"></span><span>{ p.T("tls.pending") }</span></span>
+										}
+									</td>
+									<td class="faint">{ d.CertIssuer }</td>
+									<td class="faint">
+										if d.LastCheckedAt != nil {
+											{ Ago(*d.LastCheckedAt) }
+										} else {
+											—
+										}
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			</section>
+		}
+	}
+}
+
+// DomainDetail shows the latest check of an endpoint and its history.
+templ DomainDetail(p *Page, d *service.DomainDetail) {
+	@AppShell(p) {
+		<div id="tls-live" class="scan-page"
+			if d.Last == nil {
+				hx-get={ p.Path }
+				hx-trigger="every 4s"
+				hx-select="#tls-live"
+				hx-swap="outerHTML"
+			}
+		>
+			@pageHero(p, "lock", d.Domain.Host+PortSuffix(d.Domain.Port), d.Domain.Label, p.T("tls.title"), d.Domain.Host) {
+				if p.Can("scan.trigger") {
+					<form method="post" action={ templ.SafeURL(p.OrgURL("/domains/" + d.Domain.ID.String() + "/check")) }>
+						@csrf(p)
+						<button class="btn primary glow" type="submit">@Icon("refresh")<span>{ p.T("tls.check_now") }</span></button>
+					</form>
+				}
+				if p.Can("project.delete") {
+					<form method="post" action={ templ.SafeURL(p.OrgURL("/domains/" + d.Domain.ID.String() + "/delete")) } hx-confirm={ p.T("tls.delete_confirm") }>
+						@csrf(p)
+						<button class="btn danger" type="submit">@Icon("trash")</button>
+					</form>
+				}
+			}
+			if d.Last == nil {
+				<div class="alert"><span class="spinner"></span> { p.T("tls.first_check") }</div>
+			} else {
+				@tlsResult(p, d)
+			}
+			if p.Can("project.write") {
+				<details class="card">
+					<summary><strong>{ p.T("tls.settings") }</strong></summary>
+					<form method="post" action={ templ.SafeURL(p.OrgURL("/domains/" + d.Domain.ID.String() + "/edit")) } class="row">
+						@csrf(p)
+						<div class="field">
+							<label for="label">{ p.T("tls.label") }</label>
+							<input type="text" id="label" name="label" value={ d.Domain.Label } maxlength="100"/>
+						</div>
+						<div class="field narrow">
+							<label for="schedule">{ p.T("db.schedule") }</label>
+							<select id="schedule" name="schedule">
+								for _, s := range []string{"daily", "hourly"} {
+									<option value={ s } selected?={ d.Domain.Schedule == s }>{ p.T("db.schedule." + s) }</option>
+								}
+							</select>
+						</div>
+						<label class="check"><input type="checkbox" name="enabled" checked?={ d.Domain.Enabled }/> { p.T("tls.enabled") }</label>
+						<button class="btn" type="submit">{ p.T("action.save") }</button>
+					</form>
+				</details>
+			}
+		</div>
+	}
+}
+
+templ tlsResult(p *Page, d *service.DomainDetail) {
+	{{ r := d.Last }}
+	if r.Error != "" {
+		<div class="alert err"><strong>{ p.T("tls.error") }</strong><p class="mono">{ r.Error }</p></div>
+	}
+	<div class="sum-tiles">
+		<div class={ "sum-tile", "grade-" + r.Grade }>
+			<span class="sum-icon">@Icon("gauge")</span>
+			<div>
+				<div class="sum-label">{ p.T("field.score") }</div>
+				<div class="sum-value">{ strconv.Itoa(r.Score) }<span class="faint">/100</span><span class="grade">{ r.Grade }</span></div>
+			</div>
+		</div>
+		<div class="sum-tile">
+			<span class="sum-icon">@Icon("clock")</span>
+			<div>
+				<div class="sum-label">{ p.T("tls.cert") }</div>
+				if r.Cert != nil {
+					<div class="sum-value"><span class={ ExpiryClass(&r.Cert.NotAfter) }>{ p.ExpiryText(&r.Cert.NotAfter) }</span></div>
+					<div class="sum-sub">{ r.Cert.NotAfter.Format("2006-01-02") }</div>
+				} else {
+					<div class="sum-value">—</div>
+				}
+			</div>
+		</div>
+		<div class="sum-tile">
+			<span class="sum-icon">@Icon("shield-check")</span>
+			<div>
+				<div class="sum-label">{ p.T("tls.issuer") }</div>
+				if r.Cert != nil {
+					<div class="sum-value small">{ r.Cert.Issuer }</div>
+					<div class="sum-sub">
+						if r.Cert.Trusted {
+							{ p.T("tls.trusted") }
+						} else {
+							{ p.T("tls.untrusted") }
+						}
+					</div>
+				}
+			</div>
+		</div>
+		<div class="sum-tile">
+			<span class="sum-icon">@Icon("lock")</span>
+			<div>
+				<div class="sum-label">{ p.T("tls.protocols") }</div>
+				<div class="chips">
+					for _, v := range Versions(r) {
+						<span class={ VersionClass(v) }>{ v }</span>
+					}
+				</div>
+				<div class="sum-sub mono">{ r.Cipher }</div>
+			</div>
+		</div>
+	</div>
+	<section class="card">
+		<h2>{ p.T("db.findings") } <span class="faint">({ strconv.Itoa(len(r.Findings)) })</span></h2>
+		if len(r.Findings) == 0 {
+			<div class="empty"><span class="hero-icon">@Icon("shield-check")</span><p>{ p.T("tls.no_findings") }</p></div>
+		} else {
+			<ul class="tls-findings">
+				for _, f := range SortedTLSFindings(r.Findings) {
+					<li>
+						@sevBadge(p, f.Severity)
+						<div>
+							<strong>{ p.T("tlsrule." + f.RuleID + ".title") }</strong>
+							<div class="muted">{ p.TLSMessage(f) }</div>
+							<div class="faint">{ p.T("tlsrule." + f.RuleID + ".fix") }</div>
+						</div>
+					</li>
+				}
+			</ul>
+		}
+	</section>
+	<div class="grid cols-2">
+		if r.Cert != nil {
+			<section class="card">
+				<h2>{ p.T("tls.cert_details") }</h2>
+				<table class="kv">
+					<tr><th>{ p.T("tls.subject") }</th><td class="mono">{ r.Cert.Subject }</td></tr>
+					<tr><th>{ p.T("tls.sans") }</th><td class="mono">{ strings.Join(r.Cert.SANs, ", ") }</td></tr>
+					<tr><th>{ p.T("tls.valid") }</th><td>{ r.Cert.NotBefore.Format("2006-01-02") } → { r.Cert.NotAfter.Format("2006-01-02") }</td></tr>
+					<tr><th>{ p.T("tls.key") }</th><td>{ r.Cert.KeyType } { strconv.Itoa(r.Cert.KeyBits) } · { r.Cert.SigAlg }</td></tr>
+					<tr><th>{ p.T("tls.ips") }</th><td class="mono">{ strings.Join(r.IPs, ", ") }</td></tr>
+					if r.Cert.TrustErr != "" {
+						<tr><th>{ p.T("tls.trust_error") }</th><td class="mono">{ r.Cert.TrustErr }</td></tr>
+					}
+				</table>
+			</section>
+		}
+		<section class="card">
+			<h2>{ p.T("tls.http") }</h2>
+			<table class="kv">
+				<tr><th>{ p.T("tls.redirect") }</th><td>{ p.T("tls.redirect." + dash(r.Redirect)) }</td></tr>
+				for _, h := range HeaderRows {
+					<tr>
+						<th class="mono">{ h }</th>
+						<td class="mono">
+							if v, ok := r.Headers[h]; ok {
+								{ v }
+							} else {
+								<span class="faint">—</span>
+							}
+						</td>
+					</tr>
+				}
+				if r.Apex != "" {
+					<tr><th>SPF ({ r.Apex })</th><td class="mono">{ dash(r.SPF) }</td></tr>
+					<tr><th>DMARC</th><td class="mono">{ dash(r.DMARC) }</td></tr>
+				}
+			</table>
+		</section>
+	</div>
+	if len(d.History) > 1 {
+		<section class="panel">
+			<div class="panel-head"><span class="panel-icon">@Icon("activity")</span><div><h2>{ p.T("tls.history") }</h2></div></div>
+			<div class="tablewrap flat">
+				<table class="data">
+					<thead><tr><th>{ p.T("field.when") }</th><th>{ p.T("field.score") }</th><th>{ p.T("db.findings") }</th></tr></thead>
+					<tbody>
+						for _, h := range d.History {
+							<tr>
+								<td>{ h.CheckedAt.Local().Format("2006-01-02 15:04") }</td>
+								<td><span class={ "gpill", "g-" + h.Grade }>{ h.Grade }</span> <span class="faint">{ strconv.Itoa(int(h.Score)) }</span></td>
+								<td>@dbCountChips(p, CountsOf(h.Counts))</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		</section>
+	}
+}
