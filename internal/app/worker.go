@@ -46,7 +46,7 @@ func RunWorker(ctx context.Context, cfg *config.Config, log *slog.Logger) error 
 		Concurrency: cfg.WorkerConcurrency, ScanTimeout: cfg.ScanTimeout, MemoryBytes: mem,
 		NanoCPUs: int64(cfg.ScannerCPUs * 1e9), MaxRepoMB: cfg.MaxRepoMB, CloneDepth: cfg.CloneDepth,
 		Runtime: cfg.SandboxRuntime, Profile: cfg.ScannerProfile, Parallelism: cfg.ScannerParallelism,
-		AllowPrivateGitHosts: cfg.AllowPrivateGitHosts, BaseURL: cfg.BaseURL,
+		AllowPrivateGitHosts: cfg.AllowPrivateGitHosts, BaseURL: cfg.BaseURL, DBImage: cfg.DBInspectImage,
 	}, log)
 	return w.Run(ctx)
 }

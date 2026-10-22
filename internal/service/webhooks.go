@@ -26,7 +26,7 @@ var WebhookProviders = map[string]bool{"github": true, "gitlab": true, "gitea": 
 // WebhookResult is returned to the provider.
 type WebhookResult struct {
 	Status int        `json:"-"`
-	Result string     `json:"result"` // queued | pong | ignored_event | ignored_branch | ignored_ref | duplicate | already_queued
+	Result string     `json:"result"` // queued | pong | ignored_event | ignored_branch | ignored_ref | ignored_module | duplicate | already_queued
 	ScanID *uuid.UUID `json:"scan_id,omitempty"`
 }
 
@@ -102,6 +102,12 @@ func (s *Service) HandleWebhook(ctx context.Context, provider, projectID string,
 		}
 	}
 
+	if res.Result == "queued" {
+		// The instance admin switched repository scanning off for this org.
+		if mods, err := s.Modules(ctx, lp.OrgID); err == nil && !mods[ModuleRepo].Enabled {
+			res.Result = "ignored_module"
+		}
+	}
 	scope := store.Scope{OrgID: lp.OrgID}
 	err = s.db.Tx(ctx, scope, func(q *db.Queries) error {
 		if delivery != "" {

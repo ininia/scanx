@@ -55,6 +55,8 @@ type Config struct {
 	AllowPrivateGitHosts bool
 	BaseURL              string
 	PollInterval         time.Duration
+	// DBImage runs the database inspector (empty = database module off).
+	DBImage string
 }
 
 // Worker claims and runs jobs.
@@ -115,7 +117,14 @@ func (w *Worker) Run(ctx context.Context) error {
 			w.loop(ctx)
 		}()
 	}
-	w.log.Info("worker started", "id", w.id, "concurrency", w.cfg.Concurrency, "image", w.cfg.Image)
+	if w.cfg.DBImage != "" {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			w.dbLoop(ctx)
+		}()
+	}
+	w.log.Info("worker started", "id", w.id, "concurrency", w.cfg.Concurrency, "image", w.cfg.Image, "db_image", w.cfg.DBImage)
 	wg.Wait()
 	return nil
 }

@@ -38,6 +38,81 @@ type AuditLog struct {
 	CreatedAt  time.Time
 }
 
+type DbConnection struct {
+	ID                uuid.UUID
+	OrgID             uuid.UUID
+	Name              string
+	Engine            string
+	Host              string
+	Port              int32
+	DatabaseName      string
+	Username          string
+	PasswordEnc       []byte
+	PasswordNonce     []byte
+	TlsMode           string
+	Status            string
+	VerifyResult      json.RawMessage
+	VerifiedAt        *time.Time
+	VerifyLockedBy    string
+	VerifyLockedUntil *time.Time
+	Schedule          string
+	ScheduleHour      int32
+	ScheduleWeekday   int32
+	NextRunAt         *time.Time
+	Exclude           []string
+	CreatedBy         *uuid.UUID
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+}
+
+type DbFinding struct {
+	ID           uuid.UUID
+	OrgID        uuid.UUID
+	ScanID       uuid.UUID
+	ConnectionID uuid.UUID
+	RuleID       string
+	Category     string
+	Severity     string
+	ObjectType   string
+	Object       string
+	Params       []string
+	Details      []string
+	Fingerprint  string
+	IsNew        bool
+}
+
+type DbProfile struct {
+	OrgID     uuid.UUID
+	Profile   json.RawMessage
+	UpdatedBy *uuid.UUID
+	UpdatedAt time.Time
+}
+
+type DbScan struct {
+	ID            uuid.UUID
+	OrgID         uuid.UUID
+	ConnectionID  uuid.UUID
+	Trigger       string
+	TriggeredBy   *uuid.UUID
+	Status        string
+	StatusReason  string
+	LockedBy      string
+	LockedUntil   *time.Time
+	Score         *int32
+	Grade         string
+	GateResult    *string
+	Counts        json.RawMessage
+	Summary       json.RawMessage
+	ReadOnly      json.RawMessage
+	SnapshotGz    []byte
+	NewFindings   int32
+	FixedFindings int32
+	Log           string
+	QueuedAt      time.Time
+	StartedAt     *time.Time
+	FinishedAt    *time.Time
+}
+
 type InstanceSetting struct {
 	Key       string
 	Value     json.RawMessage
@@ -125,6 +200,14 @@ type NotificationChannel struct {
 	Nonce     []byte
 	Events    []string
 	CreatedAt time.Time
+}
+
+type OrgModule struct {
+	OrgID     uuid.UUID
+	Module    string
+	Enabled   bool
+	Settings  json.RawMessage
+	UpdatedAt time.Time
 }
 
 type Organization struct {

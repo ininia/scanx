@@ -69,3 +69,6 @@ func NotFound(err error) error {
 	}
 	return err
 }
+
+// IsNoRows reports whether err means "no row".
+func IsNoRows(err error) bool { return errors.Is(err, pgx.ErrNoRows) }

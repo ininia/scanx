@@ -291,6 +291,9 @@ func (s *Service) TriggerScan(ctx context.Context, o *OrgCtx, slug, branch, trig
 	if err := o.Require(auth.ActScanTrigger, "write"); err != nil {
 		return nil, err
 	}
+	if err := s.RequireModule(ctx, o, ModuleRepo); err != nil {
+		return nil, err
+	}
 	if p.ArchivedAt != nil {
 		return nil, invalid("project", "archived")
 	}

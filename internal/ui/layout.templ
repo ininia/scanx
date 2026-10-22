@@ -107,7 +107,12 @@ templ AppShell(p *Page) {
 					<nav class="nav" aria-label={ p.T("nav.main") }>
 						if p.Org != nil {
 							@navLink(p, "dashboard", p.OrgURL(""), "home", p.T("nav.dashboard"))
-							@navLink(p, "projects", p.OrgURL("/projects"), "folder", p.T("nav.projects"))
+							if p.HasModule("repo") {
+								@navLink(p, "projects", p.OrgURL("/projects"), "folder", p.T("nav.projects"))
+							}
+							if p.HasModule("db") {
+								@navLink(p, "databases", p.OrgURL("/databases"), "database", p.T("nav.databases"))
+							}
 							@navLink(p, "notifications", p.OrgURL("/notifications"), "bell", p.T("nav.notifications"))
 							<span class="sep">{ p.T("nav.organization") }</span>
 							@navLink(p, "members", p.OrgURL("/members"), "users", p.T("nav.members"))

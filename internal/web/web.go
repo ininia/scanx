@@ -80,8 +80,10 @@ func (h *Handler) Mount(r chi.Router) {
 			r.Post("/account/sessions/{id}/revoke", h.sessionRevoke)
 			r.Get("/admin", h.admin)
 			r.Post("/admin/orgs", h.adminCreateOrg)
+			r.Get("/admin/orgs/{id}", h.adminOrg)
+			r.Post("/admin/orgs/{id}/modules", h.adminOrgModules)
 			r.Route("/o/{org}", func(r chi.Router) {
-				r.Use(h.resolveOrg)
+				r.Use(h.resolveOrg, h.moduleGate)
 				r.Get("/", h.dashboard)
 				r.Get("/projects", h.projects)
 				r.Get("/scans", h.allScans)
@@ -100,6 +102,7 @@ func (h *Handler) Mount(r chi.Router) {
 				r.Post("/tokens/{id}/revoke", h.tokenRevoke)
 				r.Get("/audit", h.audit)
 				h.mountScans(r)
+				h.mountDatabases(r)
 			})
 		})
 	})
@@ -128,6 +131,7 @@ func (h *Handler) page(r *http.Request, titleKey, nav string) *ui.Page {
 	if o, ok := ctx.Value(orgKey{}).(*service.OrgCtx); ok {
 		p.Org = o
 		p.Problems, _ = h.Svc.ProblemScans(ctx, o)
+		p.Modules, _ = h.Svc.Modules(ctx, o.Org.ID)
 	}
 	if msg := r.URL.Query().Get("msg"); msg != "" && i18n.Has(msg) && strings.HasPrefix(msg, "flash.") {
 		p.Flash, p.FlashKind = msg, "ok"

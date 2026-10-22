@@ -80,3 +80,16 @@ document.addEventListener("change", function (e) {
   var id = e.target.getAttribute && e.target.getAttribute("data-filter-status");
   if (id) scanxFilter(id);
 });
+
+// Database form: the engine picks the default port and the matching
+// read-only account example.
+document.addEventListener("change", function (e) {
+  var sel = e.target.closest && e.target.closest("[data-engine-select]");
+  if (!sel) return;
+  var opt = sel.options[sel.selectedIndex];
+  var port = document.querySelector("[data-port-input]");
+  if (port && opt) port.placeholder = opt.getAttribute("data-port") || "";
+  document.querySelectorAll("[data-engine-help]").forEach(function (el) {
+    el.hidden = el.getAttribute("data-engine-help") !== sel.value;
+  });
+});

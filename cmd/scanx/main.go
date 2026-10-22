@@ -18,6 +18,7 @@ import (
 
 	"github.com/ininia/scanx/internal/app"
 	"github.com/ininia/scanx/internal/config"
+	"github.com/ininia/scanx/internal/dbscan/inspect"
 	"github.com/ininia/scanx/internal/gitfetch"
 	"github.com/ininia/scanx/internal/logging"
 	"github.com/ininia/scanx/internal/rules"
@@ -43,6 +44,7 @@ Commands:
   server        Run the web/API server
   worker        Run the scan worker (clones and scans repositories in sandboxes)
   git-fetch     Clone a repository for a scan (runs inside the scanner image)
+  db-inspect    Verify a read-only database account and read its structure (sandbox)
   migrate       Apply DB migrations and exit
   healthcheck   Probe the local server (container HEALTHCHECK)
   gen-secrets   Print freshly generated secrets in .env format
@@ -77,6 +79,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 			})
 	case "git-fetch":
 		return gitfetch.Main(ctx, stdout, stderr)
+	case "db-inspect":
+		return inspect.Main(ctx, stdout, stderr)
 	case "scan":
 		return runScan(ctx, rest, stdout, stderr)
 	case "migrate":

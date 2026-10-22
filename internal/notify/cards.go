@@ -25,11 +25,13 @@ func (m Message) Level() string {
 	switch {
 	case m.Event == EventTest:
 		return LevelTest
-	case m.Event == EventScanFailed:
+	case m.Alarm != "":
+		return LevelCritical
+	case m.Event == EventScanFailed || m.Event == EventDBScanFailed:
 		return LevelError
 	case m.Critical > 0:
 		return LevelCritical
-	case m.Gate == "fail" || m.Event == EventGateFailed:
+	case m.Gate == "fail" || m.Event == EventGateFailed || m.Event == EventDBGateFailed:
 		return LevelFail
 	}
 	return LevelPass
@@ -65,7 +67,12 @@ func (m Message) IconURL() string {
 }
 
 // Headline is the big first line of a card.
-func (m Message) Headline() string { return m.t("card." + m.Level() + ".headline") }
+func (m Message) Headline() string {
+	if m.Alarm != "" {
+		return m.t("card.alarm.headline")
+	}
+	return m.t("card." + m.Level() + ".headline")
+}
 
 // subtitle is "project · branch · commit".
 func (m Message) subtitle() string {
@@ -80,6 +87,9 @@ func (m Message) subtitle() string {
 
 // lead is the sentence under the headline.
 func (m Message) lead() string {
+	if m.Alarm != "" {
+		return m.Alarm
+	}
 	switch m.Level() {
 	case LevelCritical:
 		return m.t("card.critical.lead", m.Critical)
@@ -96,7 +106,7 @@ func (m Message) lead() string {
 type fact struct{ Title, Value string }
 
 func (m Message) facts() []fact {
-	if m.Level() == LevelTest || m.Level() == LevelError {
+	if m.Level() == LevelTest || m.Level() == LevelError || m.Alarm != "" {
 		var out []fact
 		if m.Commit != "" {
 			out = append(out, fact{m.t("card.commit"), m.commitLine()})
@@ -110,6 +120,9 @@ func (m Message) facts() []fact {
 	out := []fact{
 		{m.t("card.score"), score},
 		{m.t("card.newfixed"), fmt.Sprintf("+%d / −%d", m.New, m.Fixed)},
+	}
+	if m.Objects != "" {
+		out = append(out, fact{m.t("card.scope"), m.Objects})
 	}
 	switch m.Scope {
 	case "diff":
@@ -151,7 +164,9 @@ func (m Message) severities() []sevCount {
 	}
 }
 
-func (m Message) showCounts() bool { return m.Level() != LevelTest && m.Level() != LevelError }
+func (m Message) showCounts() bool {
+	return m.Level() != LevelTest && m.Level() != LevelError && m.Alarm == ""
+}
 
 // levelStyle maps a level to Adaptive Card container style / text colour
 // and to a hex colour for Slack and e-mail.

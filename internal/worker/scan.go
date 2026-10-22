@@ -520,6 +520,14 @@ func (w *Worker) notify(ctx context.Context, orgID uuid.UUID, m notify.Message, 
 	}
 	var chans []db.NotificationChannel
 	_ = w.db.Tx(ctx, store.Scope{OrgID: orgID}, func(q *db.Queries) error {
+		if rows, err := q.ListOrgModules(ctx, orgID); err == nil {
+			for _, r := range rows {
+				var st service.ModuleSettings
+				if r.Module == service.ModuleRepo && json.Unmarshal(r.Settings, &st) == nil && st.NoNotifications {
+					return nil // the instance admin switched this org's repo notifications off
+				}
+			}
+		}
 		var err error
 		chans, err = q.ListNotificationChannels(ctx, orgID)
 		return err

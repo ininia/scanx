@@ -74,11 +74,24 @@ func (s *Service) CreateProject(ctx context.Context, o *OrgCtx, in ProjectInput,
 	if err := o.Require(auth.ActProjectWrite, "write"); err != nil {
 		return nil, err
 	}
+	mod, err := s.requireModuleWrite(ctx, o, ModuleRepo)
+	if err != nil {
+		return nil, err
+	}
 	if _, err := in.validate(); err != nil {
 		return nil, err
 	}
 	var p db.Project
-	err := s.db.Tx(ctx, o.Scope(), func(q *db.Queries) error {
+	err = s.db.Tx(ctx, o.Scope(), func(q *db.Queries) error {
+		if mod.Settings.MaxItems > 0 {
+			n, err := q.CountProjects(ctx, db.CountProjectsParams{OrgID: o.Org.ID})
+			if err != nil {
+				return err
+			}
+			if n >= int64(mod.Settings.MaxItems) {
+				return invalid("name", "limit")
+			}
+		}
 		var err error
 		p, err = q.CreateProject(ctx, db.CreateProjectParams{
 			ID: newID(), OrgID: o.Org.ID, Name: in.Name, Slug: in.Slug, RepoUrl: in.RepoURL, Provider: in.Provider,

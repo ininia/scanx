@@ -64,6 +64,17 @@ type Page struct {
 	Problems []db.RecentProblemScansRow
 	// SearchQ is echoed in the top search box.
 	SearchQ string
+	// Modules the current organization may use (nil = all).
+	Modules map[string]service.OrgModule
+}
+
+// HasModule reports whether the current org may use a module.
+func (p *Page) HasModule(m string) bool {
+	if p.Modules == nil {
+		return true
+	}
+	om, ok := p.Modules[m]
+	return !ok || om.Enabled
 }
 
 // RoleLabel is the current user's role in the current org.

@@ -40,10 +40,15 @@ const (
 	EventGateFailed    = "gate.failed"
 	EventScanFailed    = "scan.failed"
 	EventTest          = "test"
+
+	// Database module.
+	EventDBScanCompleted = "db.scan.completed"
+	EventDBGateFailed    = "db.gate.failed"
+	EventDBScanFailed    = "db.scan.failed"
 )
 
 // AllEvents lists the subscribable events.
-var AllEvents = []string{EventScanCompleted, EventGateFailed, EventScanFailed}
+var AllEvents = []string{EventScanCompleted, EventGateFailed, EventScanFailed, EventDBScanCompleted, EventDBGateFailed, EventDBScanFailed}
 
 // Message is one notification.
 type Message struct {
@@ -70,6 +75,11 @@ type Message struct {
 	ChangedFiles  int    `json:"changed_files,omitempty"`
 	CommitMessage string `json:"commit_message,omitempty"`
 	Author        string `json:"author,omitempty"`
+	// Objects describes what a database scan covered ("120 tables · 1430 columns").
+	Objects string `json:"objects,omitempty"`
+	// Alarm raises a critical alert with this explanation (e.g. a database
+	// account that is no longer read-only).
+	Alarm string `json:"alarm,omitempty"`
 	// BaseURL (public URL of the instance, for the status icons) and Lang
 	// (instance default language) only shape the rendering.
 	BaseURL string `json:"-"`
@@ -78,6 +88,9 @@ type Message struct {
 
 // Title is a one-line summary (e-mail subject, chat preview).
 func (m Message) Title() string {
+	if m.Alarm != "" {
+		return m.t("card.title.alarm", m.Project, m.Branch)
+	}
 	switch m.Level() {
 	case LevelTest:
 		return m.t("card.title.test", m.Org)

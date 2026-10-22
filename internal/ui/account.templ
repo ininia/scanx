@@ -145,7 +145,7 @@ templ Admin(p *Page, f *Form, orgs []db.ListAllOrgsRow) {
 		</div>
 		<div class="tablewrap">
 			<table>
-				<thead><tr><th>{ p.T("field.org_name") }</th><th>Slug</th><th>{ p.T("nav.members") }</th><th>{ p.T("field.created") }</th></tr></thead>
+				<thead><tr><th>{ p.T("field.org_name") }</th><th>Slug</th><th>{ p.T("nav.members") }</th><th>{ p.T("field.created") }</th><th>{ p.T("admin.modules") }</th></tr></thead>
 				<tbody>
 					for _, o := range orgs {
 						<tr>
@@ -153,6 +153,7 @@ templ Admin(p *Page, f *Form, orgs []db.ListAllOrgsRow) {
 							<td class="mono">{ o.Slug }</td>
 							<td>{ strconv.FormatInt(o.MemberCount, 10) }</td>
 							<td>{ Date(o.CreatedAt) }</td>
+							<td><a class="btn small" href={ templ.SafeURL("/admin/orgs/" + o.ID.String()) }>@Icon("settings")<span>{ p.T("admin.manage_modules") }</span></a></td>
 						</tr>
 					}
 				</tbody>
