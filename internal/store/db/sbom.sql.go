@@ -414,6 +414,7 @@ FROM scans s
 JOIN projects p ON p.id = s.project_id
 JOIN reports r ON r.scan_id = s.id AND r.format = 'sbom'
 WHERE s.status = 'completed' AND s.scope = 'full' AND NOT s.partial AND p.archived_at IS NULL
+  AND p.inventory_scan_id IS NULL
   AND NOT EXISTS (SELECT 1 FROM sbom_components c WHERE c.project_id = s.project_id)
 ORDER BY s.project_id, s.finished_at DESC
 `
@@ -540,6 +541,7 @@ const searchComponents = `-- name: SearchComponents :many
 SELECT c.ecosystem, c.name, c.version, c.licenses, p.name AS project_name, p.slug AS project_slug
 FROM sbom_components c JOIN projects p ON p.id = c.project_id
 WHERE c.org_id = $1 AND ($2::text = '' OR c.name ILIKE $2::text OR c.purl ILIKE $2::text)
+  AND ($3::text = '' OR $3::text = ANY (CASE WHEN c.licenses = '{}' THEN ARRAY['(unknown)'] ELSE c.licenses END))
 ORDER BY c.name, c.version, p.name
 LIMIT 300
 `
@@ -547,6 +549,7 @@ LIMIT 300
 type SearchComponentsParams struct {
 	OrgID uuid.UUID
 	Q     string
+	Lic   string
 }
 
 type SearchComponentsRow struct {
@@ -559,7 +562,7 @@ type SearchComponentsRow struct {
 }
 
 func (q *Queries) SearchComponents(ctx context.Context, arg SearchComponentsParams) ([]SearchComponentsRow, error) {
-	rows, err := q.db.Query(ctx, searchComponents, arg.OrgID, arg.Q)
+	rows, err := q.db.Query(ctx, searchComponents, arg.OrgID, arg.Q, arg.Lic)
 	if err != nil {
 		return nil, err
 	}
@@ -583,6 +586,20 @@ func (q *Queries) SearchComponents(ctx context.Context, arg SearchComponentsPara
 		return nil, err
 	}
 	return items, nil
+}
+
+const setProjectInventoryScan = `-- name: SetProjectInventoryScan :exec
+UPDATE projects SET inventory_scan_id = $2 WHERE id = $1
+`
+
+type SetProjectInventoryScanParams struct {
+	ID              uuid.UUID
+	InventoryScanID *uuid.UUID
+}
+
+func (q *Queries) SetProjectInventoryScan(ctx context.Context, arg SetProjectInventoryScanParams) error {
+	_, err := q.db.Exec(ctx, setProjectInventoryScan, arg.ID, arg.InventoryScanID)
+	return err
 }
 
 const topPackages = `-- name: TopPackages :many

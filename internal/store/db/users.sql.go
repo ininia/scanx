@@ -26,7 +26,7 @@ func (q *Queries) CountUsers(ctx context.Context) (int64, error) {
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (id, email, name, password_hash, is_superadmin, locale)
 VALUES ($1, lower($6), $2, $3, $4, $5)
-RETURNING id, email, name, password_hash, totp_secret_enc, totp_nonce, totp_enabled, is_superadmin, locked_until, failed_logins, created_at, last_login_at, locale
+RETURNING id, email, name, password_hash, totp_secret_enc, totp_nonce, totp_enabled, is_superadmin, locked_until, failed_logins, created_at, last_login_at, locale, require_totp
 `
 
 type CreateUserParams struct {
@@ -62,6 +62,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.CreatedAt,
 		&i.LastLoginAt,
 		&i.Locale,
+		&i.RequireTotp,
 	)
 	return i, err
 }
@@ -85,7 +86,7 @@ func (q *Queries) EnableUserTOTP(ctx context.Context, id uuid.UUID) error {
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, name, password_hash, totp_secret_enc, totp_nonce, totp_enabled, is_superadmin, locked_until, failed_logins, created_at, last_login_at, locale FROM users WHERE lower(email) = lower($1)
+SELECT id, email, name, password_hash, totp_secret_enc, totp_nonce, totp_enabled, is_superadmin, locked_until, failed_logins, created_at, last_login_at, locale, require_totp FROM users WHERE lower(email) = lower($1)
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -105,12 +106,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.CreatedAt,
 		&i.LastLoginAt,
 		&i.Locale,
+		&i.RequireTotp,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, name, password_hash, totp_secret_enc, totp_nonce, totp_enabled, is_superadmin, locked_until, failed_logins, created_at, last_login_at, locale FROM users WHERE id = $1
+SELECT id, email, name, password_hash, totp_secret_enc, totp_nonce, totp_enabled, is_superadmin, locked_until, failed_logins, created_at, last_login_at, locale, require_totp FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
@@ -130,12 +132,13 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.CreatedAt,
 		&i.LastLoginAt,
 		&i.Locale,
+		&i.RequireTotp,
 	)
 	return i, err
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, email, name, password_hash, totp_secret_enc, totp_nonce, totp_enabled, is_superadmin, locked_until, failed_logins, created_at, last_login_at, locale FROM users ORDER BY created_at LIMIT $1 OFFSET $2
+SELECT id, email, name, password_hash, totp_secret_enc, totp_nonce, totp_enabled, is_superadmin, locked_until, failed_logins, created_at, last_login_at, locale, require_totp FROM users ORDER BY created_at LIMIT $1 OFFSET $2
 `
 
 type ListUsersParams struct {
@@ -166,6 +169,7 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, e
 			&i.CreatedAt,
 			&i.LastLoginAt,
 			&i.Locale,
+			&i.RequireTotp,
 		); err != nil {
 			return nil, err
 		}

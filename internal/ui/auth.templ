@@ -45,6 +45,9 @@ templ InvitePage(p *Page, f *Form, inv *InviteView) {
 		<div class="card">
 			<h1>{ p.T("invite.title", inv.OrgName) }</h1>
 			<p class="muted">{ p.T("invite.body", inv.Email, p.T("role." + inv.Role)) }</p>
+			if inv.RequireTOTP {
+				<div class="alert warn">{ p.T("invite.require_2fa") }</div>
+			}
 			@formErr(p, f)
 			if inv.NeedsLogin {
 				<p>{ p.T("invite.login_first") }</p>
@@ -81,6 +84,36 @@ type InviteView struct {
 	OrgName    string
 	Email      string
 	Role       string
-	NeedsLogin bool
-	LoggedIn   bool
+	NeedsLogin  bool
+	LoggedIn    bool
+	RequireTOTP bool
+}
+
+// ResetView is what the password reset page shows.
+type ResetView struct {
+	Token string
+	Email string
+}
+
+// ResetPage sets a new password from an admin-created reset link.
+templ ResetPage(p *Page, f *Form, v *ResetView) {
+	@AuthShell(p, false) {
+		<div class="card">
+			<h1>{ p.T("reset.title") }</h1>
+			<p class="muted">{ p.T("reset.body", v.Email) }</p>
+			@formErr(p, f)
+			<form class="stack" method="post" action={ templ.SafeURL("/reset/" + v.Token) }>
+				@csrf(p)
+				<input type="email" name="username" value={ v.Email } autocomplete="username" hidden/>
+				<div class="field">
+					<label for="password">{ p.T("field.new_password") }</label>
+					<input id="password" name="password" type="password" autocomplete="new-password" minlength="12" required/>
+					<span class="hint">{ p.T("password.hint") }</span>
+					@fieldErr(p, f, "password")
+				</div>
+				<button class="btn primary block" type="submit">{ p.T("reset.submit") }</button>
+			</form>
+			<p class="hint">{ p.T("reset.note") }</p>
+		</div>
+	}
 }

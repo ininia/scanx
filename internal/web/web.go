@@ -69,6 +69,8 @@ func (h *Handler) Mount(r chi.Router) {
 		r.Post("/logout", h.logout)
 		r.Get("/invite/{token}", h.inviteForm)
 		r.Post("/invite/{token}", h.invite)
+		r.Get("/reset/{token}", h.resetForm)
+		r.Post("/reset/{token}", h.reset)
 
 		r.Group(func(r chi.Router) {
 			r.Use(h.requireLogin, h.enforce2FA)
@@ -98,6 +100,8 @@ func (h *Handler) Mount(r chi.Router) {
 				r.Post("/members/invite", h.memberInvite)
 				r.Post("/members/{user}/role", h.memberRole)
 				r.Post("/members/{user}/remove", h.memberRemove)
+				r.Post("/members/{user}/reset-link", h.memberResetLink)
+				r.Post("/members/{user}/require-2fa", h.memberRequire2FA)
 				r.Post("/invitations/{id}/revoke", h.invitationRevoke)
 				r.Get("/tokens", h.tokens)
 				r.Post("/tokens", h.tokenCreate)

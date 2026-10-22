@@ -292,7 +292,8 @@ type Invitation struct {
 }
 
 // Invite creates an invitation for e-mail with role.
-func (s *Service) Invite(ctx context.Context, o *OrgCtx, email, role string, m Meta) (*Invitation, error) {
+// With requireTOTP the invitee must enroll 2FA before using scanX.
+func (s *Service) Invite(ctx context.Context, o *OrgCtx, email, role string, requireTOTP bool, m Meta) (*Invitation, error) {
 	if err := s.checkRoleGrant(o, role); err != nil {
 		return nil, err
 	}
@@ -311,8 +312,13 @@ func (s *Service) Invite(ctx context.Context, o *OrgCtx, email, role string, m M
 		}); err != nil {
 			return err
 		}
+		if requireTOTP {
+			if err := q.SetInvitationRequireTOTP(ctx, db.SetInvitationRequireTOTPParams{ID: inv.ID, RequireTotp: true}); err != nil {
+				return err
+			}
+		}
 		return audit(ctx, q, &o.Org.ID, &o.P.UserID, "member.invited", "invitation", inv.ID.String(), m,
-			map[string]any{"email": email, "role": role})
+			map[string]any{"email": email, "role": role, "require_2fa": requireTOTP})
 	})
 	if err != nil {
 		return nil, wrap("invite", err)
@@ -353,12 +359,13 @@ func (s *Service) RevokeInvitation(ctx context.Context, o *OrgCtx, id uuid.UUID,
 
 // InvitationInfo is shown on the acceptance page.
 type InvitationInfo struct {
-	ID         uuid.UUID
-	OrgID      uuid.UUID
-	OrgName    string
-	Email      string
-	Role       string
-	UserExists bool
+	ID          uuid.UUID
+	OrgID       uuid.UUID
+	OrgName     string
+	Email       string
+	Role        string
+	UserExists  bool
+	RequireTOTP bool
 }
 
 // LookupInvitation validates an invitation token.
@@ -380,6 +387,14 @@ func (s *Service) LookupInvitation(ctx context.Context, token string) (*Invitati
 			out.UserExists = true
 		}
 		return nil
+	})
+	if err != nil {
+		return nil, wrap("lookup invitation", err)
+	}
+	err = s.db.Tx(ctx, store.Scope{OrgID: out.OrgID}, func(q *db.Queries) error {
+		var err error
+		out.RequireTOTP, err = q.GetInvitationRequireTOTP(ctx, out.ID)
+		return err
 	})
 	return out, wrap("lookup invitation", err)
 }
@@ -435,6 +450,13 @@ func (s *Service) AcceptInvitation(ctx context.Context, token string, current *a
 		}
 		if n == 0 {
 			return ErrNotFound
+		}
+		if req, err := q.GetInvitationRequireTOTP(ctx, info.ID); err != nil {
+			return err
+		} else if req {
+			if err := q.SetUserRequireTOTP(ctx, db.SetUserRequireTOTPParams{ID: userID, RequireTotp: true}); err != nil {
+				return err
+			}
 		}
 		if err := q.AddMember(ctx, db.AddMemberParams{OrgID: info.OrgID, UserID: userID, Role: info.Role}); err != nil {
 			if isUniqueViolation(err) {

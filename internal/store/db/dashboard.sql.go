@@ -208,7 +208,7 @@ func (q *Queries) SearchIssues(ctx context.Context, arg SearchIssuesParams) ([]S
 }
 
 const searchProjects = `-- name: SearchProjects :many
-SELECT id, org_id, name, slug, repo_url, provider, auth_mode, branches, settings, schedule_cron, created_at, updated_at, archived_at, webhook_secret_enc, webhook_secret_nonce, fail_on, scan_history, sast_timeout_minutes, push_scope FROM projects
+SELECT id, org_id, name, slug, repo_url, provider, auth_mode, branches, settings, schedule_cron, created_at, updated_at, archived_at, webhook_secret_enc, webhook_secret_nonce, fail_on, scan_history, sast_timeout_minutes, push_scope, inventory_scan_id FROM projects
 WHERE org_id = $1 AND (name ILIKE $2::text OR slug ILIKE $2::text OR repo_url ILIKE $2::text)
 ORDER BY name LIMIT 20
 `
@@ -247,6 +247,7 @@ func (q *Queries) SearchProjects(ctx context.Context, arg SearchProjectsParams) 
 			&i.ScanHistory,
 			&i.SastTimeoutMinutes,
 			&i.PushScope,
+			&i.InventoryScanID,
 		); err != nil {
 			return nil, err
 		}

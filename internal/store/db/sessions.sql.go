@@ -105,7 +105,7 @@ func (q *Queries) DeleteUserSessionsExcept(ctx context.Context, arg DeleteUserSe
 
 const getSessionByHash = `-- name: GetSessionByHash :one
 SELECT s.id, s.user_id, s.mfa_pending, s.active_org_id, s.created_at, s.last_seen_at, s.expires_at,
-       u.email, u.name, u.is_superadmin, u.totp_enabled, u.locale, u.locked_until
+       u.email, u.name, u.is_superadmin, u.totp_enabled, u.locale, u.locked_until, u.require_totp
 FROM sessions s JOIN users u ON u.id = s.user_id
 WHERE s.token_hash = $1 AND s.expires_at > now()
 `
@@ -124,6 +124,7 @@ type GetSessionByHashRow struct {
 	TotpEnabled  bool
 	Locale       string
 	LockedUntil  *time.Time
+	RequireTotp  bool
 }
 
 func (q *Queries) GetSessionByHash(ctx context.Context, tokenHash []byte) (GetSessionByHashRow, error) {
@@ -143,6 +144,7 @@ func (q *Queries) GetSessionByHash(ctx context.Context, tokenHash []byte) (GetSe
 		&i.TotpEnabled,
 		&i.Locale,
 		&i.LockedUntil,
+		&i.RequireTotp,
 	)
 	return i, err
 }

@@ -29,12 +29,14 @@ type Session struct {
 	ActiveOrgID *uuid.UUID
 	Principal   *auth.Principal
 	TOTPEnabled bool
+	RequireTOTP bool // set by an organization admin
 }
 
 // NeedsTOTPEnrollment reports whether the user must enroll 2FA before doing
-// anything else (spec §13.3: admins must use 2FA).
+// anything else (spec §13.3: admins must use 2FA; org admins can require it
+// for any member).
 func (s *Session) NeedsTOTPEnrollment(require bool) bool {
-	return require && s.Principal.IsSuperadmin && !s.TOTPEnabled
+	return !s.TOTPEnabled && (s.RequireTOTP || (require && s.Principal.IsSuperadmin))
 }
 
 func (s *Service) createSession(ctx context.Context, q *db.Queries, userID uuid.UUID, mfaPending bool, activeOrg *uuid.UUID, m Meta) (*LoginResult, error) {
@@ -206,6 +208,7 @@ func (s *Service) lookupSession(ctx context.Context, token string) (*Session, er
 		}
 		out = &Session{
 			ID: row.ID, MFAPending: row.MfaPending, ActiveOrgID: row.ActiveOrgID, TOTPEnabled: row.TotpEnabled,
+			RequireTOTP: row.RequireTotp,
 			Principal: &auth.Principal{
 				UserID: row.UserID, Email: row.Email, Name: row.Name, Locale: row.Locale,
 				IsSuperadmin: row.IsSuperadmin, SessionID: row.ID,

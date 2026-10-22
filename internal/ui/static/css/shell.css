@@ -356,3 +356,9 @@ fieldset.unstyled{border:0;margin:0;padding:0;min-width:0;display:flex;flex-dire
 /* ---------- SBOM ---------- */
 .tabs{display:flex;flex-wrap:wrap;gap:6px}
 .row.inline.end{justify-content:flex-end;margin-bottom:8px}
+/* in-page explanations (SBOM tabs, licenses) */
+.help-box{display:flex;gap:10px;align-items:flex-start;padding:11px 14px;margin:0 0 14px;border-radius:var(--radius);border:1px solid var(--border);border-left:3px solid var(--accent);background:color-mix(in srgb,var(--accent) 5%,transparent);color:var(--text-muted);font-size:13px;line-height:1.55}
+.help-box .icon{flex:none;width:16px;height:16px;margin-top:2px;color:var(--accent)}
+.small{font-size:12px}
+td.lic-cell{max-width:420px;line-height:1.5}
+td.lic-cell .small{margin-top:3px}

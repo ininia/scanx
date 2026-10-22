@@ -266,7 +266,7 @@ func TestInvitationFlow(t *testing.T) {
 	alice, _ := newUser(t, s, d, false)
 	o := newOrg(t, s, alice)
 	email := uniq("invitee") + "@example.test"
-	inv, err := s.Invite(ctx, o, email, "member", Meta{})
+	inv, err := s.Invite(ctx, o, email, "member", false, Meta{})
 	if err != nil || !strings.HasPrefix(inv.Token, auth.PrefixInvite) {
 		t.Fatalf("invite: %+v %v", inv, err)
 	}

@@ -221,19 +221,20 @@ func (q *Queries) ListAllOrgs(ctx context.Context, arg ListAllOrgsParams) ([]Lis
 }
 
 const listInvitations = `-- name: ListInvitations :many
-SELECT id, org_id, email, role, invited_by, expires_at, accepted_at, created_at
+SELECT id, org_id, email, role, invited_by, expires_at, accepted_at, created_at, require_totp
 FROM invitations WHERE org_id = $1 AND accepted_at IS NULL ORDER BY created_at DESC
 `
 
 type ListInvitationsRow struct {
-	ID         uuid.UUID
-	OrgID      uuid.UUID
-	Email      string
-	Role       string
-	InvitedBy  *uuid.UUID
-	ExpiresAt  time.Time
-	AcceptedAt *time.Time
-	CreatedAt  time.Time
+	ID          uuid.UUID
+	OrgID       uuid.UUID
+	Email       string
+	Role        string
+	InvitedBy   *uuid.UUID
+	ExpiresAt   time.Time
+	AcceptedAt  *time.Time
+	CreatedAt   time.Time
+	RequireTotp bool
 }
 
 func (q *Queries) ListInvitations(ctx context.Context, orgID uuid.UUID) ([]ListInvitationsRow, error) {
@@ -254,6 +255,7 @@ func (q *Queries) ListInvitations(ctx context.Context, orgID uuid.UUID) ([]ListI
 			&i.ExpiresAt,
 			&i.AcceptedAt,
 			&i.CreatedAt,
+			&i.RequireTotp,
 		); err != nil {
 			return nil, err
 		}
@@ -266,7 +268,7 @@ func (q *Queries) ListInvitations(ctx context.Context, orgID uuid.UUID) ([]ListI
 }
 
 const listMembers = `-- name: ListMembers :many
-SELECT m.org_id, m.user_id, m.role, m.created_at, u.email, u.name, u.totp_enabled, u.last_login_at
+SELECT m.org_id, m.user_id, m.role, m.created_at, u.email, u.name, u.totp_enabled, u.last_login_at, u.require_totp
 FROM memberships m JOIN users u ON u.id = m.user_id
 WHERE m.org_id = $1 ORDER BY u.email
 `
@@ -280,6 +282,7 @@ type ListMembersRow struct {
 	Name        string
 	TotpEnabled bool
 	LastLoginAt *time.Time
+	RequireTotp bool
 }
 
 func (q *Queries) ListMembers(ctx context.Context, orgID uuid.UUID) ([]ListMembersRow, error) {
@@ -300,6 +303,7 @@ func (q *Queries) ListMembers(ctx context.Context, orgID uuid.UUID) ([]ListMembe
 			&i.Name,
 			&i.TotpEnabled,
 			&i.LastLoginAt,
+			&i.RequireTotp,
 		); err != nil {
 			return nil, err
 		}

@@ -16,6 +16,7 @@ const (
 	PrefixPersonal = "scanx_pat_"
 	PrefixCI       = "scanx_ci_"
 	PrefixInvite   = "scanx_inv_"
+	PrefixReset    = "scanx_pwr_"
 )
 
 const base62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"

@@ -136,10 +136,3 @@ func (c cdxComponent) licenses() []string {
 	}
 	return out
 }
-
-// RiskyLicense flags strong copyleft licenses (distribution obligations).
-func RiskyLicense(l string) bool {
-	u := strings.ToUpper(l)
-	return strings.Contains(u, "AGPL") || strings.Contains(u, "GPL") && !strings.Contains(u, "LGPL") ||
-		strings.Contains(u, "SSPL") || strings.Contains(u, "EUPL") || strings.HasPrefix(u, "CC-BY-NC")
-}

@@ -29,7 +29,7 @@ INSERT INTO memberships (org_id, user_id, role) VALUES ($1, $2, $3);
 SELECT * FROM memberships WHERE org_id = $1 AND user_id = $2;
 
 -- name: ListMembers :many
-SELECT m.org_id, m.user_id, m.role, m.created_at, u.email, u.name, u.totp_enabled, u.last_login_at
+SELECT m.org_id, m.user_id, m.role, m.created_at, u.email, u.name, u.totp_enabled, u.last_login_at, u.require_totp
 FROM memberships m JOIN users u ON u.id = m.user_id
 WHERE m.org_id = $1 ORDER BY u.email;
 
@@ -47,7 +47,7 @@ INSERT INTO invitations (id, org_id, email, role, token_hash, invited_by, expire
 VALUES ($1, $2, lower(sqlc.arg(email)), $3, $4, $5, $6);
 
 -- name: ListInvitations :many
-SELECT id, org_id, email, role, invited_by, expires_at, accepted_at, created_at
+SELECT id, org_id, email, role, invited_by, expires_at, accepted_at, created_at, require_totp
 FROM invitations WHERE org_id = $1 AND accepted_at IS NULL ORDER BY created_at DESC;
 
 -- name: DeleteInvitation :execrows

@@ -19,8 +19,12 @@ FROM scans s
 JOIN projects p ON p.id = s.project_id
 JOIN reports r ON r.scan_id = s.id AND r.format = 'sbom'
 WHERE s.status = 'completed' AND s.scope = 'full' AND NOT s.partial AND p.archived_at IS NULL
+  AND p.inventory_scan_id IS NULL
   AND NOT EXISTS (SELECT 1 FROM sbom_components c WHERE c.project_id = s.project_id)
 ORDER BY s.project_id, s.finished_at DESC;
+
+-- name: SetProjectInventoryScan :exec
+UPDATE projects SET inventory_scan_id = $2 WHERE id = $1;
 
 -- name: GetSBOMReport :one
 SELECT content_gz FROM reports WHERE scan_id = $1 AND format = 'sbom';
@@ -34,6 +38,7 @@ FROM sbom_components WHERE org_id = $1;
 SELECT c.ecosystem, c.name, c.version, c.licenses, p.name AS project_name, p.slug AS project_slug
 FROM sbom_components c JOIN projects p ON p.id = c.project_id
 WHERE c.org_id = sqlc.arg(org_id) AND (sqlc.arg(q)::text = '' OR c.name ILIKE sqlc.arg(q)::text OR c.purl ILIKE sqlc.arg(q)::text)
+  AND (sqlc.arg(lic)::text = '' OR sqlc.arg(lic)::text = ANY (CASE WHEN c.licenses = '{}' THEN ARRAY['(unknown)'] ELSE c.licenses END))
 ORDER BY c.name, c.version, p.name
 LIMIT 300;
 

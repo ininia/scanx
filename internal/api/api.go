@@ -326,8 +326,9 @@ func (h *Handler) listMembers(w http.ResponseWriter, r *http.Request) {
 }
 
 type memberReq struct {
-	Email string `json:"email"`
-	Role  string `json:"role"`
+	Email       string `json:"email"`
+	Role        string `json:"role"`
+	RequireTOTP bool   `json:"require_2fa"`
 }
 
 func (h *Handler) addMember(w http.ResponseWriter, r *http.Request) {
@@ -402,7 +403,7 @@ func (h *Handler) createInvitation(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &req) {
 		return
 	}
-	inv, err := h.Svc.Invite(r.Context(), orgFrom(r), req.Email, req.Role, server.MetaFrom(r))
+	inv, err := h.Svc.Invite(r.Context(), orgFrom(r), req.Email, req.Role, req.RequireTOTP, server.MetaFrom(r))
 	if err != nil {
 		writeErr(w, r, err)
 		return

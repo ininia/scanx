@@ -45,7 +45,7 @@ func (w *Worker) updateInventory(ctx context.Context, orgID, projectID, scanID u
 				return err
 			}
 		}
-		return nil
+		return q.SetProjectInventoryScan(fctx, db.SetProjectInventoryScanParams{ID: projectID, InventoryScanID: &scanID})
 	})
 	if err != nil {
 		w.log.Warn("sbom inventory: store", "scan", scanID, "err", err)

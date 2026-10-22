@@ -104,6 +104,9 @@ func (s *Service) DisableTOTP(ctx context.Context, p *auth.Principal, password s
 		if err != nil {
 			return err
 		}
+		if u.RequireTotp {
+			return ErrForbidden
+		}
 		if ok, _, err := auth.VerifyPassword(password, u.PasswordHash); err != nil || !ok {
 			return invalid("password", "invalid")
 		}

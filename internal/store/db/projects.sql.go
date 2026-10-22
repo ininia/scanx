@@ -48,7 +48,7 @@ func (q *Queries) CountProjects(ctx context.Context, arg CountProjectsParams) (i
 const createProject = `-- name: CreateProject :one
 INSERT INTO projects (id, org_id, name, slug, repo_url, provider, auth_mode, branches, schedule_cron)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-RETURNING id, org_id, name, slug, repo_url, provider, auth_mode, branches, settings, schedule_cron, created_at, updated_at, archived_at, webhook_secret_enc, webhook_secret_nonce, fail_on, scan_history, sast_timeout_minutes, push_scope
+RETURNING id, org_id, name, slug, repo_url, provider, auth_mode, branches, settings, schedule_cron, created_at, updated_at, archived_at, webhook_secret_enc, webhook_secret_nonce, fail_on, scan_history, sast_timeout_minutes, push_scope, inventory_scan_id
 `
 
 type CreateProjectParams struct {
@@ -96,6 +96,7 @@ func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (P
 		&i.ScanHistory,
 		&i.SastTimeoutMinutes,
 		&i.PushScope,
+		&i.InventoryScanID,
 	)
 	return i, err
 }
@@ -118,7 +119,7 @@ func (q *Queries) DeleteProject(ctx context.Context, arg DeleteProjectParams) (i
 }
 
 const getProjectByID = `-- name: GetProjectByID :one
-SELECT id, org_id, name, slug, repo_url, provider, auth_mode, branches, settings, schedule_cron, created_at, updated_at, archived_at, webhook_secret_enc, webhook_secret_nonce, fail_on, scan_history, sast_timeout_minutes, push_scope FROM projects WHERE id = $1
+SELECT id, org_id, name, slug, repo_url, provider, auth_mode, branches, settings, schedule_cron, created_at, updated_at, archived_at, webhook_secret_enc, webhook_secret_nonce, fail_on, scan_history, sast_timeout_minutes, push_scope, inventory_scan_id FROM projects WHERE id = $1
 `
 
 func (q *Queries) GetProjectByID(ctx context.Context, id uuid.UUID) (Project, error) {
@@ -144,12 +145,13 @@ func (q *Queries) GetProjectByID(ctx context.Context, id uuid.UUID) (Project, er
 		&i.ScanHistory,
 		&i.SastTimeoutMinutes,
 		&i.PushScope,
+		&i.InventoryScanID,
 	)
 	return i, err
 }
 
 const getProjectBySlug = `-- name: GetProjectBySlug :one
-SELECT id, org_id, name, slug, repo_url, provider, auth_mode, branches, settings, schedule_cron, created_at, updated_at, archived_at, webhook_secret_enc, webhook_secret_nonce, fail_on, scan_history, sast_timeout_minutes, push_scope FROM projects WHERE org_id = $1 AND slug = $2
+SELECT id, org_id, name, slug, repo_url, provider, auth_mode, branches, settings, schedule_cron, created_at, updated_at, archived_at, webhook_secret_enc, webhook_secret_nonce, fail_on, scan_history, sast_timeout_minutes, push_scope, inventory_scan_id FROM projects WHERE org_id = $1 AND slug = $2
 `
 
 type GetProjectBySlugParams struct {
@@ -180,12 +182,13 @@ func (q *Queries) GetProjectBySlug(ctx context.Context, arg GetProjectBySlugPara
 		&i.ScanHistory,
 		&i.SastTimeoutMinutes,
 		&i.PushScope,
+		&i.InventoryScanID,
 	)
 	return i, err
 }
 
 const listProjects = `-- name: ListProjects :many
-SELECT id, org_id, name, slug, repo_url, provider, auth_mode, branches, settings, schedule_cron, created_at, updated_at, archived_at, webhook_secret_enc, webhook_secret_nonce, fail_on, scan_history, sast_timeout_minutes, push_scope FROM projects
+SELECT id, org_id, name, slug, repo_url, provider, auth_mode, branches, settings, schedule_cron, created_at, updated_at, archived_at, webhook_secret_enc, webhook_secret_nonce, fail_on, scan_history, sast_timeout_minutes, push_scope, inventory_scan_id FROM projects
 WHERE org_id = $1 AND ($4::bool OR archived_at IS NULL)
 ORDER BY name LIMIT $2 OFFSET $3
 `
@@ -231,6 +234,7 @@ func (q *Queries) ListProjects(ctx context.Context, arg ListProjectsParams) ([]P
 			&i.ScanHistory,
 			&i.SastTimeoutMinutes,
 			&i.PushScope,
+			&i.InventoryScanID,
 		); err != nil {
 			return nil, err
 		}
@@ -246,7 +250,7 @@ const updateProject = `-- name: UpdateProject :one
 UPDATE projects
 SET name = $3, repo_url = $4, provider = $5, branches = $6, schedule_cron = $7, updated_at = now()
 WHERE org_id = $1 AND id = $2
-RETURNING id, org_id, name, slug, repo_url, provider, auth_mode, branches, settings, schedule_cron, created_at, updated_at, archived_at, webhook_secret_enc, webhook_secret_nonce, fail_on, scan_history, sast_timeout_minutes, push_scope
+RETURNING id, org_id, name, slug, repo_url, provider, auth_mode, branches, settings, schedule_cron, created_at, updated_at, archived_at, webhook_secret_enc, webhook_secret_nonce, fail_on, scan_history, sast_timeout_minutes, push_scope, inventory_scan_id
 `
 
 type UpdateProjectParams struct {
@@ -290,6 +294,7 @@ func (q *Queries) UpdateProject(ctx context.Context, arg UpdateProjectParams) (P
 		&i.ScanHistory,
 		&i.SastTimeoutMinutes,
 		&i.PushScope,
+		&i.InventoryScanID,
 	)
 	return i, err
 }

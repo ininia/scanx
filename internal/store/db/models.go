@@ -130,15 +130,16 @@ type InstanceSetting struct {
 }
 
 type Invitation struct {
-	ID         uuid.UUID
-	OrgID      uuid.UUID
-	Email      string
-	Role       string
-	TokenHash  []byte
-	InvitedBy  *uuid.UUID
-	ExpiresAt  time.Time
-	AcceptedAt *time.Time
-	CreatedAt  time.Time
+	ID          uuid.UUID
+	OrgID       uuid.UUID
+	Email       string
+	Role        string
+	TokenHash   []byte
+	InvitedBy   *uuid.UUID
+	ExpiresAt   time.Time
+	AcceptedAt  *time.Time
+	CreatedAt   time.Time
+	RequireTotp bool
 }
 
 type Issue struct {
@@ -250,6 +251,17 @@ type Organization struct {
 	CreatedAt time.Time
 }
 
+type PasswordReset struct {
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	OrgID     *uuid.UUID
+	TokenHash []byte
+	CreatedBy *uuid.UUID
+	ExpiresAt time.Time
+	UsedAt    *time.Time
+	CreatedAt time.Time
+}
+
 type Project struct {
 	ID                 uuid.UUID
 	OrgID              uuid.UUID
@@ -270,6 +282,7 @@ type Project struct {
 	ScanHistory        bool
 	SastTimeoutMinutes int32
 	PushScope          string
+	InventoryScanID    *uuid.UUID
 }
 
 type Report struct {
@@ -381,6 +394,7 @@ type User struct {
 	CreatedAt     time.Time
 	LastLoginAt   *time.Time
 	Locale        string
+	RequireTotp   bool
 }
 
 type VulnMatch struct {

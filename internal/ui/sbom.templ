@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/ininia/scanx/internal/service"
-	"github.com/ininia/scanx/internal/vulnmon"
 )
 
 // SBOM is the software inventory and vulnerability monitor page.
@@ -102,7 +101,23 @@ templ SBOM(p *Page, v *service.SBOMOverview, tab string) {
 	}
 }
 
+// sbomHelp explains what a tab lists and what to do about it.
+templ sbomHelp(p *Page, key string) {
+	<div class="help-box">
+		@Icon("alert-circle")
+		<div>{ p.T(key) }</div>
+	</div>
+}
+
+// sbomPkg shows the package with its current version on its own line.
+templ sbomPkg(p *Page, name, version, eco string) {
+	<div class="mono strong">{ name }</div>
+	<div class="faint">{ p.T("sbom.current") }: <span class="mono">{ version }</span></div>
+	<div class="faint small">{ eco }</div>
+}
+
 templ sbomVulns(p *Page, v *service.SBOMOverview) {
+	@sbomHelp(p, "sbom.help.vulns")
 	if len(v.Open) == 0 {
 		<div class="empty"><span class="hero-icon">@Icon("shield-check")</span><p>{ p.T("sbom.no_vulns") }</p></div>
 	} else {
@@ -121,12 +136,14 @@ templ sbomVulns(p *Page, v *service.SBOMOverview) {
 								}
 								<div class="faint">{ m.Summary }</div>
 							</td>
-							<td class="mono">{ m.Name }<span class="faint">{ "@" + m.Version }</span><div class="faint">{ m.Ecosystem }</div></td>
-							<td class="mono">
+							<td>@sbomPkg(p, m.Name, m.Version, m.Ecosystem)</td>
+							<td>
 								if m.FixedVersion != "" {
-									{ m.FixedVersion }
+									<div class="mono strong">{ m.FixedVersion }</div>
+									<div class="faint small">{ p.T("sbom.upgrade_hint") }</div>
 								} else {
-									<span class="faint">{ p.T("sbom.no_fix") }</span>
+									<div class="faint">{ p.T("sbom.no_fix") }</div>
+									<div class="faint small">{ p.T("sbom.no_fix_hint") }</div>
 								}
 							</td>
 							<td><a href={ templ.SafeURL(p.OrgURL("/projects/" + m.ProjectSlug)) }>{ m.ProjectName }</a></td>
@@ -140,17 +157,32 @@ templ sbomVulns(p *Page, v *service.SBOMOverview) {
 }
 
 templ sbomComponents(p *Page, v *service.SBOMOverview) {
+	@sbomHelp(p, "sbom.help.components")
 	if v.Query != "" {
-		<p class="muted">{ p.T("search.for", v.Query) } · { strconv.Itoa(len(v.Search)) }</p>
+		<p class="muted">
+			if lic, ok := strings.CutPrefix(v.Query, "license:"); ok {
+				{ p.T("sbom.with_license", lic) }
+			} else {
+				{ p.T("search.for", v.Query) }
+			}
+			· { strconv.Itoa(len(v.Search)) }
+			· <a href={ templ.SafeURL(p.OrgURL("/sbom?tab=components")) }>{ p.T("sbom.clear_search") }</a>
+		</p>
 		<div class="tablewrap flat">
 			<table class="data">
-				<thead><tr><th>{ p.T("sbom.package") }</th><th>{ p.T("sbom.version") }</th><th>{ p.T("sbom.license") }</th><th>{ p.T("field.project") }</th></tr></thead>
+				<thead><tr><th>{ p.T("sbom.package") }</th><th>{ p.T("sbom.license") }</th><th>{ p.T("field.project") }</th></tr></thead>
 				<tbody>
 					for _, c := range v.Search {
 						<tr>
-							<td class="mono">{ c.Name } <span class="faint">{ c.Ecosystem }</span></td>
-							<td class="mono">{ c.Version }</td>
-							<td>{ strings.Join(c.Licenses, ", ") }</td>
+							<td>@sbomPkg(p, c.Name, c.Version, c.Ecosystem)</td>
+							<td>
+								if len(c.Licenses) == 0 {
+									<span class={ LicBadge("unknown") }>{ p.T("sbom.lic.unknown") }</span>
+								}
+								for _, l := range c.Licenses {
+									<div><span class="mono">{ l }</span> <span class={ LicBadge(LicClass(l)) }>{ p.T("sbom.lic." + LicClass(l)) }</span></div>
+								}
+							</td>
 							<td><a href={ templ.SafeURL(p.OrgURL("/projects/" + c.ProjectSlug)) }>{ c.ProjectName }</a></td>
 						</tr>
 					}
@@ -158,7 +190,6 @@ templ sbomComponents(p *Page, v *service.SBOMOverview) {
 			</table>
 		</div>
 	} else {
-		<p class="muted">{ p.T("sbom.top_hint") }</p>
 		<div class="tablewrap flat">
 			<table class="data">
 				<thead><tr><th>{ p.T("sbom.package") }</th><th>{ p.T("sbom.ecosystem") }</th><th>{ p.T("sbom.projects") }</th><th>{ p.T("sbom.versions") }</th></tr></thead>
@@ -166,9 +197,19 @@ templ sbomComponents(p *Page, v *service.SBOMOverview) {
 					for _, t := range v.Top {
 						<tr>
 							<td class="mono"><a href={ templ.SafeURL(p.OrgURL("/sbom?q=" + url.QueryEscape(t.Name))) }>{ t.Name }</a></td>
-							<td class="faint">{ t.Ecosystem }</td>
+							<td>
+								<div>{ t.Ecosystem }</div>
+								if d := p.EcoInfo(t.Ecosystem); d != "" {
+									<div class="faint small">{ d }</div>
+								}
+							</td>
 							<td>{ strconv.FormatInt(t.Projects, 10) }</td>
-							<td>{ strconv.FormatInt(t.Versions, 10) }</td>
+							<td>
+								<div>{ strconv.FormatInt(t.Versions, 10) }</div>
+								if t.Versions > 1 {
+									<div class="faint small">{ p.T("sbom.versions_mixed") }</div>
+								}
+							</td>
 						</tr>
 					}
 				</tbody>
@@ -178,21 +219,27 @@ templ sbomComponents(p *Page, v *service.SBOMOverview) {
 }
 
 templ sbomLicenses(p *Page, v *service.SBOMOverview) {
-	<p class="muted">{ p.T("sbom.license_hint") }</p>
+	@sbomHelp(p, "sbom.help.licenses")
 	<div class="tablewrap flat">
 		<table class="data">
-			<thead><tr><th>{ p.T("sbom.license") }</th><th>{ p.T("sbom.components") }</th><th>{ p.T("sbom.projects") }</th></tr></thead>
+			<thead><tr><th>{ p.T("sbom.license") }</th><th>{ p.T("sbom.lic_risk") }</th><th>{ p.T("sbom.components") }</th><th>{ p.T("sbom.projects") }</th><th></th></tr></thead>
 			<tbody>
 				for _, l := range v.Licenses {
+					{{ class := LicClass(l.License) }}
 					<tr>
-						<td>
-							<span class="mono">{ l.License }</span>
-							if vulnmon.RiskyLicense(l.License) {
-								<span class="sbadge bad">{ p.T("sbom.copyleft") }</span>
+						<td class="lic-cell">
+							<div><span class="mono strong">{ l.License }</span> <span class={ LicBadge(class) }>{ p.T("sbom.lic." + class) }</span></div>
+							if d := p.LicInfo(l.License); d != "" {
+								<div class="faint small">{ d }</div>
 							}
+						</td>
+						<td class="lic-cell">
+							<div>{ p.T("sbom.licrisk." + class) }</div>
+							<div class="faint small"><strong>{ p.T("sbom.what_to_do") }</strong> { p.T("sbom.licfix." + class) }</div>
 						</td>
 						<td>{ strconv.FormatInt(l.Components, 10) }</td>
 						<td>{ strconv.FormatInt(l.Projects, 10) }</td>
+						<td><a class="linkbtn" href={ templ.SafeURL(p.OrgURL("/sbom?tab=components&q=" + url.QueryEscape("license:"+l.License))) }>{ p.T("sbom.show_packages") }</a></td>
 					</tr>
 				}
 			</tbody>
@@ -201,6 +248,7 @@ templ sbomLicenses(p *Page, v *service.SBOMOverview) {
 }
 
 templ sbomResolved(p *Page, v *service.SBOMOverview) {
+	@sbomHelp(p, "sbom.help.resolved")
 	if len(v.Resolved) == 0 {
 		<p class="muted">{ p.T("sbom.none_resolved") }</p>
 	} else {
@@ -212,7 +260,10 @@ templ sbomResolved(p *Page, v *service.SBOMOverview) {
 						<tr>
 							<td>@sevBadge(p, m.Severity)</td>
 							<td class="mono">{ m.VulnID }</td>
-							<td class="mono">{ m.Name + "@" + m.Version }</td>
+							<td>
+								<div class="mono strong">{ m.Name }</div>
+								<div class="faint">{ p.T("sbom.was_version") }: <span class="mono">{ m.Version }</span></div>
+							</td>
 							<td>{ m.ProjectName }</td>
 							<td class="faint">
 								if m.ResolvedAt != nil {

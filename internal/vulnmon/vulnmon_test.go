@@ -43,6 +43,24 @@ func TestFromCycloneDX(t *testing.T) {
 	}
 }
 
+func TestLicenseClass(t *testing.T) {
+	cases := map[string]string{
+		"MIT": LicPermissive, "Apache-2.0": LicPermissive, "BSD-3-Clause": LicPermissive, "0BSD": LicPublic,
+		"LGPL-2.1-or-later": LicWeak, "MPL-2.0": LicWeak, "GPL-2.0-only": LicStrong, "GPL-3.0+": LicStrong,
+		"AGPL-3.0": LicNetwork, "SSPL-1.0": LicRestricted, "CC-BY-NC-4.0": LicRestricted, "(unknown)": LicUnknown,
+		"MIT OR GPL-3.0": LicPermissive, "(MIT AND GPL-2.0)": LicStrong, "GPL-2.0 WITH Classpath-exception-2.0": LicStrong,
+		"LicenseRef-Custom": LicUnknown, "Frobnicate-1.0": LicUnknown,
+	}
+	for in, want := range cases {
+		if got := LicenseClass(in); got != want {
+			t.Errorf("%s = %s want %s", in, got, want)
+		}
+	}
+	if LicenseFamily("GPL-2.0-only") != "gpl2" || LicenseFamily("Apache-2.0") != "apache" || LicenseFamily("Zlib") != "" {
+		t.Error("family")
+	}
+}
+
 func rec(t *testing.T, js string) *Record {
 	var r Record
 	if err := json.Unmarshal([]byte(js), &r); err != nil {

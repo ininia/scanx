@@ -60,8 +60,13 @@ func (s *Service) SBOMOverview(ctx context.Context, o *OrgCtx, query string) (*S
 			return err
 		}
 		if query != "" {
-			esc := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(query)
-			if out.Search, err = q.SearchComponents(ctx, db.SearchComponentsParams{OrgID: o.Org.ID, Q: "%" + esc + "%"}); err != nil {
+			p := db.SearchComponentsParams{OrgID: o.Org.ID}
+			if lic, ok := strings.CutPrefix(query, "license:"); ok {
+				p.Lic = strings.TrimSpace(lic) // exact license, from the licenses tab
+			} else {
+				p.Q = "%" + strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(query) + "%"
+			}
+			if out.Search, err = q.SearchComponents(ctx, p); err != nil {
 				return err
 			}
 		}

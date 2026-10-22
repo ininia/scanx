@@ -113,6 +113,7 @@ td form{display:inline}
 .badge.owner{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 50%,transparent)}
 .badge.ok{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 50%,transparent)}
 .badge.off{color:var(--text-faint)}
+.badge.warn{color:var(--sev-medium);border-color:color-mix(in srgb,var(--sev-medium) 50%,transparent);margin-left:4px}
 .provider{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-muted)}
 
 /* ---------- auth / setup ---------- */

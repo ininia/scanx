@@ -281,7 +281,7 @@ func (h *Handler) inviteView(r *http.Request, token string) (*ui.InviteView, err
 	return &ui.InviteView{
 		Token: token, OrgName: info.OrgName, Email: info.Email, Role: info.Role,
 		LoggedIn:   p != nil && strings.EqualFold(p.Email, info.Email),
-		NeedsLogin: p == nil && info.UserExists,
+		NeedsLogin: p == nil && info.UserExists, RequireTOTP: info.RequireTOTP,
 	}, nil
 }
 
@@ -315,6 +315,44 @@ func (h *Handler) invite(w http.ResponseWriter, r *http.Request) {
 		h.setSession(w, res)
 	}
 	redirect(w, r, "/", "flash.joined")
+}
+
+func (h *Handler) resetView(r *http.Request, token string) (*ui.ResetView, error) {
+	info, err := h.Svc.LookupPasswordReset(r.Context(), token)
+	if err != nil {
+		return nil, err
+	}
+	return &ui.ResetView{Token: token, Email: info.Email}, nil
+}
+
+func (h *Handler) resetForm(w http.ResponseWriter, r *http.Request) {
+	v, err := h.resetView(r, chi.URLParam(r, "token"))
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	render(w, r, http.StatusOK, ui.ResetPage(h.page(r, "", ""), ui.NewForm(), v))
+}
+
+// reset sets the new password; the user's sessions are ended by the
+// service, so they log in again (with 2FA if enabled).
+func (h *Handler) reset(w http.ResponseWriter, r *http.Request) {
+	token := chi.URLParam(r, "token")
+	v, err := h.resetView(r, token)
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	if err := h.Svc.ResetPassword(r.Context(), token, r.PostFormValue("password"), server.MetaFrom(r)); err != nil {
+		f := ui.NewForm()
+		if !formErr(f, err) {
+			h.fail(w, r, err)
+			return
+		}
+		render(w, r, http.StatusUnprocessableEntity, ui.ResetPage(h.page(r, "", ""), f, v))
+		return
+	}
+	redirect(w, r, "/login", "flash.password_reset")
 }
 
 // ---------- home / dashboard ----------
@@ -436,13 +474,17 @@ func (h *Handler) projectDelete(w http.ResponseWriter, r *http.Request) {
 // ---------- members ----------
 
 func (h *Handler) renderMembers(w http.ResponseWriter, r *http.Request, f *ui.Form, newInvite string, status int) {
+	h.renderMembersView(w, r, f, &ui.MembersView{NewInvite: newInvite}, status)
+}
+
+func (h *Handler) renderMembersView(w http.ResponseWriter, r *http.Request, f *ui.Form, v *ui.MembersView, status int) {
 	o := orgFrom(r)
 	ms, err := h.Svc.ListMembers(r.Context(), o)
 	if err != nil {
 		h.fail(w, r, err)
 		return
 	}
-	v := &ui.MembersView{Members: ms, NewInvite: newInvite}
+	v.Members = ms
 	if auth.Can(o.Role, auth.ActMembersManage) {
 		v.Invitations, _ = h.Svc.ListInvitations(r.Context(), o)
 	}
@@ -455,7 +497,7 @@ func (h *Handler) members(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) memberInvite(w http.ResponseWriter, r *http.Request) {
 	f := formFrom(r, "email")
-	inv, err := h.Svc.Invite(r.Context(), orgFrom(r), f.V("email"), r.PostFormValue("role"), server.MetaFrom(r))
+	inv, err := h.Svc.Invite(r.Context(), orgFrom(r), f.V("email"), r.PostFormValue("role"), r.PostFormValue("require_totp") == "on", server.MetaFrom(r))
 	if err != nil {
 		if !formErr(f, err) {
 			h.fail(w, r, err)
@@ -464,12 +506,35 @@ func (h *Handler) memberInvite(w http.ResponseWriter, r *http.Request) {
 		h.renderMembers(w, r, f, "", http.StatusUnprocessableEntity)
 		return
 	}
-	inst, _ := h.Svc.Instance(r.Context())
-	base := strings.TrimRight(inst.BaseURL, "/")
-	if base == "" {
-		base = requestScheme(r) + "://" + r.Host
+	h.renderMembers(w, r, ui.NewForm(), h.baseURL(r)+"/invite/"+inv.Token, http.StatusOK)
+}
+
+func (h *Handler) memberResetLink(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(r, "user")
+	if !ok {
+		h.errorPage(w, r, http.StatusNotFound)
+		return
 	}
-	h.renderMembers(w, r, ui.NewForm(), base+"/invite/"+inv.Token, http.StatusOK)
+	pr, err := h.Svc.CreatePasswordReset(r.Context(), orgFrom(r), id, server.MetaFrom(r))
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	h.renderMembersView(w, r, ui.NewForm(), &ui.MembersView{NewReset: h.baseURL(r) + "/reset/" + pr.Token, ResetEmail: pr.Email}, http.StatusOK)
+}
+
+func (h *Handler) memberRequire2FA(w http.ResponseWriter, r *http.Request) {
+	o := orgFrom(r)
+	id, ok := pathID(r, "user")
+	if !ok {
+		h.errorPage(w, r, http.StatusNotFound)
+		return
+	}
+	if err := h.Svc.SetMemberRequireTOTP(r.Context(), o, id, r.PostFormValue("require") == "1", server.MetaFrom(r)); err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	redirect(w, r, "/o/"+o.Org.Slug+"/members", "flash.member_updated")
 }
 
 func (h *Handler) memberRole(w http.ResponseWriter, r *http.Request) {
@@ -587,7 +652,7 @@ func (h *Handler) accountView(r *http.Request) *ui.AccountView {
 	s := server.SessionFrom(r.Context())
 	sessions, _ := h.Svc.ListSessions(r.Context(), s)
 	v := &ui.AccountView{
-		TOTPEnabled: s.TOTPEnabled, Sessions: sessions, ForceTOTP: s.NeedsTOTPEnrollment(h.Require2FA),
+		TOTPEnabled: s.TOTPEnabled, Sessions: sessions, ForceTOTP: s.NeedsTOTPEnrollment(h.Require2FA), RequireTOTP: s.RequireTOTP,
 		ProfileForm: ui.NewForm(), PassForm: ui.NewForm(), TOTPForm: ui.NewForm(),
 	}
 	if !s.TOTPEnabled {

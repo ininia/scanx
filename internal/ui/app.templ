@@ -86,6 +86,8 @@ type MembersView struct {
 	Members     []db.ListMembersRow
 	Invitations []db.ListInvitationsRow
 	NewInvite   string // full invitation link, shown once
+	NewReset    string // full password reset link, shown once
+	ResetEmail  string
 }
 
 templ Members(p *Page, f *Form, v *MembersView) {
@@ -95,6 +97,12 @@ templ Members(p *Page, f *Form, v *MembersView) {
 			<div class="alert ok">
 				<p>{ p.T("members.invite_created") }</p>
 				<div class="secret-box">{ v.NewInvite }</div>
+			</div>
+		}
+		if v.NewReset != "" {
+			<div class="alert ok">
+				<p>{ p.T("members.reset_created", v.ResetEmail) }</p>
+				<div class="secret-box">{ v.NewReset }</div>
 			</div>
 		}
 		<div class="tablewrap">
@@ -122,14 +130,37 @@ templ Members(p *Page, f *Form, v *MembersView) {
 								} else {
 									<span class="badge off">{ p.T("state.off") }</span>
 								}
+								if m.RequireTotp {
+									<span class="badge warn" title={ p.T("members.2fa_required_hint") }>{ p.T("members.2fa_required") }</span>
+								}
 							</td>
 							<td>
+								<div class="row inline">
+								if p.Can("members.manage") && (m.Role != "owner" || p.Can("ownership.grant")) {
+									<form method="post" action={ templ.SafeURL(p.OrgURL("/members/" + m.UserID.String() + "/require-2fa")) }>
+										@csrf(p)
+										if m.RequireTotp {
+											<input type="hidden" name="require" value="0"/>
+											<button class="btn small" type="submit" title={ p.T("members.2fa_unrequire_hint") }>@Icon("shield")<span>{ p.T("members.2fa_unrequire") }</span></button>
+										} else {
+											<input type="hidden" name="require" value="1"/>
+											<button class="btn small" type="submit" title={ p.T("members.2fa_require_hint") }>@Icon("shield-check")<span>{ p.T("members.2fa_require") }</span></button>
+										}
+									</form>
+									if p.User != nil && p.User.UserID != m.UserID {
+										<form method="post" action={ templ.SafeURL(p.OrgURL("/members/" + m.UserID.String() + "/reset-link")) } hx-confirm={ p.T("members.reset_confirm", m.Email) }>
+											@csrf(p)
+											<button class="btn small" type="submit" title={ p.T("members.reset_hint") }>@Icon("key")<span>{ p.T("members.reset_link") }</span></button>
+										</form>
+									}
+								}
 								if p.Can("members.manage") || (p.User != nil && p.User.UserID == m.UserID) {
 									<form method="post" action={ templ.SafeURL(p.OrgURL("/members/" + m.UserID.String() + "/remove")) } hx-confirm={ p.T("members.remove_confirm") }>
 										@csrf(p)
 										<button class="btn small danger" type="submit">{ p.T("members.remove") }</button>
 									</form>
 								}
+								</div>
 							</td>
 						</tr>
 					}
@@ -152,6 +183,7 @@ templ Members(p *Page, f *Form, v *MembersView) {
 						<label for="role">{ p.T("field.role") }</label>
 						@roleSelect(p, "member", p.Can("ownership.grant"))
 					</div>
+					<label class="check" title={ p.T("members.invite_2fa_hint") }><input type="checkbox" name="require_totp" checked?={ f.V("require_totp") == "on" }/> { p.T("members.invite_2fa") }</label>
 					<button class="btn primary" type="submit">{ p.T("members.invite_send") }</button>
 				</form>
 			</div>
@@ -160,12 +192,19 @@ templ Members(p *Page, f *Form, v *MembersView) {
 					<h2>{ p.T("members.pending") }</h2>
 					<div class="tablewrap">
 						<table>
-							<thead><tr><th>{ p.T("field.email") }</th><th>{ p.T("field.role") }</th><th>{ p.T("field.expires") }</th><th></th></tr></thead>
+							<thead><tr><th>{ p.T("field.email") }</th><th>{ p.T("field.role") }</th><th>2FA</th><th>{ p.T("field.expires") }</th><th></th></tr></thead>
 							<tbody>
 								for _, i := range v.Invitations {
 									<tr>
 										<td>{ i.Email }</td>
 										<td>{ p.T("role." + i.Role) }</td>
+										<td>
+											if i.RequireTotp {
+												<span class="badge warn">{ p.T("members.2fa_required") }</span>
+											} else {
+												<span class="faint">—</span>
+											}
+										</td>
 										<td>{ Date(i.ExpiresAt) }</td>
 										<td>
 											<form method="post" action={ templ.SafeURL(p.OrgURL("/invitations/" + i.ID.String() + "/revoke")) }>

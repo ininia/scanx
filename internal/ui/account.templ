@@ -12,6 +12,7 @@ type AccountView struct {
 	TOTPEnabled bool
 	Enroll      *TOTPView // non-nil while enrolling
 	ForceTOTP   bool
+	RequireTOTP bool // required by an organization admin
 	Sessions    []service.SessionInfo
 	ProfileForm *Form
 	PassForm    *Form
@@ -82,6 +83,8 @@ templ Account(p *Page, v *AccountView) {
 					@csrf(p)
 					<button class="btn primary" type="submit">{ p.T("account.2fa_setup") }</button>
 				</form>
+			} else if v.RequireTOTP {
+				<p class="muted">{ p.T("account.2fa_required_org") }</p>
 			} else if !p.User.IsSuperadmin {
 				@formErr(p, v.TOTPForm)
 				<form method="post" action="/account/2fa/disable" class="row">

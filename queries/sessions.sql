@@ -4,7 +4,7 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
 
 -- name: GetSessionByHash :one
 SELECT s.id, s.user_id, s.mfa_pending, s.active_org_id, s.created_at, s.last_seen_at, s.expires_at,
-       u.email, u.name, u.is_superadmin, u.totp_enabled, u.locale, u.locked_until
+       u.email, u.name, u.is_superadmin, u.totp_enabled, u.locale, u.locked_until, u.require_totp
 FROM sessions s JOIN users u ON u.id = s.user_id
 WHERE s.token_hash = $1 AND s.expires_at > now();
 

@@ -1367,7 +1367,7 @@ func (q *Queries) MarkMissingIssuesFixedInFiles(ctx context.Context, arg MarkMis
 }
 
 const projectsMissingCredentials = `-- name: ProjectsMissingCredentials :many
-SELECT p.id, p.org_id, p.name, p.slug, p.repo_url, p.provider, p.auth_mode, p.branches, p.settings, p.schedule_cron, p.created_at, p.updated_at, p.archived_at, p.webhook_secret_enc, p.webhook_secret_nonce, p.fail_on, p.scan_history, p.sast_timeout_minutes, p.push_scope FROM projects p
+SELECT p.id, p.org_id, p.name, p.slug, p.repo_url, p.provider, p.auth_mode, p.branches, p.settings, p.schedule_cron, p.created_at, p.updated_at, p.archived_at, p.webhook_secret_enc, p.webhook_secret_nonce, p.fail_on, p.scan_history, p.sast_timeout_minutes, p.push_scope, p.inventory_scan_id FROM projects p
 WHERE p.webhook_secret_enc IS NULL
    OR NOT EXISTS (SELECT 1 FROM ssh_keys k WHERE k.project_id = p.id AND k.status = 'active')
 `
@@ -1402,6 +1402,7 @@ func (q *Queries) ProjectsMissingCredentials(ctx context.Context) ([]Project, er
 			&i.ScanHistory,
 			&i.SastTimeoutMinutes,
 			&i.PushScope,
+			&i.InventoryScanID,
 		); err != nil {
 			return nil, err
 		}
