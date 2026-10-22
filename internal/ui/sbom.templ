@@ -1,0 +1,228 @@
+package ui
+
+import (
+	"net/url"
+	"strconv"
+	"strings"
+
+	"github.com/ininia/scanx/internal/service"
+	"github.com/ininia/scanx/internal/vulnmon"
+)
+
+// SBOM is the software inventory and vulnerability monitor page.
+templ SBOM(p *Page, v *service.SBOMOverview, tab string) {
+	@AppShell(p) {
+		<div id="sbom-live" class="scan-page"
+			if v.LastRun != nil && (v.LastRun.Status == "queued" || v.LastRun.Status == "running") {
+				hx-get={ p.Path }
+				hx-trigger="every 5s"
+				hx-select="#sbom-live"
+				hx-swap="outerHTML"
+			}
+		>
+			@pageHero(p, "list", p.T("sbom.title"), p.T("sbom.subtitle"), p.T("nav.dashboard"), p.T("sbom.title")) {
+				<a class="btn" href={ templ.SafeURL(p.OrgURL("/sbom/export/inventory")) } hx-boost="false">@Icon("download")<span>{ p.T("sbom.export_inventory") }</span></a>
+				if p.Can("scan.trigger") {
+					<form method="post" action={ templ.SafeURL(p.OrgURL("/sbom/check")) }>
+						@csrf(p)
+						<button class="btn primary glow" type="submit" disabled?={ v.LastRun != nil && (v.LastRun.Status == "queued" || v.LastRun.Status == "running") }>@Icon("refresh")<span>{ p.T("sbom.check_now") }</span></button>
+					</form>
+				}
+			}
+			if v.LastRun != nil && (v.LastRun.Status == "queued" || v.LastRun.Status == "running") {
+				<div class="alert"><span class="spinner"></span> { p.T("sbom.running") }</div>
+			}
+			<div class="sum-tiles">
+				<div class="sum-tile">
+					<span class="sum-icon">@Icon("list")</span>
+					<div>
+						<div class="sum-label">{ p.T("sbom.components") }</div>
+						<div class="sum-value">{ strconv.FormatInt(v.Stats.Components, 10) }</div>
+						<div class="sum-sub">{ p.T("sbom.packages_projects", v.Stats.Packages, v.Stats.Projects) }</div>
+					</div>
+				</div>
+				<div class={ "sum-tile", templ.KV("gate-fail", v.Counts["critical"]+v.Counts["high"] > 0) }>
+					<span class="sum-icon">@Icon("alert-triangle")</span>
+					<div>
+						<div class="sum-label">{ p.T("sbom.open") }</div>
+						<div class="sum-value">{ strconv.Itoa(len(v.Open)) }</div>
+						<div class="sum-sub">{ p.T("sbom.crit_high", v.Counts["critical"], v.Counts["high"]) }</div>
+					</div>
+				</div>
+				<div class="sum-tile">
+					<span class="sum-icon">@Icon("shield-check")</span>
+					<div>
+						<div class="sum-label">{ p.T("sbom.resolved30") }</div>
+						<div class="sum-value">{ strconv.Itoa(len(v.Resolved)) }</div>
+					</div>
+				</div>
+				<div class="sum-tile">
+					<span class="sum-icon">@Icon("clock")</span>
+					<div>
+						<div class="sum-label">{ p.T("sbom.last_run") }</div>
+						if v.LastRun != nil && v.LastRun.FinishedAt != nil {
+							<div class="sum-value small">{ Ago(*v.LastRun.FinishedAt) }</div>
+							<div class="sum-sub">{ p.T("sbom.advisories", v.LastRun.Advisories) }</div>
+						} else {
+							<div class="sum-value small">—</div>
+						}
+					</div>
+				</div>
+			</div>
+			<section class="card">
+				<div class="ib-head">
+					<div class="tabs">
+						for _, t := range []string{"vulns", "components", "licenses", "resolved"} {
+							<a class={ "chip", templ.KV("active", tab == t) } href={ templ.SafeURL(p.OrgURL("/sbom?tab=" + t)) }>{ p.T("sbom.tab." + t) }</a>
+						}
+					</div>
+					<form method="get" class="ib-search mini-search">
+						@Icon("search")
+						<input type="search" name="q" value={ v.Query } placeholder={ p.T("sbom.search") } aria-label={ p.T("sbom.search") }/>
+					</form>
+				</div>
+				switch tab {
+					case "components":
+						@sbomComponents(p, v)
+					case "licenses":
+						@sbomLicenses(p, v)
+					case "resolved":
+						@sbomResolved(p, v)
+					default:
+						@sbomVulns(p, v)
+				}
+			</section>
+			if v.LastRun != nil && v.LastRun.Log != "" {
+				<details class="card">
+					<summary><strong>{ p.T("sbom.run_log") }</strong></summary>
+					<div class="scanlog"><pre>{ v.LastRun.Log }</pre></div>
+				</details>
+			}
+		</div>
+	}
+}
+
+templ sbomVulns(p *Page, v *service.SBOMOverview) {
+	if len(v.Open) == 0 {
+		<div class="empty"><span class="hero-icon">@Icon("shield-check")</span><p>{ p.T("sbom.no_vulns") }</p></div>
+	} else {
+		<div class="row inline end"><a class="linkbtn" href={ templ.SafeURL(p.OrgURL("/sbom/export/vulns")) } hx-boost="false">{ p.T("sbom.export_vulns") }</a></div>
+		<div class="tablewrap flat">
+			<table class="data">
+				<thead><tr><th>{ p.T("field.severity") }</th><th>{ p.T("sbom.advisory") }</th><th>{ p.T("sbom.package") }</th><th>{ p.T("sbom.fixed") }</th><th>{ p.T("field.project") }</th><th>{ p.T("sbom.first_seen") }</th></tr></thead>
+				<tbody>
+					for _, m := range v.Open {
+						<tr>
+							<td>@sevBadge(p, m.Severity)</td>
+							<td>
+								<a class="mono strong" href={ templ.URL("https://osv.dev/vulnerability/" + m.VulnID) } target="_blank" rel="noopener noreferrer">{ m.VulnID }</a>
+								if m.Cve != "" && m.Cve != m.VulnID {
+									<div class="mono faint">{ m.Cve }</div>
+								}
+								<div class="faint">{ m.Summary }</div>
+							</td>
+							<td class="mono">{ m.Name }<span class="faint">{ "@" + m.Version }</span><div class="faint">{ m.Ecosystem }</div></td>
+							<td class="mono">
+								if m.FixedVersion != "" {
+									{ m.FixedVersion }
+								} else {
+									<span class="faint">{ p.T("sbom.no_fix") }</span>
+								}
+							</td>
+							<td><a href={ templ.SafeURL(p.OrgURL("/projects/" + m.ProjectSlug)) }>{ m.ProjectName }</a></td>
+							<td class="faint">{ Ago(m.FirstSeenAt) }</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	}
+}
+
+templ sbomComponents(p *Page, v *service.SBOMOverview) {
+	if v.Query != "" {
+		<p class="muted">{ p.T("search.for", v.Query) } · { strconv.Itoa(len(v.Search)) }</p>
+		<div class="tablewrap flat">
+			<table class="data">
+				<thead><tr><th>{ p.T("sbom.package") }</th><th>{ p.T("sbom.version") }</th><th>{ p.T("sbom.license") }</th><th>{ p.T("field.project") }</th></tr></thead>
+				<tbody>
+					for _, c := range v.Search {
+						<tr>
+							<td class="mono">{ c.Name } <span class="faint">{ c.Ecosystem }</span></td>
+							<td class="mono">{ c.Version }</td>
+							<td>{ strings.Join(c.Licenses, ", ") }</td>
+							<td><a href={ templ.SafeURL(p.OrgURL("/projects/" + c.ProjectSlug)) }>{ c.ProjectName }</a></td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	} else {
+		<p class="muted">{ p.T("sbom.top_hint") }</p>
+		<div class="tablewrap flat">
+			<table class="data">
+				<thead><tr><th>{ p.T("sbom.package") }</th><th>{ p.T("sbom.ecosystem") }</th><th>{ p.T("sbom.projects") }</th><th>{ p.T("sbom.versions") }</th></tr></thead>
+				<tbody>
+					for _, t := range v.Top {
+						<tr>
+							<td class="mono"><a href={ templ.SafeURL(p.OrgURL("/sbom?q=" + url.QueryEscape(t.Name))) }>{ t.Name }</a></td>
+							<td class="faint">{ t.Ecosystem }</td>
+							<td>{ strconv.FormatInt(t.Projects, 10) }</td>
+							<td>{ strconv.FormatInt(t.Versions, 10) }</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	}
+}
+
+templ sbomLicenses(p *Page, v *service.SBOMOverview) {
+	<p class="muted">{ p.T("sbom.license_hint") }</p>
+	<div class="tablewrap flat">
+		<table class="data">
+			<thead><tr><th>{ p.T("sbom.license") }</th><th>{ p.T("sbom.components") }</th><th>{ p.T("sbom.projects") }</th></tr></thead>
+			<tbody>
+				for _, l := range v.Licenses {
+					<tr>
+						<td>
+							<span class="mono">{ l.License }</span>
+							if vulnmon.RiskyLicense(l.License) {
+								<span class="sbadge bad">{ p.T("sbom.copyleft") }</span>
+							}
+						</td>
+						<td>{ strconv.FormatInt(l.Components, 10) }</td>
+						<td>{ strconv.FormatInt(l.Projects, 10) }</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+}
+
+templ sbomResolved(p *Page, v *service.SBOMOverview) {
+	if len(v.Resolved) == 0 {
+		<p class="muted">{ p.T("sbom.none_resolved") }</p>
+	} else {
+		<div class="tablewrap flat">
+			<table class="data">
+				<thead><tr><th>{ p.T("field.severity") }</th><th>{ p.T("sbom.advisory") }</th><th>{ p.T("sbom.package") }</th><th>{ p.T("field.project") }</th><th>{ p.T("sbom.resolved_at") }</th></tr></thead>
+				<tbody>
+					for _, m := range v.Resolved {
+						<tr>
+							<td>@sevBadge(p, m.Severity)</td>
+							<td class="mono">{ m.VulnID }</td>
+							<td class="mono">{ m.Name + "@" + m.Version }</td>
+							<td>{ m.ProjectName }</td>
+							<td class="faint">
+								if m.ResolvedAt != nil {
+									{ Ago(*m.ResolvedAt) }
+								}
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	}
+}

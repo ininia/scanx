@@ -281,6 +281,18 @@ type Report struct {
 	CreatedAt time.Time
 }
 
+type SbomComponent struct {
+	ID        uuid.UUID
+	OrgID     uuid.UUID
+	ProjectID uuid.UUID
+	ScanID    uuid.UUID
+	Ecosystem string
+	Name      string
+	Version   string
+	Purl      string
+	Licenses  []string
+}
+
 type Scan struct {
 	ID            uuid.UUID
 	OrgID         uuid.UUID
@@ -369,6 +381,38 @@ type User struct {
 	CreatedAt     time.Time
 	LastLoginAt   *time.Time
 	Locale        string
+}
+
+type VulnMatch struct {
+	ID           uuid.UUID
+	OrgID        uuid.UUID
+	ProjectID    uuid.UUID
+	Ecosystem    string
+	Name         string
+	Version      string
+	VulnID       string
+	Cve          string
+	Aliases      []string
+	Severity     string
+	Summary      string
+	FixedVersion string
+	Published    string
+	FirstSeenAt  time.Time
+	LastSeenAt   time.Time
+	ResolvedAt   *time.Time
+	Notified     bool
+}
+
+type VulnmonRun struct {
+	ID          uuid.UUID
+	RequestedAt time.Time
+	StartedAt   *time.Time
+	FinishedAt  *time.Time
+	Status      string
+	Advisories  int32
+	Matches     int32
+	NewMatches  int32
+	Log         string
 }
 
 type WebhookDelivery struct {

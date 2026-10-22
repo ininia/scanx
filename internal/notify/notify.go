@@ -49,10 +49,13 @@ const (
 	// Certificate and TLS monitoring.
 	EventTLSExpiring = "tls.expiring" // a certificate crossed an expiry threshold
 	EventTLSAlert    = "tls.alert"    // new high/critical problems on an endpoint
+
+	// SBOM inventory: newly published advisories affect used packages.
+	EventSBOMVuln = "sbom.vuln"
 )
 
 // AllEvents lists the subscribable events.
-var AllEvents = []string{EventScanCompleted, EventGateFailed, EventScanFailed, EventDBScanCompleted, EventDBGateFailed, EventDBScanFailed, EventTLSExpiring, EventTLSAlert}
+var AllEvents = []string{EventScanCompleted, EventGateFailed, EventScanFailed, EventDBScanCompleted, EventDBGateFailed, EventDBScanFailed, EventTLSExpiring, EventTLSAlert, EventSBOMVuln}
 
 // Message is one notification.
 type Message struct {

@@ -789,11 +789,13 @@ templ adminModuleCard(p *Page, m string, om service.OrgModule) {
 			</div>
 			<label class="switch"><input type="checkbox" name={ m + "_enabled" } checked?={ om.Enabled }/><span>{ p.T("module.enabled") }</span></label>
 		</div>
+		if m != "sbom" {
 		<div class="field">
 			<label for={ m + "_max" }>{ p.T("module." + m + ".max") }</label>
 			<input type="number" id={ m + "_max" } name={ m + "_max" } min="0" max="100000" value={ strconv.Itoa(om.Settings.MaxItems) }/>
 			<span class="hint">{ p.T("module.max_hint") }</span>
 		</div>
+		}
 		<label class="check"><input type="checkbox" name={ m + "_admins_only" } checked?={ om.Settings.AdminsOnly }/> { p.T("module.admins_only") }</label>
 		if m != "repo" {
 			<label class="check"><input type="checkbox" name={ m + "_no_schedule" } checked?={ om.Settings.NoSchedule }/> { p.T("module.no_schedule") }</label>

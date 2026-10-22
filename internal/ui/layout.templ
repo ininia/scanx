@@ -116,6 +116,9 @@ templ AppShell(p *Page) {
 							if p.HasModule("tls") {
 								@navLink(p, "domains", p.OrgURL("/domains"), "lock", p.T("nav.domains"))
 							}
+							if p.HasModule("sbom") {
+								@navLink(p, "sbom", p.OrgURL("/sbom"), "list", p.T("nav.sbom"))
+							}
 							@navLink(p, "notifications", p.OrgURL("/notifications"), "bell", p.T("nav.notifications"))
 							<span class="sep">{ p.T("nav.organization") }</span>
 							@navLink(p, "members", p.OrgURL("/members"), "users", p.T("nav.members"))

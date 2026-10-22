@@ -446,6 +446,11 @@ func (w *Worker) persist(ctx context.Context, sc *db.Scan, p *db.Project, rep *r
 	if err != nil {
 		return err
 	}
+	// SBOM inventory: only a complete scan of the main branch lists every
+	// dependency (diff scans see the changed files only). Never fails the scan.
+	if meta.diff == nil && !rep.Partial && sc.Branch == service.DefaultBranch(p) && len(files["sbom"]) > 0 {
+		w.updateInventory(ctx, sc.OrgID, p.ID, sc.ID, files["sbom"])
+	}
 	msg := w.message(ctx, sc, p, notify.EventScanCompleted)
 	msg.Gate, msg.Score, msg.New, msg.Fixed = rep.Gate.Result, rep.Score, newCount, fixedCount
 	msg.Grade = report.Grade(rep.Score)

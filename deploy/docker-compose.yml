@@ -89,6 +89,8 @@ services:
       SCANX_DOCKER_HOST: tcp://docker-proxy:2375
       SCANX_SCANNER_IMAGE: ${SCANX_SCANNER_IMAGE:-ghcr.io/ininia/scanx-scanner-all:dev}
       SCANX_DB_INSPECT_IMAGE: ghcr.io/ininia/scanx:${SCANX_VERSION:-dev}
+      SCANX_VULNDB_DIR: /home/nonroot/vulndb
+      SCANX_ALLOW_PRIVATE_TARGETS: ${SCANX_ALLOW_PRIVATE_TARGETS:-false}
       SCANX_WORKER_CONCURRENCY: ${SCANX_WORKER_CONCURRENCY:-1}
       SCANX_SCAN_TIMEOUT: ${SCANX_SCAN_TIMEOUT:-30m}
       SCANX_SCANNER_MEMORY: ${SCANX_SCANNER_MEMORY:-3g}
@@ -114,6 +116,9 @@ services:
     healthcheck: { disable: true } # no HTTP listener; liveness = job heartbeats
     stop_grace_period: 2m # lets a finishing scan save its results
     tmpfs: ["/tmp:size=64m"]
+    # OSV vulnerability database exports (SBOM monitoring); /home/nonroot is
+    # owned by the worker's user in the image, so the volume is writable.
+    volumes: ["vulndb:/home/nonroot"]
     <<: *hardening
     # internal: database · dockerapi: the proxy · outbound: DNS checks of Git
     # hosts and notifications (Slack/Teams/SMTP).
@@ -167,6 +172,7 @@ services:
 volumes:
   pgdata: {}
   certs: {}
+  vulndb: {}
 
 networks:
   edge: {}

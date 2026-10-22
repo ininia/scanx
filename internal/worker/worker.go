@@ -60,6 +60,8 @@ type Config struct {
 	// AllowPrivateTargets lets TLS checks and web scans reach private
 	// addresses (internal sites).
 	AllowPrivateTargets bool
+	// VulnDBDir keeps the OSV database exports (a writable volume).
+	VulnDBDir string
 }
 
 // Worker claims and runs jobs.
@@ -125,6 +127,13 @@ func (w *Worker) Run(ctx context.Context) error {
 		defer wg.Done()
 		w.tlsLoop(ctx)
 	}()
+	if w.cfg.VulnDBDir != "" {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			w.vulnLoop(ctx)
+		}()
+	}
 	if w.cfg.DBImage != "" {
 		wg.Add(1)
 		go func() {

@@ -106,6 +106,7 @@ func (h *Handler) Mount(r chi.Router) {
 				h.mountScans(r)
 				h.mountDatabases(r)
 				h.mountDomains(r)
+				h.mountSBOM(r)
 			})
 		})
 	})

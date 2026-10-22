@@ -16,10 +16,11 @@ const (
 	ModuleRepo = "repo" // repository (code) scanning
 	ModuleDB   = "db"   // database structure scanning
 	ModuleTLS  = "tls"  // certificate, domain and TLS monitoring
+	ModuleSBOM = "sbom" // software inventory and continuous CVE monitoring
 )
 
 // AllModules lists the modules in display order.
-var AllModules = []string{ModuleRepo, ModuleDB, ModuleTLS}
+var AllModules = []string{ModuleRepo, ModuleDB, ModuleTLS, ModuleSBOM}
 
 // ModuleSettings are the instance admin's limits for one module of one
 // organization. Zero values mean "no limit / allowed".

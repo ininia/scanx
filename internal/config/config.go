@@ -63,12 +63,15 @@ type Config struct {
 	EgressIPs string `env:"EGRESS_IPS"`
 	// AllowPrivateTargets lets TLS monitoring and web scans reach private
 	// addresses (off by default: no SSRF into internal networks).
-	AllowPrivateTargets bool   `env:"ALLOW_PRIVATE_TARGETS" envDefault:"false"`
-	DockerHost          string `env:"DOCKER_HOST" envDefault:"unix:///var/run/docker.sock"`
-	EgressNetwork       string `env:"EGRESS_NETWORK" envDefault:"scanx-egress"`
-	SSHKnownHosts       string `env:"SSH_KNOWN_HOSTS"` // extra known_hosts lines for self-hosted Git servers
-	CloneDepth          int    `env:"CLONE_DEPTH" envDefault:"0"`
-	ScannerProfile      string `env:"SCANNER_PROFILE" envDefault:"default"`
+	AllowPrivateTargets bool `env:"ALLOW_PRIVATE_TARGETS" envDefault:"false"`
+	// VulnDBDir is where the worker keeps the OSV vulnerability database
+	// (empty = continuous CVE monitoring off).
+	VulnDBDir      string `env:"VULNDB_DIR"`
+	DockerHost     string `env:"DOCKER_HOST" envDefault:"unix:///var/run/docker.sock"`
+	EgressNetwork  string `env:"EGRESS_NETWORK" envDefault:"scanx-egress"`
+	SSHKnownHosts  string `env:"SSH_KNOWN_HOSTS"` // extra known_hosts lines for self-hosted Git servers
+	CloneDepth     int    `env:"CLONE_DEPTH" envDefault:"0"`
+	ScannerProfile string `env:"SCANNER_PROFILE" envDefault:"default"`
 
 	// Notifications (Faz 4).
 	SMTPHost     string        `env:"SMTP_HOST"`
