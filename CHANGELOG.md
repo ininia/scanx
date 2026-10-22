@@ -3,6 +3,10 @@
 Format: [Keep a Changelog](https://keepachangelog.com/). Versioning: SemVer.
 
 ## [Unreleased]
+### Added — database module
+- Database structure scanning for PostgreSQL, MySQL/MariaDB and SQL Server through verified read-only accounts (write-capable accounts are rejected and their password deleted; re-checked before every scan with a critical alarm on privilege changes). 30 naming/consistency/structure/security rules, organization rule profile, category scores, quality gate, schedules, notifications, CSV/JSON export.
+- Instance admin page per organization: enable/disable modules, limits, admins-only, schedule and notification switches.
+
 ### Added — scan quality and speed
 - New analysers in the scanner image (checksum/hash pinned, offline): DevSkim, Bandit, Checkov, zizmor, Hadolint, ShellCheck, Lizard. Generic SARIF ingestion.
 - Language and config analysers, each selected automatically from what the repository contains: gosec (Go), Psalm taint analysis (PHP), Ruff (Python quality), actionlint (GitHub Actions), kube-linter (Kubernetes/Helm), Spectral with the OWASP API Security Top 10 ruleset (OpenAPI).

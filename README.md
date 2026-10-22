@@ -62,6 +62,25 @@ Each tool runs only when the repository contains what it checks (its language, w
 API documents). Findings from different tools are merged into one issue. Pushes are scanned incrementally (only the
 files the push changed); "Scan now" runs a full scan.
 
+### Database module
+
+Connect PostgreSQL, MySQL/MariaDB or SQL Server with a **read-only** account and scanX checks the
+structure: language and style of names, singular/plural, reserved words, the same concept named
+differently (`CreatedAt` / `CreatedDate`), type mismatches, missing primary keys and foreign-key
+indexes, redundant indexes, money in floating point, dates stored as text, identity overflow,
+plaintext-looking password columns, privileges granted to `PUBLIC` and more (30 rules).
+
+- The account is verified as soon as it is saved and again before every scan; an account that can
+  write is rejected and its password deleted. Only catalog metadata is read, never table data,
+  from a throw-away sandbox container that cannot reach scanX's own services.
+- Defaults are best practice; every rule and option can be changed per organization (for example
+  Turkish names or a fixed name for audit columns).
+- Scores per category, quality gate, new/fixed findings, CSV/JSON export, hourly/daily/weekly
+  schedules and the same notification channels as repository scans.
+
+The instance admin decides per organization which modules (repository scanning, database scanning)
+are available, with limits and switches for schedules and notifications.
+
 ## What scanX does (target v1.0)
 
 - 🔒 **Your code never leaves your server.** Each scan clones the repository into an isolated,
