@@ -379,14 +379,14 @@ func (w *Worker) finishDBScan(ctx context.Context, sc *db.DbScan, c *db.DbConnec
 			}
 			hadPrev := len(prev) > 0
 			current := map[string]bool{}
-			rows := make([]db.InsertDBFindingsParams, 0, len(rep.Findings))
+			rows := make([]db.InsertDBFindingParams, 0, len(rep.Findings))
 			for _, f := range rep.Findings {
 				isNew := hadPrev && !old[f.Fingerprint]
 				if isNew {
 					newCount++
 				}
 				current[f.Fingerprint] = true
-				rows = append(rows, db.InsertDBFindingsParams{
+				rows = append(rows, db.InsertDBFindingParams{
 					ID: newID(), OrgID: sc.OrgID, ScanID: sc.ID, ConnectionID: c.ID, RuleID: f.RuleID, Category: f.Category,
 					Severity: f.Severity, ObjectType: f.ObjectType, Object: f.Object, Params: nonNil(f.Params),
 					Details: nonNil(f.Details), Fingerprint: f.Fingerprint, IsNew: isNew,
@@ -397,8 +397,8 @@ func (w *Worker) finishDBScan(ctx context.Context, sc *db.DbScan, c *db.DbConnec
 					fixedCount++
 				}
 			}
-			if len(rows) > 0 {
-				if _, err := q.InsertDBFindings(fctx, rows); err != nil {
+			for _, r := range rows {
+				if err := q.InsertDBFinding(fctx, r); err != nil {
 					return err
 				}
 			}
@@ -417,6 +417,13 @@ func (w *Worker) finishDBScan(ctx context.Context, sc *db.DbScan, c *db.DbConnec
 	})
 	if err != nil {
 		w.log.Error("store database scan", "db_scan", sc.ID, "err", err)
+		// Never leave the scan "running": record the failure on its own.
+		_ = w.db.Tx(fctx, superadmin, func(q *db.Queries) error {
+			return q.FinishDBScan(fctx, db.FinishDBScanParams{
+				ID: sc.ID, Status: "failed", StatusReason: "The results could not be saved: " + trunc(err.Error(), 300), Log: logText,
+				Counts: json.RawMessage(`{}`), Summary: json.RawMessage(`{}`), ReadOnly: json.RawMessage(`{}`),
+			})
+		})
 		return
 	}
 	w.dbNotify(fctx, sc, c, rep, reason, newCount, fixedCount, alarm...)

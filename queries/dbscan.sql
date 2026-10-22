@@ -155,7 +155,8 @@ WHERE f.scan_id = (
     ORDER BY s.finished_at DESC LIMIT 1
 );
 
--- name: InsertDBFindings :copyfrom
+-- name: InsertDBFinding :exec
+-- (COPY is not available on tables with row-level security.)
 INSERT INTO db_findings (id, org_id, scan_id, connection_id, rule_id, category, severity, object_type, object, params,
     details, fingerprint, is_new)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);

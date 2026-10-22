@@ -86,7 +86,7 @@ func (in *DBConnInput) validate(creating bool) error {
 	if !dbscan.ValidSchedule(in.Schedule) || in.ScheduleHour < 0 || in.ScheduleHour > 23 || in.ScheduleWeekday < 0 || in.ScheduleWeekday > 6 {
 		return invalid("schedule", "invalid")
 	}
-	var ex []string
+	ex := []string{} // never NULL in the database
 	for _, e := range in.Exclude {
 		if e = strings.TrimSpace(e); e != "" {
 			if len(e) > 200 {

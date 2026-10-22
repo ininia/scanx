@@ -570,7 +570,13 @@ func (q *Queries) GetDBScan(ctx context.Context, arg GetDBScanParams) (DbScan, e
 	return i, err
 }
 
-type InsertDBFindingsParams struct {
+const insertDBFinding = `-- name: InsertDBFinding :exec
+INSERT INTO db_findings (id, org_id, scan_id, connection_id, rule_id, category, severity, object_type, object, params,
+    details, fingerprint, is_new)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+`
+
+type InsertDBFindingParams struct {
 	ID           uuid.UUID
 	OrgID        uuid.UUID
 	ScanID       uuid.UUID
@@ -584,6 +590,26 @@ type InsertDBFindingsParams struct {
 	Details      []string
 	Fingerprint  string
 	IsNew        bool
+}
+
+// (COPY is not available on tables with row-level security.)
+func (q *Queries) InsertDBFinding(ctx context.Context, arg InsertDBFindingParams) error {
+	_, err := q.db.Exec(ctx, insertDBFinding,
+		arg.ID,
+		arg.OrgID,
+		arg.ScanID,
+		arg.ConnectionID,
+		arg.RuleID,
+		arg.Category,
+		arg.Severity,
+		arg.ObjectType,
+		arg.Object,
+		arg.Params,
+		arg.Details,
+		arg.Fingerprint,
+		arg.IsNew,
+	)
+	return err
 }
 
 const lastDBScanPerConnection = `-- name: LastDBScanPerConnection :many
