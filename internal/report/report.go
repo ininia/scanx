@@ -39,6 +39,11 @@ type Report struct {
 	Gate          Gate             `json:"gate"`
 	Warnings      []string         `json:"warnings,omitempty"`
 	Issues        []finding.Issue  `json:"issues"`
+	// Incremental scans: only issues on the changed lines are listed;
+	// SeenFingerprints are all findings in the touched files (so that
+	// issues elsewhere in them are not taken as fixed).
+	LineScoped       bool     `json:"line_scoped,omitempty"`
+	SeenFingerprints []string `json:"seen_fingerprints,omitempty"`
 }
 
 // Target identifies what was scanned.

@@ -402,6 +402,7 @@ func (g *git) diff(ctx context.Context, r *Request) *Diff {
 		d.Reason = "cannot write the changed-file list"
 		return d
 	}
+	g.writeChangedLines(ctx, r)
 	d.OK = true
 	return d
 }

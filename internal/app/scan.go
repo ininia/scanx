@@ -67,6 +67,9 @@ type ScanOptions struct {
 	// OnlyFiles names a file listing repository-relative paths (one per
 	// line); only those files are scanned (incremental scan of a push).
 	OnlyFiles string
+	// OnlyLines names a JSON file of changed line ranges per file (see
+	// gitfetch.ChangedLinesFile); only findings on those lines are reported.
+	OnlyLines string
 	Branch    string
 	Commit    string
 	Repo      string
@@ -225,8 +228,15 @@ func runExecScan(ctx context.Context, o ScanOptions, policy report.Policy, stdou
 		_ = os.RemoveAll(analysis.dir)
 	}
 
+	seen, lineScoped := scopeToLines(o.OnlyLines, res)
+	if lineScoped {
+		fmt.Fprintf(stderr, "[%s] incremental scan: %d findings on the changed lines\n", time.Now().Format("15:04:05"), len(res.Findings))
+	}
 	target := report.Target{Path: firstNonEmpty(o.DisplayPath, o.Path), Repo: o.Repo, Branch: o.Branch, Commit: o.Commit}
 	rep := report.Build(res, target, started, time.Now(), policy)
+	if lineScoped {
+		rep.LineScoped, rep.SeenFingerprints = true, seen
+	}
 	if err := writeReports(rep, o, rawDir); err != nil {
 		fmt.Fprintln(stderr, "write report:", err)
 		return ExitScanError

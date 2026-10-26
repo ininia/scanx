@@ -20,6 +20,10 @@ templ issueBrowser(p *Page, b *IssueBrowser) {
 				}
 			</div>
 		</div>
+		<div class="tabs ib-tabs">
+			<a class={ "chip", templ.KV("active", !b.Filter.Sec) } href={ templ.SafeURL(b.Filter.WithTab(false)) }>{ p.T("issues.tab.all") } <span class="n">{ strconv.Itoa(b.TabAll) }</span></a>
+			<a class={ "chip", "chip-sec", templ.KV("active", b.Filter.Sec) } href={ templ.SafeURL(b.Filter.WithTab(true)) } title={ p.T("issues.tab.security_hint") }>@Icon("shield")<span>{ p.T("issues.tab.security") }</span> <span class="n">{ strconv.Itoa(b.TabSec) }</span></a>
+		</div>
 		<div class="facets">
 			for _, dim := range FacetDims {
 				if len(b.Facets[dim]) > 0 {

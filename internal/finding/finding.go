@@ -107,3 +107,17 @@ type Finding struct {
 
 // SetMatchLines records the exact matched lines used for fingerprinting.
 func (f *Finding) SetMatchLines(s string) { f.matchLines = s }
+
+// IsSecurity reports whether an issue is a security weakness, as opposed to
+// code quality or license hygiene: leaked secrets, vulnerable dependencies,
+// container and infrastructure misconfigurations always are; code analysis
+// findings when they carry a CWE/CVE or are at least medium severity.
+func IsSecurity(category, severity string, cwe, cve []string) bool {
+	switch Category(category) {
+	case CategorySecret, CategorySCA, CategoryContainer, CategoryIaC, CategoryDAST:
+		return true
+	case CategorySAST:
+		return len(cwe)+len(cve) > 0 || severity == "critical" || severity == "high" || severity == "medium"
+	}
+	return false
+}

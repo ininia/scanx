@@ -114,7 +114,14 @@ UPDATE scans SET scope = $2, changed_files = $3 WHERE id = $1;
 UPDATE issues SET status = 'fixed', fixed_in_scan_id = sqlc.arg(scan_id)::uuid, updated_at = now()
 WHERE project_id = sqlc.arg(project_id)::uuid AND status = 'open'
   AND file = ANY(sqlc.arg(files)::text[])
+  AND fingerprint <> ALL(sqlc.arg(seen)::text[])
   AND id NOT IN (SELECT issue_id FROM scan_issues WHERE scan_id = sqlc.arg(scan_id)::uuid);
+
+-- name: KnownIssueFingerprints :many
+-- Which of these fingerprints the project already has (not fixed): an
+-- incremental scan does not report them as introduced by the push.
+SELECT fingerprint FROM issues
+WHERE project_id = sqlc.arg(project_id)::uuid AND status <> 'fixed' AND fingerprint = ANY(sqlc.arg(fingerprints)::text[]);
 
 -- name: SetScanLog :exec
 UPDATE scans SET log = $2 WHERE id = $1;

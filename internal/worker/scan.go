@@ -253,7 +253,7 @@ func (w *Worker) execute(ctx context.Context, job *db.Job, sc *db.Scan, p *db.Pr
 		cmd = append(cmd, "--disable", id)
 	}
 	if meta.diff != nil {
-		cmd = append(cmd, "--only-files", "/work/"+gitfetch.ChangedListFile)
+		cmd = append(cmd, "--only-files", "/work/"+gitfetch.ChangedListFile, "--only-lines", "/work/"+gitfetch.ChangedLinesFile)
 	}
 	files := map[string][]byte{}
 	spec := sandbox.ContainerSpec{
@@ -354,6 +354,11 @@ func gz(b []byte) ([]byte, error) {
 // persist stores tools, issues (new / existing / fixed), reports and the
 // summary in one transaction, then notifies.
 func (w *Worker) persist(ctx context.Context, sc *db.Scan, p *db.Project, rep *report.Report, files map[string][]byte, meta *fetchMeta) error {
+	if rep.LineScoped {
+		if err := w.dropKnownFileLevel(ctx, sc, p, rep); err != nil {
+			return err
+		}
+	}
 	// Recompute the score card here so every scan uses the current scoring,
 	// whatever scanner image version produced the report.
 	card := report.Score(rep.Issues, rep.Tools)
@@ -425,7 +430,11 @@ func (w *Worker) persist(ctx context.Context, sc *db.Scan, p *db.Project, rep *r
 			// Incremental scan: only the touched files are re-checked.
 			touched := append(append([]string{}, meta.diff.Changed...), meta.diff.Deleted...)
 			if len(touched) > 0 {
-				n, err := q.MarkMissingIssuesFixedInFiles(ctx, db.MarkMissingIssuesFixedInFilesParams{ScanID: sc.ID, ProjectID: p.ID, Files: touched})
+				seen := rep.SeenFingerprints
+				if seen == nil {
+					seen = []string{}
+				}
+				n, err := q.MarkMissingIssuesFixedInFiles(ctx, db.MarkMissingIssuesFixedInFilesParams{ScanID: sc.ID, ProjectID: p.ID, Files: touched, Seen: seen})
 				if err != nil {
 					return err
 				}
@@ -583,4 +592,43 @@ func ShortCommit(c string) string {
 		return c[:10]
 	}
 	return c
+}
+
+// dropKnownFileLevel removes, from an incremental scan, issues without a
+// line (dependency and file-level findings) that the project already has:
+// the push touched the file but did not introduce them. Summary and gate
+// follow the remaining issues.
+func (w *Worker) dropKnownFileLevel(ctx context.Context, sc *db.Scan, p *db.Project, rep *report.Report) error {
+	var fps []string
+	for _, is := range rep.Issues {
+		if is.StartLine <= 0 {
+			fps = append(fps, is.Fingerprint)
+		}
+	}
+	if len(fps) > 0 {
+		var known []string
+		if err := w.db.Tx(ctx, store.Scope{OrgID: sc.OrgID}, func(q *db.Queries) error {
+			var err error
+			known, err = q.KnownIssueFingerprints(ctx, db.KnownIssueFingerprintsParams{ProjectID: p.ID, Fingerprints: fps})
+			return err
+		}); err != nil {
+			return err
+		}
+		skip := map[string]bool{}
+		for _, f := range known {
+			skip[f] = true
+		}
+		kept := rep.Issues[:0]
+		for _, is := range rep.Issues {
+			if is.StartLine > 0 || !skip[is.Fingerprint] {
+				kept = append(kept, is)
+			}
+		}
+		rep.Issues = kept
+	}
+	rep.Summary = report.Summarize(rep.Issues)
+	if policy, err := report.ParseFailOn(p.FailOn); err == nil {
+		rep.Gate = policy.Evaluate(rep.Summary)
+	}
+	return nil
 }

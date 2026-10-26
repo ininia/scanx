@@ -842,6 +842,38 @@ func (q *Queries) IsScanCanceled(ctx context.Context, id uuid.UUID) (bool, error
 	return column_1, err
 }
 
+const knownIssueFingerprints = `-- name: KnownIssueFingerprints :many
+SELECT fingerprint FROM issues
+WHERE project_id = $1::uuid AND status <> 'fixed' AND fingerprint = ANY($2::text[])
+`
+
+type KnownIssueFingerprintsParams struct {
+	ProjectID    uuid.UUID
+	Fingerprints []string
+}
+
+// Which of these fingerprints the project already has (not fixed): an
+// incremental scan does not report them as introduced by the push.
+func (q *Queries) KnownIssueFingerprints(ctx context.Context, arg KnownIssueFingerprintsParams) ([]string, error) {
+	rows, err := q.db.Query(ctx, knownIssueFingerprints, arg.ProjectID, arg.Fingerprints)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var fingerprint string
+		if err := rows.Scan(&fingerprint); err != nil {
+			return nil, err
+		}
+		items = append(items, fingerprint)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const lastScanPerProject = `-- name: LastScanPerProject :many
 SELECT DISTINCT ON (s.project_id) s.project_id, s.id, s.status, s.gate_result, s.score, s.finished_at, s.summary
 FROM scans s WHERE s.org_id = $1 ORDER BY s.project_id, s.queued_at DESC
@@ -1348,6 +1380,7 @@ const markMissingIssuesFixedInFiles = `-- name: MarkMissingIssuesFixedInFiles :e
 UPDATE issues SET status = 'fixed', fixed_in_scan_id = $1::uuid, updated_at = now()
 WHERE project_id = $2::uuid AND status = 'open'
   AND file = ANY($3::text[])
+  AND fingerprint <> ALL($4::text[])
   AND id NOT IN (SELECT issue_id FROM scan_issues WHERE scan_id = $1::uuid)
 `
 
@@ -1355,11 +1388,17 @@ type MarkMissingIssuesFixedInFilesParams struct {
 	ScanID    uuid.UUID
 	ProjectID uuid.UUID
 	Files     []string
+	Seen      []string
 }
 
 // Diff scans: only issues in files the push touched can be proven fixed.
 func (q *Queries) MarkMissingIssuesFixedInFiles(ctx context.Context, arg MarkMissingIssuesFixedInFilesParams) (int64, error) {
-	result, err := q.db.Exec(ctx, markMissingIssuesFixedInFiles, arg.ScanID, arg.ProjectID, arg.Files)
+	result, err := q.db.Exec(ctx, markMissingIssuesFixedInFiles,
+		arg.ScanID,
+		arg.ProjectID,
+		arg.Files,
+		arg.Seen,
+	)
 	if err != nil {
 		return 0, err
 	}

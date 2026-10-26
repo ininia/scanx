@@ -376,3 +376,9 @@ td.lic-cell .small{margin-top:3px}
 .scope-tools .slow{color:var(--sev-medium);font-weight:600}
 .scope-last{margin:6px 0 12px}
 .scope-last summary{cursor:pointer;color:var(--text-muted)}
+/* issue browser: all / security tabs */
+.ib-tabs{display:flex;gap:6px;margin:4px 0 10px}
+.ib-tabs .chip .n{opacity:.75;margin-left:4px}
+.ib-tabs .chip-sec{display:inline-flex;align-items:center;gap:5px}
+.ib-tabs .chip-sec .icon{width:13px;height:13px}
+.ib-tabs .chip-sec.active{border-color:var(--sev-critical);color:var(--sev-critical);background:color-mix(in srgb,var(--sev-critical) 10%,transparent)}

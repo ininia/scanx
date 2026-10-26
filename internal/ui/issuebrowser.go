@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/ininia/scanx/internal/finding"
 	"github.com/ininia/scanx/internal/store/db"
 )
 
@@ -24,6 +25,7 @@ type IssueRow struct {
 	Sources  []string
 	Status   string
 	IsNew    bool
+	Security bool // see finding.IsSecurity
 }
 
 // RowsFromScan converts scan issues.
@@ -33,6 +35,7 @@ func RowsFromScan(in []db.ListScanIssuesRow) []IssueRow {
 		out = append(out, IssueRow{
 			ID: i.ID, Severity: i.Severity, Title: i.Title, RuleID: i.RuleID, File: i.File,
 			Line: i.StartLine, Category: i.Category, Sources: i.Sources, Status: i.Status, IsNew: i.IsNew,
+			Security: finding.IsSecurity(i.Category, i.Severity, i.Cwe, i.Cve),
 		})
 	}
 	return out
@@ -45,6 +48,7 @@ func RowsFromIssues(in []db.Issue) []IssueRow {
 		out = append(out, IssueRow{
 			ID: i.ID, Severity: i.Severity, Title: i.Title, RuleID: i.RuleID, File: i.File,
 			Line: i.StartLine, Category: i.Category, Sources: i.Sources, Status: i.Status,
+			Security: finding.IsSecurity(i.Category, i.Severity, i.Cwe, i.Cve),
 		})
 	}
 	return out
@@ -69,6 +73,7 @@ type IssueFilter struct {
 	Cat    map[string]bool
 	Status map[string]bool
 	New    bool
+	Sec    bool // "security vulnerabilities" tab
 	Q      string
 	Group  string // file | rule | none
 }
@@ -89,7 +94,7 @@ func set(vs []string) map[string]bool {
 func ParseIssueFilter(base string, q url.Values) IssueFilter {
 	f := IssueFilter{
 		Base: base, Sev: set(q["sev"]), Tool: set(q["tool"]), Cat: set(q["cat"]), Status: set(q["status"]),
-		New: q.Get("new") == "1", Q: strings.TrimSpace(q.Get("q")), Group: q.Get("group"),
+		New: q.Get("new") == "1", Sec: q.Get("tab") == "security", Q: strings.TrimSpace(q.Get("q")), Group: q.Get("group"),
 	}
 	if len(f.Q) > 200 {
 		f.Q = f.Q[:200]
@@ -120,6 +125,9 @@ func (f IssueFilter) values() url.Values {
 	add("status", f.Status)
 	if f.New {
 		v.Set("new", "1")
+	}
+	if f.Sec {
+		v.Set("tab", "security")
 	}
 	if f.Q != "" {
 		v.Set("q", f.Q)
@@ -172,6 +180,13 @@ func (f IssueFilter) Toggle(dim, val string) string {
 	return g.URL()
 }
 
+// WithTab returns the URL of the "all" or "security" tab (filters kept).
+func (f IssueFilter) WithTab(security bool) string {
+	g := f
+	g.Sec = security
+	return g.URL()
+}
+
 // WithGroup returns the URL with another grouping.
 func (f IssueFilter) WithGroup(mode string) string {
 	g := f
@@ -203,7 +218,7 @@ func (f IssueFilter) Any() bool {
 
 // Clear returns the URL without filters (grouping kept).
 func (f IssueFilter) Clear() string {
-	return IssueFilter{Base: f.Base, Group: f.Group}.URL()
+	return IssueFilter{Base: f.Base, Group: f.Group, Sec: f.Sec}.URL()
 }
 
 func (f IssueFilter) match(r IssueRow, skip string) bool {
@@ -226,6 +241,9 @@ func (f IssueFilter) match(r IssueRow, skip string) bool {
 		}
 	}
 	if skip != "new" && f.New && !r.IsNew {
+		return false
+	}
+	if skip != "sec" && f.Sec && !r.Security {
 		return false
 	}
 	if f.Q != "" {
@@ -283,6 +301,9 @@ type IssueBrowser struct {
 	Facets  map[string][]Facet
 	Tools   []string
 	Limited bool
+	// Tab counts (under the other active filters): all issues and the
+	// security vulnerabilities among them.
+	TabAll, TabSec int
 }
 
 const maxGroups = 500
@@ -321,6 +342,14 @@ func BuildIssueBrowser(rows []IssueRow, f IssueFilter) *IssueBrowser {
 	count("sev", FacetSeverities, func(r IssueRow) []string { return []string{r.Severity} })
 	count("cat", FacetCategories, func(r IssueRow) []string { return []string{r.Category} })
 	count("tool", b.Tools, func(r IssueRow) []string { return r.Sources })
+	for _, r := range rows {
+		if f.match(r, "sec") {
+			b.TabAll++
+			if r.Security {
+				b.TabSec++
+			}
+		}
+	}
 	count("status", FacetStatuses, func(r IssueRow) []string { return []string{r.Status} })
 
 	var matched []IssueRow
