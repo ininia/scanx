@@ -46,6 +46,7 @@ var trScope = map[string]string{
 	"scope.scanners":            "Çalışacak tarayıcılar",
 	"scope.scanners_hint":       "İşareti kaldırılan tarayıcı bu projede çalışmaz. Tahmini süreler son taramaya göredir; 5 dk'yı aşanlar renkli gösterilir. Dile ve dosyalara göre gereksiz olan tarayıcılar zaten otomatik atlanır.",
 	"scope.minutes":             "%d dk",
+	"cat.sbom":                  "Yazılım envanteri (SBOM)",
 	"flash.scope_invalid":       "Tarama kapsamı kaydedilemedi: geçersiz yol veya değer.",
 	"flash.scope_excluded":      "Klasör tarama dışı bırakıldı; bir sonraki taramadan itibaren geçerli.",
 }

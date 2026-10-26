@@ -46,6 +46,7 @@ var enScope = map[string]string{
 	"scope.scanners":            "Scanners that run",
 	"scope.scanners_hint":       "Unticked scanners do not run for this project. Estimates are based on the last scan; those above 5 min are highlighted. Scanners irrelevant to the languages and files are skipped automatically anyway.",
 	"scope.minutes":             "%d min",
+	"cat.sbom":                  "Software inventory (SBOM)",
 	"flash.scope_invalid":       "The scan scope was not saved: invalid path or value.",
 	"flash.scope_excluded":      "The folder is excluded from the next scan on.",
 }

@@ -38,7 +38,7 @@ func (v *ProjectView) ExcludeText() string { return strings.Join(v.Scope.Exclude
 
 // ScannerGroups are the scanners by category, in a fixed order.
 func ScannerGroups() [][]service.ScannerInfo {
-	order := []string{"sast", "quality", "secret", "sca", "license", "iac", "container"}
+	order := []string{"sast", "quality", "secret", "sca", "sbom", "license", "iac", "container"}
 	by := map[string][]service.ScannerInfo{}
 	for _, s := range service.Scanners() {
 		by[s.Category] = append(by[s.Category], s)
