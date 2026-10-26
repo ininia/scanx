@@ -232,3 +232,9 @@ DELETE FROM notification_channels WHERE org_id = $1 AND id = $2;
 SELECT p.* FROM projects p
 WHERE p.webhook_secret_enc IS NULL
    OR NOT EXISTS (SELECT 1 FROM ssh_keys k WHERE k.project_id = p.id AND k.status = 'active');
+
+-- name: UpdateProjectSettings :exec
+UPDATE projects SET settings = $3, updated_at = now() WHERE org_id = $1 AND id = $2;
+
+-- name: SetProjectScanStats :exec
+UPDATE projects SET scan_stats = $2 WHERE id = $1;

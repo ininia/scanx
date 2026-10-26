@@ -182,7 +182,7 @@ var trScans = map[string]string{
 	"fail.not_found":             "Repo veya branch bulunamadı. Repo adresini ve branch adını kontrol edin; özel repoysa deploy key'in eklendiğinden emin olun.",
 	"fail.too_large":             "Repo, izin verilen boyuttan büyük (SCANX_MAX_REPO_MB).",
 	"fail.timeout":               "Kodu çekmek çok uzun sürdü ve durduruldu. Ağ bağlantısını veya repo boyutunu kontrol edin.",
-	"fail.scan_timeout":          "Tarama süre sınırını aştı (SCANX_SCAN_TIMEOUT). Büyük repolar için süreyi artırabilirsiniz.",
+	"fail.scan_timeout":          "Tarama süre sınırını aştı. Proje sayfasındaki “Tarama kapsamı” bölümünden büyük hazır klasörleri hariç tutun veya yavaş tarayıcıları kapatın ya da kod analizi süre sınırını artırın.",
 	"fail.private_host":          "Git sunucusu iç ağda. İç ağdaki Git sunucularını taramak için yönetici SCANX_ALLOW_PRIVATE_GIT_HOSTS=true ayarını yapmalı.",
 	"fail.oom":                   "Tarayıcıların belleği yetmedi. Sunucunun RAM'ini artırın veya SCANX_SCANNER_MEMORY ayarını yükseltin.",
 	"fail.no_report":             "Tarayıcı rapor üretemeden sonlandı.",

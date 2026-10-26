@@ -1,0 +1,57 @@
+package i18n
+
+// Repository scan scope and duration forecast.
+var trScope = map[string]string{
+	"forecast.estimate":         "Tahmini tarama süresi ~%d dk (süre sınırı %d dk).",
+	"forecast.too_long":         "Bu tarama ~%d dk sürebilir; süre sınırı %d dk, yetmeyebilir.",
+	"forecast.too_long_hint":    "Süre dolmadan en yavaş tarayıcılar durdurulur ve sonuç “kısmi” işaretlenir. Aşağıdaki büyük klasörleri hariç tutun, yavaş tarayıcıları kapatın ya da kod analizi süre sınırını artırın.",
+	"forecast.coverage":         "Son taramada kod analizi %d dosya (%s) üzerinde yapıldı; %d dosya (%s) atlandı.",
+	"forecast.last.completed":   "son tarama %d dk sürdü",
+	"forecast.last.partial":     "son tarama %d dk sürdü, bazı tarayıcılar bitiremedi (kısmi)",
+	"forecast.last.timeout":     "son tarama %d dk sonra süre sınırına takıldı",
+	"forecast.last.failed":      "son tarama %d dk sonra başarısız oldu",
+	"forecast.suggest":          "Kod analizinin en çok zaman harcadığı klasörler, hariç tutmak için tıklayın:",
+	"forecast.exclude_confirm":  "“%s” klasörü bundan sonraki taramalarda hiçbir tarayıcı tarafından taranmasın mı?",
+	"forecast.exclude_hint":     "Bu klasörü tarama dışı bırak",
+	"scope.open":                "Tarama kapsamını düzenle",
+	"scope.title":               "Tarama kapsamı",
+	"scope.help":                "Taramanın neleri kapsayacağını belirleyin. Hazır temalar, kütüphaneler, küçültülmüş dosyalar ve medya, kod analizinde bulgu üretmeden süreyi uzatır. Bağımlılık açıkları (SCA) ve sızmış parolalar yine tüm depoda aranır.",
+	"scope.last_skipped":        "Son taramada kod analizinin dışında kalanlar: %d dosya, %s",
+	"scope.last_largest":        "Kod analizinin taradığı en büyük klasörler: toplam %d dosya, %s",
+	"scope.path":                "Yol",
+	"scope.reason":              "Neden",
+	"scope.size":                "Boyut",
+	"scope.files":               "%d dosya",
+	"scope.root_files":          "(kök dizindeki dosyalar)",
+	"scope.exclude":             "Hariç tut",
+	"scope.reason.excluded":     "hariç tutma listesi (vendor, build çıktısı, varlık dosyaları veya sizin eklediğiniz yol)",
+	"scope.reason.bundle":       "hazır tema / kütüphane klasörü (otomatik tespit)",
+	"scope.reason.minified":     "küçültülmüş (minified) veya paketlenmiş JS/CSS",
+	"scope.reason.large":        "dosya boyutu sınırını aşıyor",
+	"scope.all_tools":           "Hiçbir tarayıcı taramasın",
+	"scope.all_tools_hint":      "İşaretli dosya türleri parola taraması dahil tüm tarayıcıların dışında kalır.",
+	"scope.skip_docs":           "Belgeler (PDF, Word, Excel, PowerPoint…)",
+	"scope.skip_archives":       "Arşivler (zip, rar, 7z, tar.gz…)",
+	"scope.skip_media":          "Görsel, video ve ses dosyaları",
+	"scope.skip_fonts":          "Font dosyaları",
+	"scope.code_analysis":       "Kod analizinden çıkar",
+	"scope.code_analysis_hint":  "Yalnızca kod analizi ve kalite araçlarını (opengrep, DevSkim, Psalm, Lizard…) etkiler.",
+	"scope.skip_bundles":        "Hazır tema ve kütüphane klasörlerini otomatik tespit et ve atla (SmartAdmin, Metronic, CKEditor…)",
+	"scope.skip_minified":       "Küçültülmüş / paketlenmiş JS ve CSS dosyalarını atla",
+	"scope.max_file_mb":         "Dosya boyutu sınırı (MB)",
+	"scope.max_file_mb_hint":    "Bundan büyük kaynak dosyaları analiz edilmez (genellikle üretilmiş kod veya veri). 0 = sınırsız.",
+	"scope.exclude_paths":       "Hariç tutulacak yollar",
+	"scope.exclude_placeholder": "smartadmin\npublic/assets/plugins\n*.sql",
+	"scope.exclude_hint":        "Her satıra bir klasör, dosya veya desen yazın. “/” içermeyen desenler her seviyede eşleşir (ör. *.sql, testdata); “/” içerenler depo kökünden başlayan yoldur. Bu yollar hiçbir tarayıcı tarafından taranmaz.",
+	"scope.scanners":            "Çalışacak tarayıcılar",
+	"scope.scanners_hint":       "İşareti kaldırılan tarayıcı bu projede çalışmaz. Tahmini süreler son taramaya göredir; 5 dk'yı aşanlar renkli gösterilir. Dile ve dosyalara göre gereksiz olan tarayıcılar zaten otomatik atlanır.",
+	"scope.minutes":             "%d dk",
+	"flash.scope_invalid":       "Tarama kapsamı kaydedilemedi: geçersiz yol veya değer.",
+	"flash.scope_excluded":      "Klasör tarama dışı bırakıldı; bir sonraki taramadan itibaren geçerli.",
+}
+
+func init() {
+	for k, v := range trScope {
+		tr[k] = v
+	}
+}

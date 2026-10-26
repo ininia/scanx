@@ -80,7 +80,7 @@ func (w *Worker) runScan(ctx context.Context, job *db.Job, log *slog.Logger) err
 
 	sctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
-	tctx, tcancel := context.WithTimeoutCause(sctx, w.cfg.FetchTimeout+w.cfg.ScanTimeout,
+	tctx, tcancel := context.WithTimeoutCause(sctx, w.cfg.FetchTimeout+w.scanLimit(p),
 		&scanFailure{code: "scan_timeout", reason: "The scan exceeded the time limit (SCANX_SCAN_TIMEOUT)."})
 	defer tcancel()
 	go w.watchCancel(tctx, sc.ID, cancel)
@@ -90,6 +90,9 @@ func (w *Worker) runScan(ctx context.Context, job *db.Job, log *slog.Logger) err
 	rep, files, meta, err := w.execute(tctx, job, &sc, p, lg)
 	if ctx.Err() != nil {
 		return ctx.Err() // shutdown: retried later
+	}
+	if sc.Scope == service.ScopeFull {
+		w.saveScanStats(ctx, p, lg, rep, err)
 	}
 	if err != nil {
 		code, reason := "internal", err.Error()
@@ -226,7 +229,10 @@ func (w *Worker) execute(ctx context.Context, job *db.Job, sc *db.Scan, p *db.Pr
 	if sast <= 0 {
 		sast = scanner.DefaultSASTTimeout
 	}
-	lg.add(ctx, "Starting the scanners in an isolated container without network (code analysis limit %s)…", sast)
+	scanLimit := w.scanLimit(p)
+	scope := service.ParseScanScope(p.Settings)
+	lg.add(ctx, "Starting the scanners in an isolated container without network (time limit %s, code analysis %s)…", scanLimit, sast)
+	lg.markScanStart()
 	repoName := p.Name
 	if r, err := gitutil.ParseRepoURL(p.RepoUrl); err == nil {
 		repoName = r.Host + "/" + r.Path
@@ -236,7 +242,15 @@ func (w *Worker) execute(ctx context.Context, job *db.Job, sc *db.Scan, p *db.Pr
 		"--format", "json,sarif,html", "--fail-on", p.FailOn, "--profile", w.cfg.Profile,
 		"--history=" + strconv.FormatBool(p.ScanHistory), "--parallelism", strconv.Itoa(max(w.cfg.Parallelism, 1)),
 		"--branch", sc.Branch, "--commit", fr.Commit, "--repo", repoName, "--display-path", repoName,
-		"--sast-timeout", sast.String(),
+		"--sast-timeout", sast.String(), "--time-budget", scanLimit.String(),
+		"--max-file-mb", strconv.Itoa(scope.FileLimitMB()),
+		"--skip-minified=" + strconv.FormatBool(!scope.KeepMinified), "--skip-bundles=" + strconv.FormatBool(!scope.KeepBundles),
+	}
+	for _, ex := range scope.Patterns() {
+		cmd = append(cmd, "--exclude", ex)
+	}
+	for _, id := range scope.Disabled {
+		cmd = append(cmd, "--disable", id)
 	}
 	if meta.diff != nil {
 		cmd = append(cmd, "--only-files", "/work/"+gitfetch.ChangedListFile)
@@ -249,9 +263,6 @@ func (w *Worker) execute(ctx context.Context, job *db.Job, sc *db.Scan, p *db.Pr
 		Network:     "none",
 		MemoryBytes: w.cfg.MemoryBytes, NanoCPUs: w.cfg.NanoCPUs, PidsLimit: 1024, Runtime: w.cfg.Runtime,
 	}
-	// The whole scan step gets at least the SAST limit plus time for the
-	// other tools and the reports.
-	scanLimit := max(w.cfg.ScanTimeout, sast+15*time.Minute)
 	sctx, scancel := context.WithTimeoutCause(ctx, scanLimit,
 		&scanFailure{code: "scan_timeout", reason: "The scan exceeded the time limit (SCANX_SCAN_TIMEOUT)."})
 	defer scancel()

@@ -3,6 +3,7 @@ package ui
 import (
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ininia/scanx/internal/notify"
 	"github.com/ininia/scanx/internal/service"
@@ -82,6 +83,7 @@ templ ProjectDetail(p *Page, v *ProjectView) {
 				}
 			</div>
 		</div>
+		@scanForecast(p, v)
 		<div class="grid cols-4">
 			<div class="card stat crit"><div class="n">{ SevCount(v.Open, "critical") }</div><div class="l">{ p.T("sev.critical") }</div></div>
 			<div class="card stat high"><div class="n">{ SevCount(v.Open, "high") }</div><div class="l">{ p.T("sev.high") }</div></div>
@@ -225,6 +227,7 @@ templ ProjectDetail(p *Page, v *ProjectView) {
 				</div>
 			</div>
 		</div>
+		@scanScope(p, v)
 		if p.Can("project.delete") {
 			<div class="card">
 				<h2>{ p.T("projects.danger") }</h2>
@@ -689,4 +692,158 @@ templ scopeBadge(p *Page, sc *db.Scan) {
 	} else {
 		<span class="badge scope-full">{ p.T("scope.full") }</span>
 	}
+}
+
+// scanForecast tells, before a scan is started, how long it will take and
+// warns when it does not fit the time limit (with folders to exclude).
+templ scanForecast(p *Page, v *ProjectView) {
+	if f := v.Forecast; f != nil && f.Known {
+		<div class={ "forecast", templ.KV("alert warn", f.TooLong()), templ.KV("help-box", !f.TooLong()) }>
+			@Icon("clock")
+			<div>
+				if f.TooLong() {
+					<strong>{ p.T("forecast.too_long", Mins(f.Estimate), Mins(f.Limit)) }</strong>
+					<p>{ p.T("forecast.too_long_hint") }</p>
+				} else {
+					<strong>{ p.T("forecast.estimate", Mins(f.Estimate), Mins(f.Limit)) }</strong>
+				}
+				<div class="faint">
+					{ p.T("forecast.coverage", f.Last.Analysis.Files, MB(f.Last.Analysis.Bytes), f.Last.Analysis.SkippedFiles, MB(f.Last.Analysis.SkippedBytes)) }
+					if f.Last.Outcome != "" {
+						· { p.T("forecast.last." + f.Last.Outcome, Mins(time.Duration(f.Last.ActualS)*time.Second)) }
+					}
+				</div>
+				if len(f.Suggestions) > 0 && p.Can("project.write") {
+					<div class="forecast-suggest">
+						<span class="faint">{ p.T("forecast.suggest") }</span>
+						for _, d := range f.Suggestions {
+							<form method="post" action={ templ.SafeURL(p.OrgURL("/projects/" + v.Project.Slug + "/scope/exclude")) } hx-confirm={ p.T("forecast.exclude_confirm", d.Path) }>
+								@csrf(p)
+								<input type="hidden" name="path" value={ d.Path }/>
+								<button class="btn small" type="submit" title={ p.T("forecast.exclude_hint") }>@Icon("x")<span class="mono">{ d.Path }</span><span class="faint">{ MB(d.Bytes) }</span></button>
+							</form>
+						}
+					</div>
+				}
+				<a class="linkbtn" href="#scope">{ p.T("scope.open") }</a>
+			</div>
+		</div>
+	}
+}
+
+// scanScope is the project's scan coverage: file groups, code-analysis
+// pruning, excluded paths and the scanners that run.
+templ scanScope(p *Page, v *ProjectView) {
+	<div class="card" id="scope">
+		<h2>{ p.T("scope.title") }</h2>
+		<p class="muted">{ p.T("scope.help") }</p>
+		if f := v.Forecast; f != nil && f.Last != nil && f.Last.Analysis != nil && len(f.Last.Analysis.Skipped) > 0 {
+			<details class="scope-last">
+				<summary>{ p.T("scope.last_skipped", f.Last.Analysis.SkippedFiles, MB(f.Last.Analysis.SkippedBytes)) }</summary>
+				<div class="tablewrap flat">
+					<table class="data">
+						<thead><tr><th>{ p.T("scope.path") }</th><th>{ p.T("scope.reason") }</th><th>{ p.T("scope.size") }</th></tr></thead>
+						<tbody>
+							for _, d := range f.Last.Analysis.Skipped {
+								<tr>
+									<td class="mono">
+										if d.Path == "/" {
+											{ p.T("scope.root_files") }
+										} else {
+											{ d.Path }
+										}
+									</td>
+									<td>{ p.T("scope.reason." + d.Reason) }</td>
+									<td>{ MB(d.Bytes) } <span class="faint">· { p.T("scope.files", d.Files) }</span></td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			</details>
+			<details class="scope-last">
+				<summary>{ p.T("scope.last_largest", f.Last.Analysis.Files, MB(f.Last.Analysis.Bytes)) }</summary>
+				<div class="tablewrap flat">
+					<table class="data">
+						<thead><tr><th>{ p.T("scope.path") }</th><th>{ p.T("scope.size") }</th><th></th></tr></thead>
+						<tbody>
+							for _, d := range f.Last.Analysis.Largest {
+								<tr>
+									<td class="mono">
+										if d.Path == "/" {
+											{ p.T("scope.root_files") }
+										} else {
+											{ d.Path }
+										}
+									</td>
+									<td>{ MB(d.Bytes) } <span class="faint">· { p.T("scope.files", d.Files) }</span></td>
+									<td>
+										if d.Path != "/" && p.Can("project.write") {
+											<form method="post" action={ templ.SafeURL(p.OrgURL("/projects/" + v.Project.Slug + "/scope/exclude")) } hx-confirm={ p.T("forecast.exclude_confirm", d.Path) }>
+												@csrf(p)
+												<input type="hidden" name="path" value={ d.Path }/>
+												<button class="linkbtn" type="submit">{ p.T("scope.exclude") }</button>
+											</form>
+										}
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			</details>
+		}
+		if p.Can("project.write") {
+			<form method="post" action={ templ.SafeURL(p.OrgURL("/projects/" + v.Project.Slug + "/scope")) } class="stack">
+				@csrf(p)
+				<div class="grid cols-2">
+					<fieldset class="scope-group">
+						<legend>{ p.T("scope.all_tools") }</legend>
+						<label class="check"><input type="checkbox" name="skip_docs" checked?={ v.Scope.SkipDocs }/> { p.T("scope.skip_docs") }</label>
+						<label class="check"><input type="checkbox" name="skip_archives" checked?={ v.Scope.SkipArchives }/> { p.T("scope.skip_archives") }</label>
+						<label class="check"><input type="checkbox" name="skip_media" checked?={ !v.Scope.ScanMedia }/> { p.T("scope.skip_media") }</label>
+						<label class="check"><input type="checkbox" name="skip_fonts" checked?={ !v.Scope.ScanFonts }/> { p.T("scope.skip_fonts") }</label>
+						<span class="hint">{ p.T("scope.all_tools_hint") }</span>
+					</fieldset>
+					<fieldset class="scope-group">
+						<legend>{ p.T("scope.code_analysis") }</legend>
+						<label class="check"><input type="checkbox" name="skip_bundles" checked?={ !v.Scope.KeepBundles }/> { p.T("scope.skip_bundles") }</label>
+						<label class="check"><input type="checkbox" name="skip_minified" checked?={ !v.Scope.KeepMinified }/> { p.T("scope.skip_minified") }</label>
+						<div class="field">
+							<label for="max_file_mb">{ p.T("scope.max_file_mb") }</label>
+							<input id="max_file_mb" name="max_file_mb" type="number" min="0" max="100" value={ strconv.Itoa(v.Scope.FileLimitMB()) }/>
+							<span class="hint">{ p.T("scope.max_file_mb_hint") }</span>
+						</div>
+						<span class="hint">{ p.T("scope.code_analysis_hint") }</span>
+					</fieldset>
+				</div>
+				<div class="field">
+					<label for="exclude">{ p.T("scope.exclude_paths") }</label>
+					<textarea id="exclude" name="exclude" rows="4" class="mono" placeholder={ p.T("scope.exclude_placeholder") }>{ v.ExcludeText() }</textarea>
+					<span class="hint">{ p.T("scope.exclude_hint") }</span>
+				</div>
+				<fieldset class="scope-group">
+					<legend>{ p.T("scope.scanners") }</legend>
+					<span class="hint">{ p.T("scope.scanners_hint") }</span>
+					<div class="scope-tools">
+						for _, g := range ScannerGroups() {
+							<div>
+								<div class="faint small">{ p.T("cat." + g[0].Category) }</div>
+								for _, sc := range g {
+									<label class="check">
+										<input type="checkbox" name="run" value={ sc.ID } checked?={ v.Runs(sc.ID) }/>
+										<span>{ sc.Name }</span>
+										if d := v.ToolEstimate(sc.ID); d >= time.Minute {
+											<span class={ "faint", "small", templ.KV("slow", d >= 5*time.Minute) }>~{ p.T("scope.minutes", Mins(d)) }</span>
+										}
+									</label>
+								}
+							</div>
+						}
+					</div>
+				</fieldset>
+				<div><button class="btn primary" type="submit">{ p.T("action.save") }</button></div>
+			</form>
+		}
+	</div>
 }

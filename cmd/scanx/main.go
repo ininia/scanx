@@ -209,6 +209,18 @@ func runScan(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		o.Exclude = append(o.Exclude, v)
 		return nil
 	})
+	fs.IntVar(&o.MaxFileMB, "max-file-mb", 2, "do not analyse source files larger than this (0 = no limit)")
+	fs.BoolVar(&o.SkipMinified, "skip-minified", true, "do not analyse minified / bundled JavaScript and CSS")
+	fs.BoolVar(&o.SkipBundles, "skip-bundles", true, "do not analyse detected third-party theme / library folders")
+	fs.DurationVar(&o.TimeBudget, "time-budget", 0, "stop scanners in time to write a partial report (0 = no budget)")
+	fs.Func("disable", "scanner ID to skip (repeatable or comma-separated)", func(v string) error {
+		for _, id := range strings.Split(v, ",") {
+			if id = strings.TrimSpace(id); id != "" {
+				o.Disable = append(o.Disable, id)
+			}
+		}
+		return nil
+	})
 	if err := fs.Parse(args); err != nil {
 		return exitConfig
 	}

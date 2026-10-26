@@ -283,6 +283,7 @@ type Project struct {
 	SastTimeoutMinutes int32
 	PushScope          string
 	InventoryScanID    *uuid.UUID
+	ScanStats          json.RawMessage
 }
 
 type Report struct {

@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/ininia/scanx/internal/forecast"
 	"github.com/ininia/scanx/internal/store/db"
 )
 
@@ -27,6 +28,17 @@ type scanLog struct {
 	steps []string
 	tool  string
 	last  string
+	// stats is the scanner's SCANX_STATS payload (analysis tree, forecast);
+	// scanStart when the scan container started.
+	stats     []byte
+	scanStart time.Time
+}
+
+// markScanStart records when the scanners started.
+func (l *scanLog) markScanStart() {
+	l.mu.Lock()
+	l.scanStart = time.Now()
+	l.mu.Unlock()
 }
 
 func newScanLog(w *Worker, id uuid.UUID) *scanLog { return &scanLog{w: w, id: id} }
@@ -45,9 +57,18 @@ func (l *scanLog) setTool(ctx context.Context, stderr []byte) {
 	var keep []string
 	for _, line := range strings.Split(string(stderr), "\n") {
 		line = strings.TrimRight(line, "\r")
+		if rest, ok := strings.CutPrefix(line, forecast.StatsPrefix); ok {
+			l.mu.Lock()
+			l.stats = []byte(rest)
+			l.mu.Unlock()
+			continue
+		}
 		if strings.HasPrefix(line, "[") || strings.HasPrefix(line, "scanX ") {
 			keep = append(keep, line)
 		}
+	}
+	if len(keep) == 0 {
+		return // a killed container returns no output: keep what was shown
 	}
 	if len(keep) > maxToolLines {
 		keep = keep[len(keep)-maxToolLines:]

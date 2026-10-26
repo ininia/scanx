@@ -56,6 +56,14 @@ type ScanOptions struct {
 	NoSnippets  bool
 	Parallelism int
 	SASTTimeout time.Duration
+	// Code analysis runs on a pruned copy of the tree (package prune).
+	MaxFileMB    int  // files above this size are not analysed (0 = no limit)
+	SkipMinified bool // leave out minified / bundled JavaScript and CSS
+	SkipBundles  bool // leave out detected third-party theme / library folders
+	Disable      []string
+	// TimeBudget is the time the scan may take; tools still running near
+	// its end are stopped so that a partial report is written (0 = none).
+	TimeBudget time.Duration
 	// OnlyFiles names a file listing repository-relative paths (one per
 	// line); only those files are scanned (incremental scan of a push).
 	OnlyFiles string
@@ -176,7 +184,15 @@ func runExecScan(ctx context.Context, o ScanOptions, policy report.Policy, stdou
 		ToolHome:  envOr("SCANX_TOOL_HOME", tmp), // read-only caches baked into the image
 		TmpDir:    tmp,                           // writable; also HOME for tools
 	}
-	settings := scanner.Settings{Profile: o.Profile, History: o.History, Exclude: o.Exclude, SASTTimeout: o.SASTTimeout}
+	settings := scanner.Settings{
+		Profile: o.Profile, History: o.History, Exclude: o.Exclude, SASTTimeout: o.SASTTimeout,
+		Disabled: map[string]bool{},
+	}
+	for _, id := range o.Disable {
+		settings.Disabled[id] = true
+	}
+	fullBytes, analysis := buildAnalysisTree(o, settings, tmp, stderr)
+	env.AnalysisDir = analysis.dir
 	d, err := detect.Scan(o.Path)
 	if err != nil {
 		fmt.Fprintln(stderr, "detect:", err)
@@ -192,11 +208,22 @@ func runExecScan(ctx context.Context, o ScanOptions, policy report.Policy, stdou
 	if par < 1 {
 		par = 3
 	}
+	selected = orderScanners(selected, analysis.stats.Bytes, fullBytes)
+	reportForecast(stderr, o, selected, analysis.stats, fullBytes, par)
+	if o.TimeBudget > 0 {
+		// Leave time for merging and writing the reports.
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithDeadline(ctx, started.Add(max(o.TimeBudget-2*time.Minute, o.TimeBudget/2)))
+		defer cancel()
+	}
 	log := slog.New(slog.NewTextHandler(stderr, &slog.HandlerOptions{Level: slog.LevelWarn}))
 	fmt.Fprintf(stderr, "scanX %s: scanning %s with %d scanners…\n", version.Version, firstNonEmpty(o.DisplayPath, o.Path), len(selected))
 	res := engine.Run(ctx, engine.ExecRunner{BaseEnv: engine.DefaultBaseEnv(env)}, env, settings, d, selected,
 		engine.Options{Parallelism: par, StoreSnippets: !o.NoSnippets, Logger: log, Progress: stderr})
 	fmt.Fprintf(stderr, "[%s] merging findings and writing reports\n", time.Now().Format("15:04:05"))
+	if analysis.dir != "" && analysis.ownDir {
+		_ = os.RemoveAll(analysis.dir)
+	}
 
 	target := report.Target{Path: firstNonEmpty(o.DisplayPath, o.Path), Repo: o.Repo, Branch: o.Branch, Commit: o.Commit}
 	rep := report.Build(res, target, started, time.Now(), policy)
@@ -371,6 +398,14 @@ func dockerArgs(o ScanOptions, image string) []string {
 	}
 	if o.NoSnippets {
 		args = append(args, "--no-snippets")
+	}
+	args = append(args, "--max-file-mb", strconv.Itoa(o.MaxFileMB),
+		"--skip-minified="+strconv.FormatBool(o.SkipMinified), "--skip-bundles="+strconv.FormatBool(o.SkipBundles))
+	if o.TimeBudget > 0 {
+		args = append(args, "--time-budget", o.TimeBudget.String())
+	}
+	for _, id := range o.Disable {
+		args = append(args, "--disable", id)
 	}
 	for _, ex := range o.Exclude {
 		args = append(args, "--exclude", ex)

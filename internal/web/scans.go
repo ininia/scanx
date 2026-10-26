@@ -23,6 +23,8 @@ func (h *Handler) mountScans(r chi.Router) {
 	r.Post("/projects/{project}/deploy-key/rotate", h.rotateDeployKey)
 	r.Post("/projects/{project}/webhook/rotate", h.rotateWebhookSecret)
 	r.Post("/projects/{project}/settings", h.projectSettings)
+	r.Post("/projects/{project}/scope", h.projectScope)
+	r.Post("/projects/{project}/scope/exclude", h.projectScopeExclude)
 	r.Get("/projects/{project}/edit", h.projectEditForm)
 	r.Post("/projects/{project}/edit", h.projectEdit)
 	r.Get("/projects/{project}/issues", h.projectIssues)
@@ -54,7 +56,7 @@ func (h *Handler) projectDetail(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, r, err)
 		return
 	}
-	v := &ui.ProjectView{Project: p, Open: map[string]int{}}
+	v := &ui.ProjectView{Project: p, Open: map[string]int{}, Forecast: h.Svc.ForecastScan(p), Scope: service.ParseScanScope(p.Settings)}
 	v.Repo, _ = gitutil.ParseRepoURL(p.RepoUrl)
 	if v.Repo != nil {
 		v.HostTrusted = sshkeys.KnownHosts(v.Repo.Host, h.KnownHostsExtra) != ""
@@ -330,4 +332,58 @@ func (h *Handler) projectEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	redirect(w, r, "/o/"+o.Org.Slug+"/projects/"+slug, "flash.saved")
+}
+
+func (h *Handler) projectScope(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		h.errorPage(w, r, http.StatusBadRequest)
+		return
+	}
+	in := service.ScanScope{
+		SkipDocs: r.PostFormValue("skip_docs") == "on", SkipArchives: r.PostFormValue("skip_archives") == "on",
+		ScanMedia: r.PostFormValue("skip_media") != "on", ScanFonts: r.PostFormValue("skip_fonts") != "on",
+		KeepMinified: r.PostFormValue("skip_minified") != "on", KeepBundles: r.PostFormValue("skip_bundles") != "on",
+		Exclude: strings.Split(r.PostFormValue("exclude"), "\n"),
+	}
+	switch mb := atoi(r.PostFormValue("max_file_mb"), service.DefaultMaxFileMB); mb {
+	case 0:
+		in.MaxFileMB = -1 // no limit
+	case service.DefaultMaxFileMB:
+	default:
+		in.MaxFileMB = mb
+	}
+	run := map[string]bool{}
+	for _, id := range r.PostForm["run"] {
+		run[id] = true
+	}
+	for _, sc := range service.Scanners() {
+		if !run[sc.ID] {
+			in.Disabled = append(in.Disabled, sc.ID)
+		}
+	}
+	err := h.Svc.UpdateScanScope(r.Context(), orgFrom(r), chi.URLParam(r, "project"), in, server.MetaFrom(r))
+	var ve *service.ValidationError
+	if errors.As(err, &ve) {
+		redirect(w, r, h.projectURL(r), "flash.scope_invalid")
+		return
+	}
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	redirect(w, r, h.projectURL(r), "flash.saved")
+}
+
+func (h *Handler) projectScopeExclude(w http.ResponseWriter, r *http.Request) {
+	err := h.Svc.AddScanExclude(r.Context(), orgFrom(r), chi.URLParam(r, "project"), r.PostFormValue("path"), server.MetaFrom(r))
+	var ve *service.ValidationError
+	if errors.As(err, &ve) {
+		redirect(w, r, h.projectURL(r), "flash.scope_invalid")
+		return
+	}
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	redirect(w, r, h.projectURL(r), "flash.scope_excluded")
 }

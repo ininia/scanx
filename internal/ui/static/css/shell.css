@@ -363,3 +363,16 @@ fieldset.unstyled{border:0;margin:0;padding:0;min-width:0;display:flex;flex-dire
 td.lic-cell{max-width:420px;line-height:1.5}
 td.lic-cell .small{margin-top:3px}
 .row>label.check{align-self:flex-end;min-height:38px;white-space:nowrap}
+/* scan forecast and scope (project page) */
+.forecast{display:flex;gap:10px;align-items:flex-start}
+.forecast .icon{flex:none;width:18px;height:18px;margin-top:2px}
+.forecast p{margin:4px 0}
+.forecast-suggest{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0}
+.forecast-suggest .btn .faint{margin-left:4px}
+.scope-group{border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.scope-group legend{font-weight:600;padding:0 6px}
+.scope-tools{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px 18px}
+.scope-tools .check{font-size:13px}
+.scope-tools .slow{color:var(--sev-medium);font-weight:600}
+.scope-last{margin:6px 0 12px}
+.scope-last summary{cursor:pointer;color:var(--text-muted)}

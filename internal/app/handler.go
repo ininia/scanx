@@ -33,6 +33,7 @@ func BuildHandler(ctx context.Context, cfg *config.Config, pool *pgxpool.Pool, l
 	scfg := service.DefaultConfig()
 	scfg.SetupToken = cfg.SetupToken.Reveal()
 	scfg.AllowOrgCreation = cfg.AllowSignup
+	scfg.ScanTimeout = cfg.ScanTimeout
 	svc := service.New(&store.DB{Pool: pool}, box, scfg, log)
 	svc.SetNotifier(NewNotifier(cfg))
 	if n, err := svc.EnsureProjectCredentials(ctx); err != nil {

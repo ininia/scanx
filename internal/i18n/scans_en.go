@@ -181,7 +181,7 @@ var enScans = map[string]string{
 	"fail.not_found":             "Repository or branch not found. Check the URL and branch name; for private repositories make sure the deploy key was added.",
 	"fail.too_large":             "The repository is larger than allowed (SCANX_MAX_REPO_MB).",
 	"fail.timeout":               "Cloning took too long and was stopped. Check the network or the repository size.",
-	"fail.scan_timeout":          "The scan exceeded its time limit (SCANX_SCAN_TIMEOUT). Increase it for large repositories.",
+	"fail.scan_timeout":          "The scan exceeded its time limit. Exclude large third-party folders or switch off slow scanners under “Scan scope” on the project page, or raise the code-analysis time limit.",
 	"fail.private_host":          "The Git server is on a private network. To scan internal Git servers the administrator must set SCANX_ALLOW_PRIVATE_GIT_HOSTS=true.",
 	"fail.oom":                   "The scanners ran out of memory. Add RAM to the server or raise SCANX_SCANNER_MEMORY.",
 	"fail.no_report":             "The scanner stopped without producing a report.",

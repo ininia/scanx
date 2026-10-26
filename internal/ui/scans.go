@@ -24,6 +24,8 @@ type ProjectView struct {
 	Open          map[string]int
 	TestJob       *db.Job
 	HostTrusted   bool
+	Forecast      *service.ScanForecast
+	Scope         service.ScanScope
 }
 
 // SSH reports whether the repository is cloned over SSH (deploy key needed).

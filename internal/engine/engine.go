@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -28,6 +29,7 @@ const (
 	StatusOK      = "ok"
 	StatusFailed  = "failed"
 	StatusTimeout = "timeout"
+	StatusSkipped = "skipped" // not started: the scan ran out of time
 )
 
 // ToolRun records one scanner execution (scan_tools row).
@@ -107,14 +109,25 @@ func Run(ctx context.Context, r Runner, env scanner.Env, s scanner.Settings, d *
 		names = append(names, sc.Name())
 	}
 	pr.printf("%d scanners selected: %s", len(scanners), strings.Join(names, ", "))
-	sem := make(chan struct{}, opt.Parallelism)
+	// Scanners start in the given order (callers put the quick ones first),
+	// opt.Parallelism at a time. Once ctx is done (the scan's time budget)
+	// the remaining ones are recorded as not run.
+	next := make(chan int)
+	go func() {
+		defer close(next)
+		for i := range scanners {
+			next <- i
+		}
+	}()
 	var wg sync.WaitGroup
-	for i, sc := range scanners {
-		wg.Add(1)
-		go func(i int, sc scanner.Scanner) {
-			defer wg.Done()
-			sem <- struct{}{}
-			defer func() { <-sem }()
+	runIdx := func(i int) {
+		sc := scanners[i]
+		{
+			if ctx.Err() != nil {
+				res.Tools[i] = ToolRun{ID: sc.ID(), Name: sc.Name(), Status: StatusSkipped, Error: "not run: the scan's time budget was used up"}
+				pr.printf("✖ %s skipped: the scan's time budget was used up", sc.Name())
+				return
+			}
 			pr.printf("▶ %s started (limit %s)", sc.Name(), sc.Timeout(s))
 			stop := make(chan struct{})
 			go func(start time.Time) {
@@ -144,7 +157,16 @@ func Run(ctx context.Context, r Runner, env scanner.Env, s scanner.Settings, d *
 			perTool[i] = fs
 			log.InfoContext(ctx, "scanner finished", "scanner", run.ID, "status", run.Status,
 				"findings", run.Findings, "duration_ms", run.DurationMS)
-		}(i, sc)
+		}
+	}
+	for range opt.Parallelism {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := range next {
+				runIdx(i)
+			}
+		}()
 	}
 	wg.Wait()
 
@@ -222,6 +244,10 @@ func runOne(ctx context.Context, r Runner, env scanner.Env, s scanner.Settings, 
 	tctx, cancel := context.WithTimeout(ctx, sc.Timeout(s))
 	defer cancel()
 	start := time.Now()
+	full := env.SourceDir
+	if UsesAnalysisTree(sc) && env.AnalysisDir != "" {
+		env.SourceDir = env.AnalysisDir
+	}
 	cmd := sc.Command(env, s)
 	dir := env.TmpDir
 	if cmd.Dir != "" {
@@ -232,6 +258,9 @@ func runOne(ctx context.Context, r Runner, env scanner.Env, s scanner.Settings, 
 	run.ExitCode = code
 	run.LogExcerpt = excerpt(out)
 	switch {
+	case ctx.Err() != nil:
+		run.Status, run.Error = StatusTimeout, "stopped: the scan's time budget was used up"
+		return run, nil
 	case errors.Is(tctx.Err(), context.DeadlineExceeded):
 		run.Status, run.Error = StatusTimeout, fmt.Sprintf("timed out after %s", sc.Timeout(s))
 		return run, nil
@@ -247,8 +276,25 @@ func runOne(ctx context.Context, r Runner, env scanner.Env, s scanner.Settings, 
 		run.Status, run.Error = StatusFailed, "parse output: "+err.Error()
 		return run, nil
 	}
+	if env.SourceDir != full { // report paths of the checkout, not the pruned copy
+		from := strings.TrimSuffix(filepath.ToSlash(env.SourceDir), "/") + "/"
+		to := strings.TrimSuffix(filepath.ToSlash(full), "/") + "/"
+		for i := range fs {
+			if rest, ok := strings.CutPrefix(filepath.ToSlash(fs[i].File), from); ok {
+				fs[i].File = to + rest
+			}
+		}
+	}
 	run.Status, run.Findings = StatusOK, len(fs)
 	return run, fs
+}
+
+// UsesAnalysisTree reports whether a scanner analyses source code and so
+// runs on the pruned tree; secret, dependency and configuration scanners
+// always see the full checkout.
+func UsesAnalysisTree(sc scanner.Scanner) bool {
+	c := sc.Category()
+	return c == finding.CategorySAST || c == finding.CategoryQuality
 }
 
 func okExit(ok []int, code int) bool {

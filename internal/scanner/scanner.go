@@ -15,12 +15,15 @@ import (
 // image these come from SCANX_* environment variables.
 type Env struct {
 	SourceDir string // read-only checkout
-	OutDir    string // per-scan writable output directory
-	RulesDir  string // SAST rule bundle
-	DBDir     string // offline vulnerability databases
-	ConfigDir string // scanX-owned tool configs
-	ToolHome  string // HOME for tools (pre-populated caches, read-only)
-	TmpDir    string // writable scratch (tmpfs)
+	// AnalysisDir, when set, is the pruned copy of SourceDir that code
+	// analysis runs on (see package prune); same relative paths.
+	AnalysisDir string
+	OutDir      string // per-scan writable output directory
+	RulesDir    string // SAST rule bundle
+	DBDir       string // offline vulnerability databases
+	ConfigDir   string // scanX-owned tool configs
+	ToolHome    string // HOME for tools (pre-populated caches, read-only)
+	TmpDir      string // writable scratch (tmpfs)
 }
 
 // Settings are per-scan options (project settings / CLI flags).
@@ -160,4 +163,7 @@ var SASTExcludes = []string{
 	// assets
 	"*.svg", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.ico", "*.webp", "*.bmp", "*.woff", "*.woff2", "*.ttf",
 	"*.eot", "*.otf", "*.mp4", "*.mp3", "*.pdf", "*.zip",
+	// documents and archives
+	"*.doc", "*.docx", "*.xls", "*.xlsx", "*.ppt", "*.pptx", "*.odt", "*.ods", "*.odp", "*.rtf",
+	"*.rar", "*.7z", "*.tar", "*.gz", "*.tgz",
 }

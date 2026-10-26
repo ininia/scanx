@@ -60,6 +60,7 @@ type Config struct {
 	RequireAdmin2FA  bool
 	AllowOrgCreation bool // non-superadmins may create orgs (SaaS mode)
 	Issuer           string
+	ScanTimeout      time.Duration // worker's SCANX_SCAN_TIMEOUT (forecasts)
 }
 
 // DefaultConfig returns spec defaults.
@@ -73,6 +74,7 @@ func DefaultConfig() Config {
 		InvitationTTL:   7 * 24 * time.Hour,
 		RequireAdmin2FA: true,
 		Issuer:          "scanX",
+		ScanTimeout:     30 * time.Minute,
 	}
 }
 

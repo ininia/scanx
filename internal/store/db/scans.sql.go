@@ -1367,7 +1367,7 @@ func (q *Queries) MarkMissingIssuesFixedInFiles(ctx context.Context, arg MarkMis
 }
 
 const projectsMissingCredentials = `-- name: ProjectsMissingCredentials :many
-SELECT p.id, p.org_id, p.name, p.slug, p.repo_url, p.provider, p.auth_mode, p.branches, p.settings, p.schedule_cron, p.created_at, p.updated_at, p.archived_at, p.webhook_secret_enc, p.webhook_secret_nonce, p.fail_on, p.scan_history, p.sast_timeout_minutes, p.push_scope, p.inventory_scan_id FROM projects p
+SELECT p.id, p.org_id, p.name, p.slug, p.repo_url, p.provider, p.auth_mode, p.branches, p.settings, p.schedule_cron, p.created_at, p.updated_at, p.archived_at, p.webhook_secret_enc, p.webhook_secret_nonce, p.fail_on, p.scan_history, p.sast_timeout_minutes, p.push_scope, p.inventory_scan_id, p.scan_stats FROM projects p
 WHERE p.webhook_secret_enc IS NULL
    OR NOT EXISTS (SELECT 1 FROM ssh_keys k WHERE k.project_id = p.id AND k.status = 'active')
 `
@@ -1403,6 +1403,7 @@ func (q *Queries) ProjectsMissingCredentials(ctx context.Context) ([]Project, er
 			&i.SastTimeoutMinutes,
 			&i.PushScope,
 			&i.InventoryScanID,
+			&i.ScanStats,
 		); err != nil {
 			return nil, err
 		}
@@ -1426,6 +1427,20 @@ type RetireSSHKeysParams struct {
 
 func (q *Queries) RetireSSHKeys(ctx context.Context, arg RetireSSHKeysParams) error {
 	_, err := q.db.Exec(ctx, retireSSHKeys, arg.OrgID, arg.ProjectID)
+	return err
+}
+
+const setProjectScanStats = `-- name: SetProjectScanStats :exec
+UPDATE projects SET scan_stats = $2 WHERE id = $1
+`
+
+type SetProjectScanStatsParams struct {
+	ID        uuid.UUID
+	ScanStats json.RawMessage
+}
+
+func (q *Queries) SetProjectScanStats(ctx context.Context, arg SetProjectScanStatsParams) error {
+	_, err := q.db.Exec(ctx, setProjectScanStats, arg.ID, arg.ScanStats)
 	return err
 }
 
@@ -1564,6 +1579,21 @@ func (q *Queries) UpdateProjectScanSettings(ctx context.Context, arg UpdateProje
 		arg.SastTimeoutMinutes,
 		arg.PushScope,
 	)
+	return err
+}
+
+const updateProjectSettings = `-- name: UpdateProjectSettings :exec
+UPDATE projects SET settings = $3, updated_at = now() WHERE org_id = $1 AND id = $2
+`
+
+type UpdateProjectSettingsParams struct {
+	OrgID    uuid.UUID
+	ID       uuid.UUID
+	Settings json.RawMessage
+}
+
+func (q *Queries) UpdateProjectSettings(ctx context.Context, arg UpdateProjectSettingsParams) error {
+	_, err := q.db.Exec(ctx, updateProjectSettings, arg.OrgID, arg.ID, arg.Settings)
 	return err
 }
 
